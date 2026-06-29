@@ -4,10 +4,11 @@
 
 ## 現在地
 
-- フェーズ: **Phase 0（足場づくり）進行中**。詳細・進捗は `docs/WORK_PLAN.md`、環境は `docs/ENVIRONMENT.md`。
-- 済: `git init`(main)・`.gitignore`・各種ドキュメント・環境確認・yarn 導入。
-- 次: AnythingLLM の clone と `product/customer-rag-base` ブランチ作成。
-- リモートへの push は当面後回し、ローカルに細かくコミットする。
+- フェーズ: **Phase 1（個人PC検証）進行中**。詳細・進捗は `docs/WORK_PLAN.md`、環境は `docs/ENVIRONMENT.md`。
+- 済: Phase0 足場一式（git/env/yarn）、AnythingLLM v1.15.0 clone、**公式イメージで起動（`http://localhost:3001` healthy）**。
+- 次: llm-jp を vLLM で起動して接続 → 日本語 embedding 選定 → PDF/DOCX の RAG 検証。
+- 既知の制約: コンテナ内 github.com DNS 失敗でソースビルド不可（Phase2前に Docker DNS 修正が必要）。dev モードは sharp ビルド失敗中。
+- 起動は公式イメージ＝`runtime/docker-compose.yml`。push は当面後回し、ローカルに細かくコミット。
 
 ## 技術スタック / 構成（予定）
 
