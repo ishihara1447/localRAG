@@ -53,3 +53,6 @@ logs/
 
 # Claude Code 個人設定（コミットしない）
 .claude/settings.local.json
+
+# 実行時データ（AnythingLLM storage 等。顧客文書・DB・ベクタを含むためコミット禁止）
+runtime/anythingllm-storage/

@@ -21,6 +21,8 @@
 
 - **Yarn は classic(1.22.22)**。`corepack enable` は `/usr/bin` への symlink で `EACCES` だったため、npm prefix を `~/.npm-global` に向けて導入。AnythingLLM の `yarn setup` 等は 1.x で動く想定。berry が要る場合は別途対応。
 - **RTX 5070 Ti は Blackwell(sm_120)世代**。vLLM / PyTorch / CUDA は Blackwell 対応の新しめのバージョンが必要。動かない場合は CUDA 12.8+ 対応の nightly/最新版を使う。
-- **dev モードの `sharp` ネイティブビルドが WSL で失敗**（server・collector）。libvips プレビルトの GitHub ダウンロードがタイムアウト→ソースビルドにフォールバックして失敗。frontend・env生成・prisma(DB作成/seed)は成功。
-  - 当面は **Docker 版で起動**（コンテナ内でネイティブ依存を解決するため回避できる。配布の本命も Docker）。
-  - dev モードを使う場合の解決策候補: `sudo apt install -y libvips-dev`（要 sudo）/ libvips tarball を手動 curl で取得して配置 / プレビルトDLのリトライ。
+- **ネットワーク: github.com への到達が不安定（重要）**
+  - host の `git clone`(github) は成功するが、**大きめのバイナリDLは遅くタイムアウト**しやすい（sharp の libvips tarball DL がタイムアウト → server/collector の sharp ビルド失敗）。
+  - **Docker ビルドコンテナ内では github.com の DNS 解決自体が失敗**（`curl: (6) Could not resolve host: github.com`。一方 archive.ubuntu.com は解決OK）。このため `anything-llm/docker` のソースビルド（Dockerfile が github から yarn/uv 等を取得）が通らない。
+  - 暫定対応: **公式プレビルトイメージ `mintplexlabs/anythingllm` で起動**（`runtime/docker-compose.yml`）。pull は Docker Hub 経由で github を使わない。
+  - 恒久対応（Phase 2 のカスタムビルド前に必要）: Docker Desktop の daemon.json に `"dns": ["8.8.8.8","1.1.1.1"]` を設定して再起動 / WSL の DNS 設定見直し。dev モードの sharp は `sudo apt install -y libvips-dev`（要 sudo）でソースビルド可能にする手もある。

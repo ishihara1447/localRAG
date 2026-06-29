@@ -1,0 +1,21 @@
+# Phase 1 検証用: AnythingLLM 公式プレビルトイメージで起動する。
+# ソースからのカスタムビルド（anything-llm/docker）は Docker ビルドコンテナ内の
+# github.com DNS 解決問題が未解決のため Phase 2 で対応。それまでの起動・RAG検証用。
+services:
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: anythingllm
+    ports:
+      - "3001:3001"
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - STORAGE_DIR=/app/server/storage
+      # Phase1 既定: Telemetry OFF（顧客配布制約の先取り）
+      - DISABLE_TELEMETRY=true
+    volumes:
+      - ./anythingllm-storage:/app/server/storage
+    # Docker から WSL ホスト上の vLLM/Ollama へ接続するため
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
