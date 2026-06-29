@@ -4,9 +4,10 @@
 
 ## 現在地
 
-- フェーズ: **Phase 1（個人PC検証）進行中**。詳細・進捗は `docs/WORK_PLAN.md`、環境は `docs/ENVIRONMENT.md`。
+- フェーズ: **Phase 1（個人PC検証）進行中**。**セッション開始時はまず `docs/HANDOFF.md` を読む**（最新状態・ブロッカー・次手）。
 - 済: Phase0 足場一式（git/env/yarn）、AnythingLLM v1.15.0 clone、**公式イメージで起動（`http://localhost:3001` healthy）**。
-- 次: llm-jp を vLLM で起動して接続 → 日本語 embedding 選定 → PDF/DOCX の RAG 検証。
+- ★ブロッカー: **vLLM が WSL2 の `UVA is not available` でクラッシュ→停止中**（vLLM 0.24.0 V2ランナー非対応）。対処候補=古いvLLM版/V1経路/Ollama-GGUF（`docs/HANDOFF.md`）。
+- 次: vLLM起動の解消 → llm-jp 疎通 → PDF/DOCX の RAG 検証 → 日本語 embedding 選定。
 - 既知の制約: コンテナ内 github.com DNS 失敗でソースビルド不可（Phase2前に Docker DNS 修正が必要）。dev モードは sharp ビルド失敗中。
 - 起動は公式イメージ＝`runtime/docker-compose.yml`。push は当面後回し、ローカルに細かくコミット。
 
