@@ -9,12 +9,15 @@
 
 ## Phase 0: 足場づくり（今すぐ・半日）
 
-- [ ] `git init` し、本リポジトリを初期化（`.gitignore`: `**/storage/`, `.env`, `node_modules/`, モデル/ベクタファイル）
-- [ ] WSL2 + Node20 + Yarn(Corepack) + Docker Desktop の動作確認
-- [ ] `Mintplex-Labs/anything-llm` を fork → clone、`upstream` remote 追加
+- [x] `git init`(main) し本リポジトリを初期化、`.gitignore` 整備
+- [x] 環境確認（Node v22 / Docker 29 / Compose v5 / Ubuntu22.04・WSL2 / **GPU: RTX 5070 Ti 16GB**）→ `docs/ENVIRONMENT.md`
+- [x] yarn 導入（classic 1.22.22、`~/.npm-global/bin`）
+- [ ] AnythingLLM を `anything-llm/` に clone、`upstream` remote 追加（**fork/push は後回し**のため当面 upstream を直接 clone、origin は後で fork に差し替え）
 - [ ] `product/customer-rag-base` ブランチを作成
 
 **完了条件**: clone 済み・upstream 追従可能・ベースブランチがある
+
+> 構成メモ: 本 `localRAG` リポを「製品リポ（docs/packaging/overrides）」、`anything-llm/`（独立 git）を「fork 本体」とする2層構成。`anything-llm/` は親リポからは追跡しない（.gitignore 済）。
 
 ---
 

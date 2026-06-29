@@ -4,15 +4,16 @@
 
 ## 現在地
 
-- リポジトリはほぼ空。AnythingLLM の fork はまだ clone していない。
-- フェーズ: **Phase 1（個人PC検証）**。まず Docker 起動と PDF/DOCX の RAG 精度確認、llm-jp モデル接続方式の確定が目標。
-- 着手順序は計画書 §16 を参照。
+- フェーズ: **Phase 0（足場づくり）進行中**。詳細・進捗は `docs/WORK_PLAN.md`、環境は `docs/ENVIRONMENT.md`。
+- 済: `git init`(main)・`.gitignore`・各種ドキュメント・環境確認・yarn 導入。
+- 次: AnythingLLM の clone と `product/customer-rag-base` ブランチ作成。
+- リモートへの push は当面後回し、ローカルに細かくコミットする。
 
 ## 技術スタック / 構成（予定）
 
 - 改修元: `Mintplex-Labs/anything-llm`（MIT）の **GitHub ソース版**。Desktop 配布バイナリは使わない。
 - monorepo: `frontend`(Vite+React) / `server`(Node+Express, LLM・VectorDB・Workspace管理) / `collector`(文書パース) / `docker` / `embed`。
-- LLM: `llm-jp/llm-jp-4-8b-thinking`（Apache-2.0, ctx 65536）。vLLM の OpenAI 互換 API、または GGUF/Ollama 経由で接続。
+- LLM: `llm-jp/llm-jp-4-8b-thinking`（Apache-2.0, ctx 65536）。開発機に RTX 5070 Ti(16GB) があるため **vLLM の OpenAI 互換 API 直載せに確定**（GGUF/Ollama は保険）。
 - Vector DB: LanceDB（既定）。Embedding は日本語対応モデルを別途選定（標準の `all-MiniLM-L6-v2` は英語向け）。
 - 開発環境: Windows 11 + WSL2 Ubuntu + Docker Desktop。Node >= 18（推奨20）、Yarn は Corepack 経由。
 
