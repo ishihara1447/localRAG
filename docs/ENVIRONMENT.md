@@ -21,3 +21,6 @@
 
 - **Yarn は classic(1.22.22)**。`corepack enable` は `/usr/bin` への symlink で `EACCES` だったため、npm prefix を `~/.npm-global` に向けて導入。AnythingLLM の `yarn setup` 等は 1.x で動く想定。berry が要る場合は別途対応。
 - **RTX 5070 Ti は Blackwell(sm_120)世代**。vLLM / PyTorch / CUDA は Blackwell 対応の新しめのバージョンが必要。動かない場合は CUDA 12.8+ 対応の nightly/最新版を使う。
+- **dev モードの `sharp` ネイティブビルドが WSL で失敗**（server・collector）。libvips プレビルトの GitHub ダウンロードがタイムアウト→ソースビルドにフォールバックして失敗。frontend・env生成・prisma(DB作成/seed)は成功。
+  - 当面は **Docker 版で起動**（コンテナ内でネイティブ依存を解決するため回避できる。配布の本命も Docker）。
+  - dev モードを使う場合の解決策候補: `sudo apt install -y libvips-dev`（要 sudo）/ libvips tarball を手動 curl で取得して配置 / プレビルトDLのリトライ。

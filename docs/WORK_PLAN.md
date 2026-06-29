@@ -23,8 +23,8 @@
 
 ## Phase 1: 個人PC検証（動かす）
 
-- [ ] `yarn setup` → `yarn dev` で開発起動（frontend/server/collector）
-- [ ] `docker compose up -d --build` で self-hosted 版起動、`http://localhost:3001` 確認
+- [~] `yarn setup`: frontend・env生成・prisma(DB/seed)は成功。**server/collector の sharp ネイティブビルドが WSL で失敗**（`docs/ENVIRONMENT.md` 参照）→ dev起動は保留、Docker を優先
+- [ ] `docker compose up -d --build` で self-hosted 版起動、`http://localhost:3001` 確認 ← **実行中**
 - [ ] `server/storage` 永続化を確認（コンテナ再作成でデータが残る）
 - [ ] llm-jp-4-8b-thinking を **vLLM(OpenAI互換)** で起動し Generic OpenAI provider で接続（GGUF/Ollama 案も比較）
 - [ ] 日本語 embedding モデルを1つ仮選定して接続
