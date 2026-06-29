@@ -40,7 +40,8 @@ services:
       --max-model-len 8192
       --gpu-memory-utilization 0.88
     ports:
-      - "8000:8000"
+      # ホスト8000は他プロジェクトが使用中のため18000へ（コンテナ内は8000のまま=AnythingLLM接続先は不変）
+      - "18000:8000"
     volumes:
       # HF キャッシュを永続化（再起動時の再DLを防ぐ）
       - ~/.cache/huggingface:/root/.cache/huggingface

@@ -27,7 +27,8 @@
 - [x] self-hosted 起動: 公式イメージ `runtime/docker-compose.yml` で起動成功。`http://localhost:3001` が HTTP 200・healthy。（ソースビルドはコンテナ内 github.com DNS 失敗で不可 → `docs/ENVIRONMENT.md`）
 - [ ] （Phase2前）Docker DNS を修正し `anything-llm/docker` のカスタムビルドを通す
 - [ ] `server/storage` 永続化を確認（コンテナ再作成でデータが残る）
-- [ ] llm-jp-4-8b-thinking を **vLLM(OpenAI互換)** で起動し Generic OpenAI provider で接続（GGUF/Ollama 案も比較）
+- [~] llm-jp-4-8b-thinking を **vLLM(OpenAI互換, FP8)** で起動。vLLM 0.24.0 起動・HF からモデルDL中（ホスト18000→内8000、AnythingLLM事前配線済）。
+  - [ ] （セキュリティ）`trust_remote_code` の取得コード（llmjp4_harmony.py 等）をレビューし **--revision でコミット固定**（計画§4.2 / S系）。今は最新を動的取得中。
 - [ ] 日本語 embedding モデルを1つ仮選定して接続
 - [ ] サンプル PDF/DOCX を投入し RAG 精度・出典表示・日本語回答品質を確認
 
