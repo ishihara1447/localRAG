@@ -1,0 +1,49 @@
+# Node
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# AnythingLLM storage / 顧客文書・ベクタ・DB（コミット禁止）
+**/storage/
+*.db
+*.sqlite
+*.sqlite3
+vector-cache/
+lancedb/
+
+# Models / weights / 量子化ファイル（巨大・別管理）
+*.gguf
+*.safetensors
+*.bin
+models/
+hf-cache/
+
+# Build / cache
+dist/
+build/
+.cache/
+coverage/
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+logs/
+*.log
