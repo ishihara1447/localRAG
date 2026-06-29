@@ -1,4 +1,4 @@
-# Phase 1 検証用: AnythingLLM 公式プレビルトイメージで起動する。
+# Phase 1 検証用スタック: AnythingLLM(公式イメージ) + vLLM(llm-jp, FP8)。
 # ソースからのカスタムビルド（anything-llm/docker）は Docker ビルドコンテナ内の
 # github.com DNS 解決問題が未解決のため Phase 2 で対応。それまでの起動・RAG検証用。
 services:
@@ -13,9 +13,43 @@ services:
       - STORAGE_DIR=/app/server/storage
       # Phase1 既定: Telemetry OFF（顧客配布制約の先取り）
       - DISABLE_TELEMETRY=true
+      # LLM は同一ネットワークの vLLM(OpenAI互換) を既定に事前配線
+      - LLM_PROVIDER=generic-openai
+      - GENERIC_OPEN_AI_BASE_PATH=http://vllm:8000/v1
+      - GENERIC_OPEN_AI_MODEL_PREF=llm-jp-4-8b-thinking
+      - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=8192
+      - GENERIC_OPEN_AI_API_KEY=dummy
+      # Embedding は Phase1 は内蔵(native)で動作確認のみ。日本語用は後で選定。
     volumes:
       - ./anythingllm-storage:/app/server/storage
-    # Docker から WSL ホスト上の vLLM/Ollama へ接続するため
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    depends_on:
+      - vllm
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-llmjp
+    # llm-jp-4 系は trust-remote-code が必要。FP8 で 16GB に収める。max-model-len は当面 8192。
+    command: >
+      --model llm-jp/llm-jp-4-8b-thinking
+      --served-model-name llm-jp-4-8b-thinking
+      --quantization fp8
+      --trust-remote-code
+      --max-model-len 8192
+      --gpu-memory-utilization 0.88
+    ports:
+      - "8000:8000"
+    volumes:
+      # HF キャッシュを永続化（再起動時の再DLを防ぐ）
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped

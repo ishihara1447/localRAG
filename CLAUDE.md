@@ -14,7 +14,7 @@
 
 - 改修元: `Mintplex-Labs/anything-llm`（MIT）の **GitHub ソース版**。Desktop 配布バイナリは使わない。
 - monorepo: `frontend`(Vite+React) / `server`(Node+Express, LLM・VectorDB・Workspace管理) / `collector`(文書パース) / `docker` / `embed`。
-- LLM: `llm-jp/llm-jp-4-8b-thinking`（Apache-2.0, ctx 65536）。開発機に RTX 5070 Ti(16GB) があるため **vLLM の OpenAI 互換 API 直載せに確定**（GGUF/Ollama は保険）。
+- LLM: `llm-jp/llm-jp-4-8b-thinking`（Apache-2.0, ctx 65536）。16GB VRAM に bf16(≈17GB)は収まらないため **vLLM + FP8 量子化**で OpenAI 互換 API 提供（GGUF/Ollama は保険）。`--trust-remote-code` 必須＝コミット固定が前提。
 - Vector DB: LanceDB（既定）。Embedding は日本語対応モデルを別途選定（標準の `all-MiniLM-L6-v2` は英語向け）。
 - 開発環境: Windows 11 + WSL2 Ubuntu + Docker Desktop。Node >= 18（推奨20）、Yarn は Corepack 経由。
 

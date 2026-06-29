@@ -14,8 +14,12 @@
 
 ## 確定した方針
 
-- **llm-jp の実行方式 = vLLM(OpenAI互換API)を第一候補に確定**。VRAM 16GB あり、8.59B モデルは fp16/bf16 でも十分収まる見込み。量子化GGUFは性能・互換の保険として残す。
-- AnythingLLM(Docker)からホストの vLLM へは `http://host.docker.internal:8000/v1` で接続。
+- **llm-jp の実行方式 = vLLM(OpenAI互換API) + FP8 量子化に確定**（ユーザー選択）。
+  - 8.59B を **bf16 でロードすると約17GB で 16GB VRAM に収まらない**ため量子化必須（当初「bf16で収まる」は誤り）。
+  - Blackwell はFP8ネイティブ。vLLM `--quantization fp8`（オンライン量子化、重みFP8≈8.6GB）で残りをKVキャッシュに回す。`--max-model-len` は VRAM に合わせ当面 8192。
+  - 初回は HF から bf16 重み ≈17GB を DL してから FP8 化する（DL重い）。GGUF/Ollama は保険。
+- GPU: ドライバ591.86 / CUDA 13.1 / Docker に nvidia ランタイム有り（`nvidia-container-cli` 1.19.0）→ コンテナで GPU 利用可。
+- 同一 compose ネットワークなら AnythingLLM → vLLM は `http://vllm:8000/v1`。ホスト直起動の vLLM へは `http://host.docker.internal:8000/v1`。
 
 ## 注意
 
