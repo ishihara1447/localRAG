@@ -50,3 +50,6 @@ logs/
 
 # AnythingLLM fork 本体（独立 git リポとして管理。親リポからは追跡しない）
 /anything-llm/
+
+# Claude Code 個人設定（コミットしない）
+.claude/settings.local.json
