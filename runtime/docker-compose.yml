@@ -18,6 +18,7 @@ networks:
 services:
   ollama:
     image: ollama/ollama:latest
+    pull_policy: never
     container_name: rag-ollama
     networks:
       - rag-internal
@@ -50,6 +51,7 @@ services:
 
   anythingllm:
     image: mintplexlabs/anythingllm:latest
+    pull_policy: never
     container_name: anythingllm
     networks:
       - rag-internal
