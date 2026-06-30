@@ -26,17 +26,20 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; [print(m['name']) for m in json.load(sys.stdin)['models']]"
 ```
 
-## 3. Phase 1 RAGパイプライン検証結果（今セッションで確認済み）
+## 3. Phase 1 RAGパイプライン検証結果
 
 ### ✅ 疎通確認済み項目
 
 | 項目 | 結果 |
 |------|------|
-| Ollama ↔ AnythingLLM 接続 | OK（`network_mode:host` で 127.0.0.1 到達）|
-| mxbai-embed-large で日本語 embed | OK（2チャンクに分割してベクター化）|
-| LanceDB ベクター検索 | OK（スコア 0.77 / 0.74 で正しいチャンク取得）|
+| Ollama Docker サービス経由で接続 | OK（`http://ollama:11434`、rag-internal ネットワーク）|
+| mxbai-embed-large で日本語 embed | OK（チャンク分割してベクター化）|
+| LanceDB ベクター検索 | OK（スコア 0.75 / 0.71 で正しいチャンク取得）|
 | 出典付き RAG 回答 | OK（「第3条パスワード管理: 12文字以上、90日ごと」を正確に回答）|
-| 文書外クエリ → 不明応答 | OK（「文書に含まれていないため分かりません」）|
+| 文書外クエリ → 不明応答 | OK（「文書にはそのような情報が含まれていません」）|
+| ネットワーク分離 | OK（rag-internal / rag-public 分離, Ollama は外部非公開）|
+| HF_HUB_OFFLINE=1 | OK（HuggingFace Hub アクセス禁止）|
+| pull_policy: never | OK（オフライン環境対応済み）|
 
 ### 確認方法（REST API キー: `ZDFAHSS-KRA4P6P-GB1GH33-9J34J3D`）
 
@@ -75,21 +78,21 @@ curl -X POST http://localhost:3001/api/v1/workspace/rag/chat \
 - Docker ビルド内で `github.com` が解決できないため `anything-llm/docker` のソースビルド不可。
 - **対処**: Docker Desktop daemon.json に `"dns":["8.8.8.8","1.1.1.1"]` を設定して再起動（要 Docker Desktop GUI）。
 
-### [W1] 現在のネットワーク構成が配布向きでない（要改修）
+### [W1] ~~現在のネットワーク構成が配布向きでない~~ → **解消済み（2026-06-30）**
 
-- 問題: AnythingLLM は `network_mode:host` でホスト Ollama (127.0.0.1:11434) に接続中。
-  - これは「ホスト 11434 がすでに使用中（ホスト Ollama）」のためのワークアップ。
-- **配布向け正しい構成**: Ollama も Docker サービスとして compose に含め、Docker 内部ネットワーク (`http://ollama:11434`) で接続する。`network_mode:host` は不要になる。
-- ホスト Ollama と port 競合する場合は `docker compose stop` してホスト Ollama を一時停止するか、`ports: "11435:11434"` で別ポートに出す。
+Ollama Docker サービスを compose に追加し、`network_mode:host` を撤廃。
+- AnythingLLM → `http://ollama:11434`（rag-internal ネットワーク）
+- Ollama ポートはホストに非公開（`internal: true`）
+- `pull_policy: never` でオフライン環境対応済み
+- モデルは `docker cp` でホストから転送（`./ollama-models` ボリューム）
 
 ## 5. 次のアクション
 
 ### 即座に取り組む（次セッション優先）
 
-1. **[W1] 配布向けネットワーク構成に修正**: compose の Ollama サービスを復活、`network_mode:host` を撤廃、`depends_on: ollama` を追加。ホスト Ollama と競合しないよう `ports: "11435:11434"` にする。
-2. **[B2] llm-jp-4-8b-thinking タイムアウト対処**: `OLLAMA_RESPONSE_TIMEOUT=1200000` を追加し、llm-jp-4 に戻してテスト。
-3. **PDF/DOCX テスト**: サンプル PDF をアップロードして RAG が動くか確認。
-4. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら multilingual-e5-large 等に変更。
+1. **[B2] llm-jp-4-8b-thinking タイムアウト対処**: `OLLAMA_RESPONSE_TIMEOUT=1200000` を追加し、llm-jp-4 に戻してテスト。
+2. **PDF/DOCX テスト**: サンプル PDF をアップロードして RAG が動くか確認。
+3. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら `pfnet/plamo-embedding-1b` 等に変更（JMTEB スコア最高、Apache 2.0）。
 
 ### Phase 1 残タスク（B1, B2 解消後）
 
