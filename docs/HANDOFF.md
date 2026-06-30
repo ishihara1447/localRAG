@@ -73,10 +73,30 @@ curl -X POST http://localhost:3001/api/v1/workspace/rag/chat \
 - **対処方法（次セッション）**: compose に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を追加し、`OLLAMA_MODEL_PREF=hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に戻す。また thinking OFF (`/no_think` システムプロンプト) も試す。
 - **代替**: llm-jp-4 の非 thinking 版 GGUF があれば最善。または qwen3:8b（高速, 日本語対応）で継続。
 
-### [B3] コンテナ内 github.com DNS 失敗（未解決、Phase2 課題）
+### [B3] コンテナ内 github.com DNS 失敗（★解決方針確定 2026-07-01）
 
-- Docker ビルド内で `github.com` が解決できないため `anything-llm/docker` のソースビルド不可。
-- **対処**: Docker Desktop daemon.json に `"dns":["8.8.8.8","1.1.1.1"]` を設定して再起動（要 Docker Desktop GUI）。
+- 症状: Docker ビルド内で `github.com` が解決できず `anything-llm/docker` のソースビルド不可。
+- **根本原因（判明）**: daemon.json に既に `"dns":["8.8.8.8","1.1.1.1"]` はあるが、
+  **bridge ネットワークでは外向き DNS がブロックされ失敗**。一方 **host ネットワークでは解決成功**。
+  （検証: `docker run --rm --network=host --entrypoint sh ollama/ollama:latest -c "getent hosts github.com"` → 成功）
+- **解決策（sudo 不要・daemon.json 編集不要）**: `docker build --network=host` でビルドする。
+
+#### 次セッション最初の作業（カスタムイメージ化 = 配布の本丸 P0）
+
+```bash
+cd /home/ishihara1447/projects/localRAG/anything-llm
+# host ネットワークでビルド（DNS回避、10〜20分。run_in_background 推奨）
+docker build --network=host -t localrag-anythingllm:1.0.0 -f docker/Dockerfile .
+```
+ビルド成功後:
+1. `runtime/docker-compose.yml` の `image: mintplexlabs/anythingllm:latest` を
+   `localrag-anythingllm:1.0.0` に差し替え（`latest` 排除）。
+2. 起動して外部プロバイダ拒否（allowlist）が効くことを確認。
+3. `scripts/export.sh` の versions.lock 生成を独自イメージ digest に対応させる。
+
+- **確認済み**: allowlist 改修は `server/utils/helpers/index.js`（7箇所）と `updateENV.js` に正しく存在。
+  Dockerfile はマルチアーキ構成（amd64 ステージが対象）。`.dockerignore` 確認は未完→ビルド前に確認。
+- 注意: 当該セッションで grep 出力に表示乱れ（同一行反復）が出たが**実ファイルは正常**（index.js 510行）。
 
 ### [W1] ~~現在のネットワーク構成が配布向きでない~~ → **解消済み（2026-06-30）**
 
