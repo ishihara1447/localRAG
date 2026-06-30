@@ -1,32 +1,73 @@
-# Phase 1 検証用スタック: AnythingLLM(公式イメージ) + ホスト Ollama。
+# 配布用スタック: AnythingLLM + Ollama (Docker サービス)
 #
-# vLLM 0.24.0 は WSL2 で UVA 非対応のためフォールバック。
-# ホスト Ollama (root PID, 127.0.0.1:11434) には network_mode:host で到達。
-# 利用モデル:
-#   LLM       : hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M  (5.3GB Q4_K_M)
-#   Embedding : mxbai-embed-large:latest                           (334MB F16)
+# 起動: docker compose up -d
+# 初回モデルダウンロード:
+#   docker compose exec ollama ollama pull llama3.1:8b
+#   docker compose exec ollama ollama pull mxbai-embed-large:latest
 #
-# AnythingLLM Embedding を Ollama に切り替える場合は UI Settings > Embedder > Ollama で設定。
-# Phase 2 以降: Docker DNS 修正 → カスタムビルド → vLLM + llm-jp(FP8) に戻す。
+# ホスト Ollama (127.0.0.1:11434) が起動中の場合は停止してから本 compose を使うこと。
+# 開発環境で共存する場合: Docker Ollama は ports: "11435:11434" で別ポートに出す。
+
+networks:
+  rag-internal:
+    # LLM/embedding/vectorDB の内部通信。外部公開しない。
+    internal: true
+  rag-public:
+    # AnythingLLM の UI ポート (3001) だけ外部に出す。
+
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag-ollama
+    networks:
+      - rag-internal
+    # 開発環境でホスト Ollama (11434) と共存する場合は下行を有効化:
+    # ports:
+    #   - "11435:11434"
+    environment:
+      # モデルを一定時間後にVRAMからアンロードしない (デフォルト5分でアンロードされ次リクエストが遅い)
+      - OLLAMA_KEEP_ALIVE=24h
+      # 同時リクエスト処理数 (デフォルト1=直列。ユーザー数に合わせて調整)
+      - OLLAMA_NUM_PARALLEL=4
+      # HuggingFace Hub へのアクセスを禁止 (セキュリティ: モデルコードのリモートDL防止)
+      - HF_HUB_OFFLINE=1
+    volumes:
+      - ./ollama-models:/root/.ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
   anythingllm:
     image: mintplexlabs/anythingllm:latest
     container_name: anythingllm
-    # host ネットワーク: ホストの 127.0.0.1:11434(Ollama) に直接アクセス可能になる。
-    # ports 指定不要（コンテナはホストネットワークを共有、http://localhost:3001 でアクセス）。
-    network_mode: host
+    networks:
+      - rag-internal
+      - rag-public
+    ports:
+      - "3001:3001"
     cap_add:
       - SYS_ADMIN
+    depends_on:
+      ollama:
+        condition: service_healthy
     environment:
       - STORAGE_DIR=/app/server/storage
-      # Phase1 既定: Telemetry OFF（顧客配布制約の先取り）
+      # Telemetry OFF (顧客配布制約)
       - DISABLE_TELEMETRY=true
-      # LLM: ホスト Ollama (network_mode:host で 127.0.0.1 到達可)
-      # 現在: llama3.1:8b で Phase1 RAG パイプライン疎通確認済み（~90秒/クエリ）。
-      # llm-jp-4-8b-thinking に戻す場合: OLLAMA_MODEL_PREF と TOKEN_LIMIT を変更し、
-      #   OLLAMA_RESPONSE_TIMEOUT=1200000 (20分) も設定すること（thinking で 3分+かかるため）。
+      # LLM: Docker 内部ネットワーク経由で Ollama に接続
       - LLM_PROVIDER=ollama
-      - OLLAMA_BASE_PATH=http://127.0.0.1:11434
+      - OLLAMA_BASE_PATH=http://ollama:11434
       - OLLAMA_MODEL_PREF=llama3.1:8b
       - OLLAMA_MODEL_TOKEN_LIMIT=8192
       # llm-jp-4-8b-thinking 用タイムアウト(20分)。thinking モデル切り替え時に有効化:
@@ -34,16 +75,12 @@ services:
       # Embedding: mxbai-embed-large (多言語対応, F16, 334MB) を Ollama 経由で使用
       # mxbai-embed-large の最大入力は 512 tokens → チャンクを 500 chars に設定
       - EMBEDDING_ENGINE=ollama
-      - EMBEDDING_BASE_PATH=http://127.0.0.1:11434
+      - EMBEDDING_BASE_PATH=http://ollama:11434
       - EMBEDDING_MODEL_PREF=mxbai-embed-large:latest
       - EMBEDDING_MODEL_MAX_CHUNK_LENGTH=500
     volumes:
       - ./anythingllm-storage:/app/server/storage
     restart: unless-stopped
-
-# --- Ollama Docker サービス (ホスト Ollama が稼働中のため不要) ---
-# ホスト Ollama: root プロセス PID 2293 (127.0.0.1:11434), 起動日 Jun29。
-# 再起動が必要になった場合: sudo OLLAMA_HOST=0.0.0.0 ollama serve (0.0.0.0 バインドで他サービスからも到達可)
 
 # --- vLLM（WSL2 ブロッカーのため停止中）---
 # RuntimeError: UVA is not available (GPUModelRunnerV2, WSL2 非対応)
@@ -53,12 +90,16 @@ services:
 #  vllm:
 #    image: vllm/vllm-openai:latest
 #    container_name: vllm-llmjp
+#    networks:
+#      - rag-internal
 #    command: >
-#      --model llm-jp/llm-jp-4-8b-thinking
+#      --model /models/llm-jp-4-8b-thinking
 #      --quantization fp8 --trust-remote-code --max-model-len 8192
-#      --gpu-memory-utilization 0.88 --enforce-eager
-#    ports:
-#      - "18000:8000"
+#      --gpu-memory-utilization 0.85 --enforce-eager
+#    environment:
+#      # HuggingFace Hub へのオフラインアクセス禁止 (trust_remote_code サプライチェーン攻撃対策)
+#      - HF_HUB_OFFLINE=1
+#      # モデルは必ず固定コミットハッシュで取得し、SHA-256 検証済みの Volume をマウントすること
 #    volumes:
 #      - ~/.cache/huggingface:/root/.cache/huggingface
 #    ipc: host
