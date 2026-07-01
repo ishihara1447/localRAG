@@ -64,8 +64,17 @@ fi
 
 # --- 2. Docker イメージ削除 ---
 log INFO "[2/3] Docker イメージを削除中..."
+# 実際にインストールされた image は versions.lock に記録されている
+# (バージョンにより image 名・タグが変わり得るため、それを優先する)。
+# versions.lock が無い場合のみ、現行既定値にフォールバックする。
+ANYTHINGLLM_IMAGE_TO_REMOVE="localrag-anythingllm:1.0.0"
+OLLAMA_IMAGE_TO_REMOVE="ollama/ollama:latest"
+if [[ -f "$SCRIPT_DIR/versions.lock" ]]; then
+  ANYTHINGLLM_IMAGE_TO_REMOVE=$(grep '^ANYTHINGLLM_IMAGE=' "$SCRIPT_DIR/versions.lock" | cut -d= -f2- || echo "$ANYTHINGLLM_IMAGE_TO_REMOVE")
+  OLLAMA_IMAGE_TO_REMOVE=$(grep '^OLLAMA_IMAGE=' "$SCRIPT_DIR/versions.lock" | cut -d= -f2- || echo "$OLLAMA_IMAGE_TO_REMOVE")
+fi
 IMAGES_REMOVED=0
-for img in mintplexlabs/anythingllm ollama/ollama; do
+for img in "$ANYTHINGLLM_IMAGE_TO_REMOVE" "$OLLAMA_IMAGE_TO_REMOVE"; do
   if docker image inspect "$img" &>/dev/null 2>&1; then
     docker rmi "$img" 2>&1 | while read -r line; do log INFO "      $line"; done
     ((IMAGES_REMOVED++)) || true
@@ -96,7 +105,7 @@ log INFO ""
 log INFO "【削除されたもの】"
 log INFO "  - コンテナ: anythingllm, rag-ollama"
 log INFO "  - ネットワーク: rag-internal, rag-public"
-log INFO "  - Docker イメージ: mintplexlabs/anythingllm, ollama/ollama"
+log INFO "  - Docker イメージ: $ANYTHINGLLM_IMAGE_TO_REMOVE, $OLLAMA_IMAGE_TO_REMOVE"
 if [[ "$KEEP_DATA" == false ]]; then
   log INFO "  - データ: anythingllm-storage/"
 fi
