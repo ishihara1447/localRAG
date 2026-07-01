@@ -1,46 +1,80 @@
 #!/usr/bin/env bash
-# export.sh — オンライン環境で実行。オフライン配布パッケージを作成する。
+# export.sh — オンライン環境で実行。再現可能・検証可能なオフライン配布パッケージを作成する。
 #
 # 使い方:
-#   bash scripts/export.sh [出力先ディレクトリ]
-#   例: bash scripts/export.sh ./dist/localrag-v1.0
+#   bash scripts/export.sh [オプション]
+#
+# オプション:
+#   --version VER       パッケージバージョン (既定: git describe または日付)
+#   --output DIR        出力先ディレクトリ (既定: dist/localrag-<version>)
+#   --llm-model M       LLM モデル (既定: llama3.1:8b)
+#   --embed-model M     Embedding モデル (既定: mxbai-embed-large:latest)
+#   --anythingllm-image IMG  AnythingLLM イメージ (既定: mintplexlabs/anythingllm:latest)
+#   --help              ヘルプ表示
 #
 # 必要条件:
-#   - Docker & Docker Compose が使用可能
-#   - インターネット接続（Docker イメージ・モデルのダウンロード用）
+#   - Docker & Docker Compose、インターネット接続
 #
 # 出力物:
 #   <出力先>/
-#     install.sh              インストールスクリプト（オフライン機で実行）
-#     uninstall.sh            アンインストールスクリプト
-#     smoke-test.sh           動作確認スクリプト
-#     docker-compose.yml      Compose 設定
-#     versions.lock           バージョン固定ファイル
-#     images/
-#       rag-images.tar.gz     Docker イメージ（anythingllm + ollama）
-#       rag-images.tar.gz.sha256  チェックサム
-#     ollama-models/          Ollama モデルファイル群
+#     install.sh / uninstall.sh / smoke-test.sh / start.sh / stop.sh / backup.sh / restore.sh
+#     docker-compose.yml
+#     versions.lock                       バージョン・digest・git commit
+#     checksums/
+#       images.sha256                     イメージ tar の SHA-256
+#       ollama-models.sha256              モデル全ファイルの SHA-256 manifest
+#       package.sha256                     パッケージ全体の SHA-256 manifest
+#     images/rag-images.tar.gz            Docker イメージ
+#     ollama-models/                      Ollama モデルファイル群
+#     fixtures/                           smoke-test 用テスト文書 (存在すれば)
+#     LICENSES/ NOTICE                    法務情報 (存在すれば)
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# 設定
+# 既定値・引数解析
 # ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RUNTIME_DIR="$PROJECT_ROOT/runtime"
+
 ANYTHINGLLM_IMAGE="mintplexlabs/anythingllm:latest"
 OLLAMA_IMAGE="ollama/ollama:latest"
 LLM_MODEL="llama3.1:8b"
 EMBED_MODEL="mxbai-embed-large:latest"
+VERSION=""
+OUTPUT_DIR=""
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-RUNTIME_DIR="$PROJECT_ROOT/runtime"
-OUTPUT_DIR="${1:-$PROJECT_ROOT/dist/localrag-package}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version)           VERSION="$2"; shift 2 ;;
+    --output)            OUTPUT_DIR="$2"; shift 2 ;;
+    --llm-model)         LLM_MODEL="$2"; shift 2 ;;
+    --embed-model)       EMBED_MODEL="$2"; shift 2 ;;
+    --anythingllm-image) ANYTHINGLLM_IMAGE="$2"; shift 2 ;;
+    --help|-h)
+      grep '^#' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *) echo "不明なオプション: $1"; exit 1 ;;
+  esac
+done
 
-TEMP_CONTAINER="localrag-export-ollama-$$"
+# バージョン未指定なら git から導出、なければ日付
+if [[ -z "$VERSION" ]]; then
+  VERSION="$(git -C "$PROJECT_ROOT" describe --tags --always 2>/dev/null || date '+%Y%m%d')"
+fi
+[[ -z "$OUTPUT_DIR" ]] && OUTPUT_DIR="$PROJECT_ROOT/dist/localrag-$VERSION"
+
+GIT_COMMIT="$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo 'unknown')"
+if [[ "$GIT_COMMIT" == "unknown" ]]; then
+  echo "[ERROR] git commit hash を取得できません。git リポジトリ内で実行してください。" >&2
+  exit 1
+fi
 LOG_FILE="$OUTPUT_DIR/export.log"
+TEMP_CONTAINER="localrag-export-ollama-$$"
 
 # ---------------------------------------------------------------------------
-# ログ関数
+# ログ・クリーンアップ
 # ---------------------------------------------------------------------------
 log() {
   local level="$1"; shift
@@ -49,99 +83,119 @@ log() {
   [[ -f "$LOG_FILE" ]] && echo "$msg" >> "$LOG_FILE"
 }
 
-# ---------------------------------------------------------------------------
-# クリーンアップ（成功・失敗どちらでも実行）
-# ---------------------------------------------------------------------------
 cleanup() {
   local exit_code=$?
-  if docker ps -a --format '{{.Names}}' | grep -q "^${TEMP_CONTAINER}$" 2>/dev/null; then
+  if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^${TEMP_CONTAINER}$"; then
     log INFO "一時コンテナを削除中..."
     docker rm -f "$TEMP_CONTAINER" >/dev/null 2>&1 || true
   fi
-  if [[ $exit_code -ne 0 ]]; then
-    log ERROR "エクスポートが失敗しました (exit $exit_code)。ログ: $LOG_FILE"
-  fi
+  [[ $exit_code -ne 0 ]] && log ERROR "エクスポート失敗 (exit $exit_code)。ログ: $LOG_FILE"
 }
 trap cleanup EXIT
 
+# sha256 コマンド抽象化
+sha256_cmd() {
+  if command -v sha256sum >/dev/null; then sha256sum "$@"; else shasum -a 256 "$@"; fi
+}
+
 # ---------------------------------------------------------------------------
-# メイン処理
+# 準備
 # ---------------------------------------------------------------------------
-mkdir -p "$OUTPUT_DIR/images" "$OUTPUT_DIR/ollama-models"
+mkdir -p "$OUTPUT_DIR/images" "$OUTPUT_DIR/ollama-models" "$OUTPUT_DIR/checksums"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 log INFO "=== LocalRAG オフライン配布パッケージ作成 ==="
+log INFO "バージョン: $VERSION  / git commit: ${GIT_COMMIT:0:12}"
 log INFO "出力先: $OUTPUT_DIR"
 
-# --- 前提条件チェック ---
+# --- 前提条件 ---
 log INFO "[チェック] 前提条件を確認中..."
-command -v docker >/dev/null || { log ERROR "Docker がインストールされていません"; exit 1; }
+command -v docker >/dev/null || { log ERROR "Docker がありません"; exit 1; }
 docker info >/dev/null 2>&1 || { log ERROR "Docker デーモンが起動していません"; exit 1; }
 command -v sha256sum >/dev/null || command -v shasum >/dev/null \
   || { log ERROR "sha256sum / shasum が見つかりません"; exit 1; }
 
-# ディスク空き容量チェック（最低 25GB）
 AVAIL_KB=$(df -k "$OUTPUT_DIR" | awk 'NR==2 {print $4}')
-REQUIRED_KB=$((25 * 1024 * 1024))
-if [[ "$AVAIL_KB" -lt "$REQUIRED_KB" ]]; then
+if [[ "$AVAIL_KB" -lt $((25 * 1024 * 1024)) ]]; then
   log ERROR "空きディスク容量不足。必要: 25GB、現在: $((AVAIL_KB / 1024 / 1024))GB"
   exit 2
 fi
 log INFO "      ディスク空き: $((AVAIL_KB / 1024 / 1024))GB  OK"
 
-# --- 1. Docker イメージ取得 ---
-log INFO "[1/5] Docker イメージをプル中..."
+# ---------------------------------------------------------------------------
+# 1. Docker イメージ取得 + digest 固定
+# ---------------------------------------------------------------------------
+log INFO "[1/6] Docker イメージをプル中..."
 docker pull "$ANYTHINGLLM_IMAGE"
 docker pull "$OLLAMA_IMAGE"
-
-# イメージダイジェスト（バージョン固定用）
-ANYTHINGLLM_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ANYTHINGLLM_IMAGE" 2>/dev/null || echo "unknown")
-OLLAMA_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$OLLAMA_IMAGE" 2>/dev/null || echo "unknown")
-
-# --- 2. Docker イメージ保存 ---
-log INFO "[2/5] Docker イメージを保存中 (images/rag-images.tar.gz)..."
-docker save "$ANYTHINGLLM_IMAGE" "$OLLAMA_IMAGE" | gzip > "$OUTPUT_DIR/images/rag-images.tar.gz"
-IMAGE_SIZE=$(du -sh "$OUTPUT_DIR/images/rag-images.tar.gz" | cut -f1)
-log INFO "      サイズ: $IMAGE_SIZE"
-
-log INFO "      SHA-256 チェックサムを生成中..."
-if command -v sha256sum >/dev/null; then
-  sha256sum "$OUTPUT_DIR/images/rag-images.tar.gz" > "$OUTPUT_DIR/images/rag-images.tar.gz.sha256"
-else
-  shasum -a 256 "$OUTPUT_DIR/images/rag-images.tar.gz" > "$OUTPUT_DIR/images/rag-images.tar.gz.sha256"
+# レジストリから pull した image は RepoDigest を持つが、ローカルビルド image (カスタム
+# AnythingLLM image 等) は持たないため、その場合は image ID (sha256) にフォールバックする。
+image_digest_or_id() {
+  local image="$1" digest
+  digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image" 2>/dev/null || true)
+  if [[ -z "$digest" ]]; then
+    digest=$(docker inspect --format='{{.Id}}' "$image" 2>/dev/null || true)
+  fi
+  echo "$digest"
+}
+ANYTHINGLLM_DIGEST=$(image_digest_or_id "$ANYTHINGLLM_IMAGE")
+OLLAMA_DIGEST=$(image_digest_or_id "$OLLAMA_IMAGE")
+if [[ -z "$ANYTHINGLLM_DIGEST" || -z "$OLLAMA_DIGEST" ]]; then
+  log ERROR "image digest/ID を取得できません。image が正しく pull/build されているか確認してください。"
+  exit 1
 fi
-log INFO "      チェックサム: $(cat "$OUTPUT_DIR/images/rag-images.tar.gz.sha256" | awk '{print $1}')"
+log INFO "      anythingllm digest: $ANYTHINGLLM_DIGEST"
+log INFO "      ollama digest:      $OLLAMA_DIGEST"
 
-# --- 3. Ollama モデル取得 ---
-log INFO "[3/5] Ollama モデルをダウンロード中..."
+# ---------------------------------------------------------------------------
+# 2. Docker イメージ保存 + checksum
+# ---------------------------------------------------------------------------
+log INFO "[2/6] Docker イメージを保存中..."
+docker save "$ANYTHINGLLM_IMAGE" "$OLLAMA_IMAGE" | gzip > "$OUTPUT_DIR/images/rag-images.tar.gz"
+log INFO "      サイズ: $(du -sh "$OUTPUT_DIR/images/rag-images.tar.gz" | cut -f1)"
+( cd "$OUTPUT_DIR/images" && sha256_cmd "rag-images.tar.gz" > "$OUTPUT_DIR/checksums/images.sha256" )
+log INFO "      images.sha256: $(awk '{print $1}' "$OUTPUT_DIR/checksums/images.sha256")"
+
+# ---------------------------------------------------------------------------
+# 3. Ollama モデル取得
+# ---------------------------------------------------------------------------
+log INFO "[3/6] Ollama モデルをダウンロード中..."
 docker run -d --name "$TEMP_CONTAINER" \
-  -v "$OUTPUT_DIR/ollama-models:/root/.ollama" \
-  "$OLLAMA_IMAGE" >/dev/null
-
-sleep 5  # サービス起動待機
-
-log INFO "      $LLM_MODEL をダウンロード中..."
+  -v "$OUTPUT_DIR/ollama-models:/root/.ollama" "$OLLAMA_IMAGE" >/dev/null
+sleep 5
+log INFO "      $LLM_MODEL..."
 docker exec "$TEMP_CONTAINER" ollama pull "$LLM_MODEL"
-
-log INFO "      $EMBED_MODEL をダウンロード中..."
+log INFO "      $EMBED_MODEL..."
 docker exec "$TEMP_CONTAINER" ollama pull "$EMBED_MODEL"
-
-# モデルのダイジェスト取得
-LLM_DIGEST=$(docker exec "$TEMP_CONTAINER" ollama show "$LLM_MODEL" --modelfile 2>/dev/null \
-  | grep "^FROM" | awk '{print $2}' || echo "unknown")
-
 docker rm -f "$TEMP_CONTAINER" >/dev/null
-MODEL_SIZE=$(du -sh "$OUTPUT_DIR/ollama-models" | cut -f1)
-log INFO "      モデルサイズ: $MODEL_SIZE"
+log INFO "      モデルサイズ: $(du -sh "$OUTPUT_DIR/ollama-models" | cut -f1)"
 
-# --- 4. versions.lock 生成 ---
-log INFO "[4/5] versions.lock を生成中..."
+# ---------------------------------------------------------------------------
+# 4. モデル checksum manifest
+# ---------------------------------------------------------------------------
+log INFO "[4/6] モデル checksum manifest を生成中..."
+(
+  cd "$OUTPUT_DIR"
+  find ollama-models -type f -print0 | sort -z \
+    | while IFS= read -r -d '' f; do sha256_cmd "$f"; done > "checksums/ollama-models.sha256"
+)
+if [[ ! -s "$OUTPUT_DIR/checksums/ollama-models.sha256" ]]; then
+  log ERROR "ollama-models.sha256 の生成に失敗しました（空または未生成）。"
+  exit 1
+fi
+MODEL_FILE_COUNT=$(wc -l < "$OUTPUT_DIR/checksums/ollama-models.sha256")
+log INFO "      $MODEL_FILE_COUNT ファイルの checksum を記録"
+
+# ---------------------------------------------------------------------------
+# 5. versions.lock 生成
+# ---------------------------------------------------------------------------
+log INFO "[5/6] versions.lock を生成中..."
 cat > "$OUTPUT_DIR/versions.lock" << EOF
-# LocalRAG バージョン固定ファイル
+# LocalRAG バージョン固定ファイル (配布後は変更しないこと)
 # 生成日時: $(date '+%Y-%m-%d %H:%M:%S')
-#
-# このファイルはインストール時の再現性を保証するために使用します。
-# 配布後は変更しないでください。
+
+PACKAGE_VERSION=$VERSION
+GIT_COMMIT=$GIT_COMMIT
 
 ANYTHINGLLM_IMAGE=$ANYTHINGLLM_IMAGE
 ANYTHINGLLM_DIGEST=$ANYTHINGLLM_DIGEST
@@ -153,24 +207,48 @@ LLM_MODEL=$LLM_MODEL
 EMBED_MODEL=$EMBED_MODEL
 EOF
 
-# --- 5. 設定ファイルとスクリプトをコピー ---
-log INFO "[5/5] 設定ファイルとスクリプトをコピー中..."
+# ---------------------------------------------------------------------------
+# 6. スクリプト・設定・付属物コピー
+# ---------------------------------------------------------------------------
+log INFO "[6/6] スクリプト・設定・付属物をコピー中..."
 cp "$RUNTIME_DIR/docker-compose.yml" "$OUTPUT_DIR/docker-compose.yml"
-cp "$SCRIPT_DIR/install.sh"     "$OUTPUT_DIR/install.sh"
-cp "$SCRIPT_DIR/uninstall.sh"   "$OUTPUT_DIR/uninstall.sh"
-cp "$SCRIPT_DIR/smoke-test.sh"  "$OUTPUT_DIR/smoke-test.sh"
-chmod +x "$OUTPUT_DIR/install.sh" "$OUTPUT_DIR/uninstall.sh" "$OUTPUT_DIR/smoke-test.sh"
+for s in install.sh uninstall.sh smoke-test.sh rag-e2e-test.sh start.sh stop.sh backup.sh restore.sh; do
+  if [[ -f "$SCRIPT_DIR/$s" ]]; then
+    cp "$SCRIPT_DIR/$s" "$OUTPUT_DIR/$s"
+    chmod +x "$OUTPUT_DIR/$s"
+  fi
+done
+# 付属ディレクトリ (存在すればコピー)
+[[ -d "$PROJECT_ROOT/fixtures" ]] && cp -r "$PROJECT_ROOT/fixtures" "$OUTPUT_DIR/fixtures"
+[[ -d "$PROJECT_ROOT/LICENSES" ]] && cp -r "$PROJECT_ROOT/LICENSES" "$OUTPUT_DIR/LICENSES"
+[[ -f "$PROJECT_ROOT/NOTICE" ]] && cp "$PROJECT_ROOT/NOTICE" "$OUTPUT_DIR/NOTICE"
+for doc in README.md INSTALL_GUIDE.md OPERATIONS_GUIDE.md SECURITY_GUIDE.md TROUBLESHOOTING.md; do
+  [[ -f "$PROJECT_ROOT/docs/customer/$doc" ]] && cp "$PROJECT_ROOT/docs/customer/$doc" "$OUTPUT_DIR/$doc"
+done
 
-# --- 完了 ---
-TOTAL_SIZE=$(du -sh "$OUTPUT_DIR" | cut -f1)
+# パッケージ全体の checksum manifest (checksums/ 自身と log は除外)
+log INFO "      package.sha256 を生成中..."
+(
+  cd "$OUTPUT_DIR"
+  find . -type f \
+    ! -path './checksums/*' ! -name 'export.log' -print0 | sort -z \
+    | while IFS= read -r -d '' f; do sha256_cmd "$f"; done > "checksums/package.sha256"
+)
+if [[ ! -s "$OUTPUT_DIR/checksums/package.sha256" ]]; then
+  log ERROR "package.sha256 の生成に失敗しました（空または未生成）。"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 完了
+# ---------------------------------------------------------------------------
 log INFO ""
 log INFO "=== エクスポート完了 ==="
-log INFO "パッケージサイズ: $TOTAL_SIZE"
+log INFO "パッケージサイズ: $(du -sh "$OUTPUT_DIR" | cut -f1)"
 log INFO "出力先: $OUTPUT_DIR"
 log INFO ""
 log INFO "配布先（オフライン環境）での手順:"
-log INFO "  1. このフォルダ全体をオフライン環境へコピー（USBまたはLAN転送）"
+log INFO "  1. このフォルダ全体をオフライン環境へコピー（USB/LAN）"
 log INFO "  2. bash install.sh"
 log INFO ""
-log INFO "注意: FAT32 形式 USB の場合、rag-images.tar.gz が 4GB を超えると"
-log INFO "      コピーできません。exFAT または NTFS でフォーマットしてください。"
+log INFO "注意: FAT32 USB は 4GB 超ファイル不可。exFAT/NTFS でフォーマットすること。"
