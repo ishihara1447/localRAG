@@ -1,0 +1,21 @@
+LocalRAG
+========
+
+このソフトウェアは Mintplex Labs Inc. が開発した AnythingLLM
+(https://github.com/Mintplex-Labs/anything-llm, MIT License) を
+fork・改修したものを含む。
+
+本リポジトリ/配布パッケージに含まれる、または実行時に利用する
+主な第三者コンポーネントとそのライセンスは以下のとおり。全文は
+LICENSES/ ディレクトリを参照すること。
+
+- AnythingLLM (Mintplex Labs Inc.)         - MIT License
+- Ollama (Ollama Inc.)                      - MIT License
+- llm-jp/llm-jp-4-8b-thinking (LLM, 本番想定) - Apache License 2.0
+- mxbai-embed-large (Embedding, 既定)       - Apache License 2.0
+- llama3.1:8b (LLM, Phase1検証用/現行既定)  - Llama 3.1 Community License
+
+詳細は LICENSES/THIRD_PARTY_NOTICES.txt を参照。
+
+Copyright 表示および各ライセンス条項は、配布物から削除しないこと
+(CLAUDE.md「絶対に守るルール」参照)。
