@@ -7,12 +7,14 @@
 # 必要条件:
 #   - Docker Engine + Docker Compose v2（インターネット接続不要）
 #   - NVIDIA ドライバ + nvidia-container-toolkit（GPU 推論用）
-#   - このスクリプトと同じディレクトリに以下が存在すること:
+#   - このスクリプトと同じディレクトリに以下が存在すること（欠落時はインストール失敗）:
 #       images/rag-images.tar.gz        Docker イメージアーカイブ
-#       images/rag-images.tar.gz.sha256 チェックサムファイル
 #       ollama-models/                  Ollama モデルファイル群
 #       docker-compose.yml              Compose 設定
 #       versions.lock                   バージョン固定ファイル
+#       checksums/images.sha256         イメージ tar のチェックサム（必須）
+#       checksums/ollama-models.sha256  モデルファイルのチェックサム（必須）
+#       checksums/package.sha256        パッケージ全体のチェックサム（必須）
 
 set -euo pipefail
 
@@ -170,6 +172,15 @@ else
   log INFO "  [OK] docker-compose.yml"
 fi
 
+for req in checksums/images.sha256 checksums/ollama-models.sha256 checksums/package.sha256; do
+  if [[ ! -f "$SCRIPT_DIR/$req" ]]; then
+    log ERROR "  [NG] $req が見つかりません（真正性検証に必須）。"
+    PREFLIGHT_OK=false
+  else
+    log INFO "  [OK] $req"
+  fi
+done
+
 [[ "$PREFLIGHT_OK" == false ]] && exit $EXIT_PREREQ_FAILED
 
 # ---------------------------------------------------------------------------
@@ -185,32 +196,40 @@ if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^anythingllm$'; then
 fi
 
 # ---------------------------------------------------------------------------
-# 1. SHA-256 チェックサム検証
+# 1. SHA-256 チェックサム検証（イメージ + モデル manifest）
 # ---------------------------------------------------------------------------
 log INFO ""
-log INFO "[1/4] イメージアーカイブのチェックサムを検証中..."
-if [[ -f "$SCRIPT_DIR/images/rag-images.tar.gz.sha256" ]]; then
-  cd "$SCRIPT_DIR/images"
-  if command -v sha256sum &>/dev/null; then
-    sha256sum -c "rag-images.tar.gz.sha256" 2>&1 | while read -r line; do log INFO "      $line"; done
-    sha256sum -c "rag-images.tar.gz.sha256" || {
-      log ERROR "チェックサム不一致。ファイルが破損している可能性があります。"
-      log ERROR "パッケージを再転送してから再度実行してください。"
-      exit $EXIT_RUNTIME_ERROR
-    }
-  elif command -v shasum &>/dev/null; then
-    shasum -a 256 -c "rag-images.tar.gz.sha256" || {
-      log ERROR "チェックサム不一致。ファイルが破損している可能性があります。"
-      exit $EXIT_RUNTIME_ERROR
-    }
-  else
-    log INFO "      (sha256sum / shasum が見つからないため検証をスキップ)"
-  fi
-  cd "$SCRIPT_DIR"
-  log INFO "      チェックサム OK"
-else
-  log INFO "      チェックサムファイルが存在しないため検証をスキップ"
+log INFO "[1/4] チェックサムを検証中..."
+
+# sha256 -c のラッパー (sha256sum / shasum 両対応)
+sha256_check() { if command -v sha256sum &>/dev/null; then sha256sum -c "$1"; else shasum -a 256 -c "$1"; fi; }
+
+if ! command -v sha256sum &>/dev/null && ! command -v shasum &>/dev/null; then
+  log ERROR "  [NG] sha256sum / shasum が見つかりません。チェックサム検証を実行できません。"
+  exit $EXIT_PREREQ_FAILED
 fi
+
+# checksums/*.sha256 の存在は上記 preflight で必須確認済み (欠落時は既に exit 済み)。
+log INFO "      イメージ tar を検証中..."
+( cd "$SCRIPT_DIR/images" && sha256_check "$SCRIPT_DIR/checksums/images.sha256" >/dev/null ) || {
+  log ERROR "イメージのチェックサム不一致。ファイル破損の可能性があります。再転送してください。"
+  exit $EXIT_RUNTIME_ERROR
+}
+
+MODEL_N=$(wc -l < "$SCRIPT_DIR/checksums/ollama-models.sha256")
+log INFO "      モデルファイル ($MODEL_N 件) を検証中..."
+( cd "$SCRIPT_DIR" && sha256_check "checksums/ollama-models.sha256" >/dev/null ) || {
+  log ERROR "モデルのチェックサム不一致。ファイル破損の可能性があります。再転送してください。"
+  exit $EXIT_RUNTIME_ERROR
+}
+
+log INFO "      パッケージ全体を検証中..."
+( cd "$SCRIPT_DIR" && sha256_check "checksums/package.sha256" >/dev/null ) || {
+  log ERROR "パッケージのチェックサム不一致。ファイル破損の可能性があります。再転送してください。"
+  exit $EXIT_RUNTIME_ERROR
+}
+
+log INFO "      チェックサム検証 OK"
 
 # ---------------------------------------------------------------------------
 # 2. Docker イメージのロード
