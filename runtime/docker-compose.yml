@@ -50,7 +50,9 @@ services:
       start_period: 60s
 
   anythingllm:
-    image: mintplexlabs/anythingllm:latest
+    # localRAG 改修版 (外部LLM provider allowlist 等) をソースからビルドしたカスタム image。
+    # ビルド: cd anything-llm && docker build --network=host -t localrag-anythingllm:1.0.0 -f docker/Dockerfile .
+    image: localrag-anythingllm:1.0.0
     pull_policy: never
     container_name: anythingllm
     networks:

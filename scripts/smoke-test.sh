@@ -64,7 +64,7 @@ fi
 # ---------------------------------------------------------------------------
 log INFO "[2/5] Ollama サービス確認（Docker コンテナ内部）..."
 OLLAMA_CHECK=$(docker exec anythingllm \
-  wget -qO- --timeout=10 http://ollama:11434/api/tags 2>/dev/null || echo "")
+  curl -sf --max-time 10 http://ollama:11434/api/tags 2>/dev/null || echo "")
 if echo "$OLLAMA_CHECK" | grep -q '"models"'; then
   MODEL_COUNT=$(echo "$OLLAMA_CHECK" | python3 -c \
     "import sys,json; d=json.load(sys.stdin); print(len(d.get('models',[])))" 2>/dev/null || echo "?")

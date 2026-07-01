@@ -9,7 +9,7 @@
 #   --output DIR        出力先ディレクトリ (既定: dist/localrag-<version>)
 #   --llm-model M       LLM モデル (既定: llama3.1:8b)
 #   --embed-model M     Embedding モデル (既定: mxbai-embed-large:latest)
-#   --anythingllm-image IMG  AnythingLLM イメージ (既定: mintplexlabs/anythingllm:latest)
+#   --anythingllm-image IMG  AnythingLLM イメージ (既定: localrag-anythingllm:1.0.0)
 #   --help              ヘルプ表示
 #
 # 必要条件:
@@ -38,7 +38,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUNTIME_DIR="$PROJECT_ROOT/runtime"
 
-ANYTHINGLLM_IMAGE="mintplexlabs/anythingllm:latest"
+ANYTHINGLLM_IMAGE="localrag-anythingllm:1.0.0"
 OLLAMA_IMAGE="ollama/ollama:latest"
 LLM_MODEL="llama3.1:8b"
 EMBED_MODEL="mxbai-embed-large:latest"
@@ -125,9 +125,21 @@ log INFO "      ディスク空き: $((AVAIL_KB / 1024 / 1024))GB  OK"
 # ---------------------------------------------------------------------------
 # 1. Docker イメージ取得 + digest 固定
 # ---------------------------------------------------------------------------
-log INFO "[1/6] Docker イメージをプル中..."
-docker pull "$ANYTHINGLLM_IMAGE"
-docker pull "$OLLAMA_IMAGE"
+log INFO "[1/6] Docker イメージを準備中..."
+# カスタムビルド image (localrag-anythingllm 等) はレジストリに存在しないため、
+# ローカルに既に存在する場合は pull しない。存在しなければレジストリからの
+# pull を試みる (公式 ollama image 等)。
+pull_if_missing() {
+  local image="$1"
+  if docker image inspect "$image" >/dev/null 2>&1; then
+    log INFO "      $image はローカルに存在（pull をスキップ）"
+  else
+    log INFO "      $image を pull 中..."
+    docker pull "$image"
+  fi
+}
+pull_if_missing "$ANYTHINGLLM_IMAGE"
+pull_if_missing "$OLLAMA_IMAGE"
 # レジストリから pull した image は RepoDigest を持つが、ローカルビルド image (カスタム
 # AnythingLLM image 等) は持たないため、その場合は image ID (sha256) にフォールバックする。
 image_digest_or_id() {
