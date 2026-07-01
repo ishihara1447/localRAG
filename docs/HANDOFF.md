@@ -1,154 +1,125 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-06-30 / 次セッション開始時にまずこれを読む。
-権威ドキュメント: `CLAUDE.md`（制約集約） / `docs/WORK_PLAN.md`（作業計画） / `docs/ENVIRONMENT.md`（環境・既知問題） / `docs/anythingllm_customer_distribution_plan.md`（配布計画＝一次情報）。
+最終更新: 2026-07-02 / 次セッション開始時にまずこれを読む。
+権威ドキュメント: `AGENTS.md`/`CLAUDE.md`（制約集約） → 本ファイル → `docs/OFFLINE_DISTRIBUTION_HARDENING_PLAN.md`（配布ハードニング計画） → `docs/PROJECT_STATUS.md`（俯瞰） → `docs/anythingllm_customer_distribution_plan.md`（配布計画＝一次情報）。
 
 ---
 
 ## 1. プロジェクト一行説明
 
-AnythingLLM(MIT) を fork 改修し、完全ローカルの日本語RAGを構築 → 顧客配布する。現在 **Phase 1（個人PC検証）進行中、RAGパイプライン疎通確認済み**。
+AnythingLLM(MIT) を fork 改修し、完全ローカルの日本語RAGを構築 → 顧客配布する。**Phase 1（個人PC検証）進行中**。オフライン配布パッケージの P0（配布必須要件）は完了し、P1（LLM/embedding確定）が次の焦点。
 
 ## 2. いま動いているもの / 確認コマンド
 
 - **AnythingLLM**: `http://localhost:3001`（healthy）。
-  - LLM: `llama3.1:8b` via ホスト Ollama（Phase1 検証用、後述の理由でテンポラリ）。
-  - Embedding: `mxbai-embed-large:latest` via ホスト Ollama（Japanese 対応, 334MB F16）。
+  - image: **`localrag-anythingllm:1.0.0`**（`anything-llm/`(`product/customer-rag-base`)からカスタムビルド。外部LLM provider allowlist改修が反映済み。公式 `mintplexlabs/anythingllm:latest` は使用していない）。
+  - LLM: `llama3.1:8b`（Phase1検証用の暫定モデル。本番想定は `llm-jp-4-8b-thinking` だが [B1][B2] 未解決のため保留）。
+  - Embedding: `mxbai-embed-large:latest`（Apache-2.0, 日本語対応）。
   - VectorDB: LanceDB（内蔵）。
-- **Ollama**: ホストプロセス (root, PID ~2293, 127.0.0.1:11434)。
-  - 搭載モデル: `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M`, `llama3.1:8b`, `mxbai-embed-large:latest`, `qwen3:8b`, `qwen3:14b`。
-- **vLLM**: 停止中（下記ブロッカー参照）。
+- **Ollama**: Docker サービス（`rag-ollama`, `rag-internal` ネットワーク、外部非公開）。ホストプロセスは使っていない。
 
 ```bash
 cd /home/ishihara1447/projects/localRAG/runtime
 docker compose ps
 curl -s http://localhost:3001/api/ping           # {"online":true}
-curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; [print(m['name']) for m in json.load(sys.stdin)['models']]"
 ```
 
-## 3. Phase 1 RAGパイプライン検証結果
+## 3. 今セッションでの主な作業（2026-07-02）
 
-### ✅ 疎通確認済み項目
+前回セッションの「Codexレビュー」(`docs/OFFLINE_DISTRIBUTION_HARDENING_PLAN.md`)への対応が不十分だったとの追加指摘(`docs/CLAUDE_CODE_REVIEW_FEEDBACK_2026-07-02.md`)を受け、優先度順に対応。**全項目コミット・push済み**。
 
-| 項目 | 結果 |
-|------|------|
-| Ollama Docker サービス経由で接続 | OK（`http://ollama:11434`、rag-internal ネットワーク）|
-| mxbai-embed-large で日本語 embed | OK（チャンク分割してベクター化）|
-| LanceDB ベクター検索 | OK（スコア 0.75 / 0.71 で正しいチャンク取得）|
-| 出典付き RAG 回答 | OK（「第3条パスワード管理: 12文字以上、90日ごと」を正確に回答）|
-| 文書外クエリ → 不明応答 | OK（「文書にはそのような情報が含まれていません」）|
-| ネットワーク分離 | OK（rag-internal / rag-public 分離, Ollama は外部非公開）|
-| HF_HUB_OFFLINE=1 | OK（HuggingFace Hub アクセス禁止）|
-| pull_policy: never | OK（オフライン環境対応済み）|
+1. **P0: カスタム AnythingLLM image 化**（最重要・完了）
+   - DNS問題の根本原因判明: WSL2のDNSプロキシが特定ホスト（`release-assets.githubusercontent.com`、GitHub releaseアセット配信）への断続的な解決失敗を起こす。`getent hosts`は成功するのに`curl`は失敗する再現性のある症状。
+   - 対処: `docker build --network=host --add-host=release-assets.githubusercontent.com:185.199.108.133 ...` でビルド成功。
+   - `runtime/docker-compose.yml` / `scripts/export.sh` の既定imageを `localrag-anythingllm:1.0.0` に切替。
+   - 実機確認: 外部provider(openai)指定 → API側で拒否、Swagger docs無効、smoke-test・rag-e2e-test全PASS。
+2. **export.sh/install.sh/backup.shのバグ修正**
+   - `package.sha256`/`ollama-models.sha256`生成が`xargs`にシェル関数を渡していて不安定 → `while read`に統一。
+   - `install.sh`のchecksum検証が欠落時に「スキップ」していた → 3種のchecksum必須化、欠落・不一致で停止。
+   - `versions.lock`に`unknown`が残り得た → git commit/image digest取得失敗時にexportを失敗させる。ローカルビルドimageはRepoDigestを持たないためimage IDにフォールバック。
+   - `backup.sh`のtar追記バグ（`.tar.gz`作成後に別名`.tar`へ追記しようとして失敗）を修正。
+   - **実機で発見した追加バグ**（当初のレビュー指摘には無かったもの）:
+     - `export.sh`: `--output`に相対パスを渡すと`cd`後に意図しない場所へ書き込む → 絶対パスへ正規化。
+     - `export.sh`: ollamaコンテナがroot権限で`/root/.ollama`配下(`id_ed25519`等)をroot所有・600権限で作成し、ホスト側非rootユーザーがchecksum生成時に読めず失敗 → コンテナ経由でchownして解決。
+     - `uninstall.sh`: image名が`mintplexlabs/anythingllm`のままハードコードされ、カスタムimage化後は削除対象を見つけられなかった → `versions.lock`から実際のimage名を読み取るよう修正。
+     - `smoke-test.sh`: Ollama疎通確認が`wget`依存だったが、カスタムimageのベース(Ubuntu 24.04)には`wget`が無く`curl`のみ存在 → `curl`ベースに変更。
+3. **rag-e2e-test.shの拡充**: 外部provider拒否・Swagger無効の検証を追加（計画§10.4の未実装項目）。文書外質問の「不明」判定パターンがLLM応答の表現ゆれで誤FAILすることも発見・パターン拡張。
+4. **LICENSES/NOTICE**: AnythingLLM(MIT)/Ollama(MIT)/Apache-2.0(llm-jp・mxbai-embed-large)/Llama 3.1 Community Licenseの実ライセンス全文を公式配布元から取得して同梱。
+5. **顧客向けドキュメント5点**: `docs/customer/`にREADME/INSTALL_GUIDE/OPERATIONS_GUIDE/SECURITY_GUIDE/TROUBLESHOOTINGを作成（`export.sh`が自動でパッケージ直下にコピー）。
+6. **Windows PowerShell版スクリプト**: install/start/stop/backup/restore/uninstallの6本を作成。**PowerShell処理系が無い開発環境のため実行検証はできておらず、目視レビューのみ**。Windows実機での動作確認が必要。
 
-### 確認方法（REST API キー: `ZDFAHSS-KRA4P6P-GB1GH33-9J34J3D`）
+### 実機検証で確認できたこと（今セッション）
 
-```bash
-# ワークスペースへ文書アップロード・embed
-curl -X POST http://localhost:3001/api/v1/document/upload \
-  -H "Authorization: Bearer ZDFAHSS-KRA4P6P-GB1GH33-9J34J3D" \
-  -F "file=@/path/to/doc.txt;type=text/plain" \
-  -F "addToWorkspaces=rag"
+- `bash scripts/export.sh --version 1.0.0 --output ./dist/localrag-1.0.0` が成功し、9.3GBのパッケージを生成。
+- `checksums/{images,ollama-models,package}.sha256` すべて `sha256sum -c` で検証OK。
+- `versions.lock` に `unknown` が残らないことを確認。
+- `rag-e2e-test.sh`・`fixtures/`・`LICENSES/`・`NOTICE`・顧客向けdocsがすべて正しくパッケージに同梱されることを確認。
+- 検証後、`dist/`は削除済み（`.gitignore`対象、ローカルにも残していない）。
 
-# RAG チャット
-curl -X POST http://localhost:3001/api/v1/workspace/rag/chat \
-  -H "Authorization: Bearer ZDFAHSS-KRA4P6P-GB1GH33-9J34J3D" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "質問内容", "mode": "query"}'
-```
+### まだ検証していないこと
 
-## 4. ★ブロッカー・既知問題
+- `install.sh`のフルサイクル（今回生成した`dist/localrag-1.0.0/`を使って実際にゼロから`bash install.sh`を実行する検証）。現在稼働中のコンテナと名前・ポートが衝突するため、このセッションでは実施しなかった。
+- Windows実機でのPowerShellスクリプト動作確認。
+- 完全オフライン（ネットワーク遮断）環境での通し検証（計画のP4）。
+
+## 4. ★未解決ブロッカー
 
 ### [B1] vLLM が WSL2 で起動できない（未解決）
 
 - 症状: `RuntimeError: UVA is not available` (GPUModelRunnerV2, WSL2 非対応)。
-- 試したこと: `VLLM_USE_V1=0`（0.24.0 では V0 エンジン削除済みで無効）、`--enforce-eager`（V2 ランナー選択は compile 前で無効）。
-- **現在の回避策**: ホスト Ollama + llama3.1:8b (Phase1 検証用)。
-- **本番対応**: Phase2 で Docker DNS 修正後、Dockerfile で GPUModelRunnerV2 の UVA チェックをパッチした独自 vLLM イメージをビルド。
+- **現在の回避策**: Docker Ollama + `llama3.1:8b`。
+- **本番対応（未着手）**: Dockerfile で GPUModelRunnerV2 の UVA チェックをパッチした独自 vLLM イメージをビルド。
   - 参考: https://discuss.vllm.ai/t/project-vllm-docker-for-running-smoothly-on-rtx-5090-wsl2/1697
 
 ### [B2] llm-jp-4-8b-thinking が実用速度で使えない（未解決）
 
-- 症状: 単純な質問でも 3分13秒（thinking フェーズで大量トークン生成）。AnythingLLM のデフォルト HTTP タイムアウト（5分未満）を超えてしまう。
-- **対処方法（次セッション）**: compose に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を追加し、`OLLAMA_MODEL_PREF=hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に戻す。また thinking OFF (`/no_think` システムプロンプト) も試す。
-- **代替**: llm-jp-4 の非 thinking 版 GGUF があれば最善。または qwen3:8b（高速, 日本語対応）で継続。
+- 症状: 単純な質問でも 3分13秒（thinking フェーズで大量トークン生成）。AnythingLLM のデフォルト HTTP タイムアウトを超える。
+- **対処方法（次セッション）**: compose に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を追加し、`OLLAMA_MODEL_PREF=hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に戻してテスト。thinking OFF (`/no_think`) も試す。
+- **代替**: llm-jp-4 の非 thinking 版 GGUF、または qwen3:8b（高速, 日本語対応）で継続。
 
-### [B3] コンテナ内 github.com DNS 失敗（★解決方針確定 2026-07-01）
+### [B3] コンテナ内DNS失敗 → **解決済み（2026-07-02）**
 
-- 症状: Docker ビルド内で `github.com` が解決できず `anything-llm/docker` のソースビルド不可。
-- **根本原因（判明）**: daemon.json に既に `"dns":["8.8.8.8","1.1.1.1"]` はあるが、
-  **bridge ネットワークでは外向き DNS がブロックされ失敗**。一方 **host ネットワークでは解決成功**。
-  （検証: `docker run --rm --network=host --entrypoint sh ollama/ollama:latest -c "getent hosts github.com"` → 成功）
-- **解決策（sudo 不要・daemon.json 編集不要）**: `docker build --network=host` でビルドする。
+`docker build --network=host --add-host=release-assets.githubusercontent.com:<IP>` でカスタムimageビルド成功。詳細は上記セクション3参照。
 
-#### 次セッション最初の作業（カスタムイメージ化 = 配布の本丸 P0）
+## 5. 次のアクション（優先度順）
 
-```bash
-cd /home/ishihara1447/projects/localRAG/anything-llm
-# host ネットワークでビルド（DNS回避、10〜20分。run_in_background 推奨）
-docker build --network=host -t localrag-anythingllm:1.0.0 -f docker/Dockerfile .
-```
-ビルド成功後:
-1. `runtime/docker-compose.yml` の `image: mintplexlabs/anythingllm:latest` を
-   `localrag-anythingllm:1.0.0` に差し替え（`latest` 排除）。
-2. 起動して外部プロバイダ拒否（allowlist）が効くことを確認。
-3. `scripts/export.sh` の versions.lock 生成を独自イメージ digest に対応させる。
+### P1 — Phase 1 完了に必須
 
-- **確認済み**: allowlist 改修は `server/utils/helpers/index.js`（7箇所）と `updateENV.js` に正しく存在。
-  Dockerfile はマルチアーキ構成（amd64 ステージが対象）。`.dockerignore` 確認は未完→ビルド前に確認。
-- 注意: 当該セッションで grep 出力に表示乱れ（同一行反復）が出たが**実ファイルは正常**（index.js 510行）。
+1. **[B2] llm-jp-4-8b-thinking タイムアウト対処**: `OLLAMA_RESPONSE_TIMEOUT=1200000` を追加してテスト。
+2. **PDF/DOCX テスト**: サンプル PDF/DOCX をアップロードして RAG が動くか確認（現状 `.txt` のみ検証済み）。
+3. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら `pfnet/plamo-embedding-1b` 等に変更（変更時は全文書の再embeddingが必須）。
 
-### [W1] ~~現在のネットワーク構成が配布向きでない~~ → **解消済み（2026-06-30）**
+### P2 — 配布品質
 
-Ollama Docker サービスを compose に追加し、`network_mode:host` を撤廃。
-- AnythingLLM → `http://ollama:11434`（rag-internal ネットワーク）
-- Ollama ポートはホストに非公開（`internal: true`）
-- `pull_policy: never` でオフライン環境対応済み
-- モデルは `docker cp` でホストから転送（`./ollama-models` ボリューム）
+4. RAG回答の「出典必須・文書外は不明」を既定システムプロンプトで強制。
+5. `trust_remote_code` コードレビュー（llm-jp-4-8b-thinking 採用時）とコミットハッシュ固定。
+6. `install.sh` のフルサイクル実機検証（別マシンまたは現行コンテナ停止後に実施）。
 
-## 5. 次のアクション
+### P3 — 仕上げ
 
-### 即座に取り組む（次セッション優先）
-
-1. **[B2] llm-jp-4-8b-thinking タイムアウト対処**: `OLLAMA_RESPONSE_TIMEOUT=1200000` を追加し、llm-jp-4 に戻してテスト。
-2. **PDF/DOCX テスト**: サンプル PDF をアップロードして RAG が動くか確認。
-3. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら `pfnet/plamo-embedding-1b` 等に変更（JMTEB スコア最高、Apache 2.0）。
-
-### Phase 1 残タスク（B1, B2 解消後）
-
-5. `trust_remote_code` コードレビュー（llm-jp-4-8b-thinking のモデルコード）とコミットハッシュ固定。
-6. RAG 回答の「出典必須・文書外は不明」を既定プロンプトで強制（ワークスペースの system prompt 設定）。
-7. Phase 2 準備: Docker DNS 修正 → anything-llm/docker ソースビルド。
+7. 完全オフライン（ネットワーク遮断）実機検証。
+8. SBOM・MODEL_CARDS の作成。
+9. Windows実機でのPowerShellスクリプト動作確認。
 
 ## 6. 現在のファイル構成
 
-- `runtime/docker-compose.yml`: AnythingLLM + Ollama サービス定義（現在は Ollama がコメントアウト、`network_mode:host` で代用中）。
-- `runtime/anythingllm-storage/`: データ永続化ボリューム（DB, ベクター, 設定）。
-- `anything-llm/`: AnythingLLM fork（branch: `product/customer-rag-base`）。
+- `runtime/docker-compose.yml`: AnythingLLM(`localrag-anythingllm:1.0.0`) + Ollama(Docker) サービス定義。
+- `runtime/anythingllm-storage/`: データ永続化ボリューム（DB, ベクター, 設定）。コミット禁止。
+- `runtime/ollama-models/`: Ollamaモデルファイル。コミット禁止。
+- `anything-llm/`: AnythingLLM fork（branch: `product/customer-rag-base`、独立git、親からは`.gitignore`で除外）。
+- `scripts/`: export/install/uninstall/start/stop/backup/restore/smoke-test/rag-e2e-test（bash）+ 同等のPowerShell版(.ps1)。
+- `docs/customer/`: 顧客向けドキュメント5点。
+- `LICENSES/`, `NOTICE`: 第三者ライセンス。
 
-## 7. 配布環境について（ユーザー確認事項 2026-06-30）
+## 7. Git 状態
 
-**配布は Docker コンテナ前提で正しい方向。** ただし現在は開発ワークアラウンドが混在：
+- リモート: `git@github.com:ishihara1447/localRAG.git`（`origin/main`、push運用に移行済み）。
+- `anything-llm/` は独立リポジトリ。fork先remoteは未設定（`upstream`=Mintplex-Labs本家のみ）。**pushしない**（allowlist改修などはローカルコミットのみ）。
 
-| コンポーネント | 現状 | 配布向け正解 |
-|---|---|---|
-| AnythingLLM | Docker (`mintplexlabs/anythingllm`) ✅ | そのまま |
-| LLM (Ollama) | ホストプロセス (root, 127.0.0.1:11434) ❌ | Docker サービス `ollama/ollama` |
-| LLM (vLLM) | 停止中 ❌ | Docker サービス（要 WSL2 パッチ）|
-| Embedding | ホスト Ollama 経由 (mxbai-embed-large) ❌ | Docker Ollama 経由 |
-| VectorDB | AnythingLLM 内蔵 (LanceDB) ✅ | そのまま |
+## 8. Claude Code セッション運用
 
-配布時は `docker compose up -d` 一発で全コンポーネントが起動し、ホスト環境に依存しない構成にすること（Phase 2 の課題）。
-
-## 8. Git 状態
-
-- ローカルのみ（**push は当面後回し**）。ブランチ `main`。
-- 今セッションのコミット対象: `runtime/docker-compose.yml`（Ollama フォールバック構成）。
-
-## 9. Claude Code セッション運用
-
-- ユーザー方針: **確認・プロンプトを極力減らす**。妥当なデフォルトは自分で決めて進め、事後報告。
-- `.claude/settings.local.json` に広い許可リスト済み（`Bash(curl *)` を今セッションで追加）。
+- ユーザー方針: 確認・プロンプトを極力減らす。妥当なデフォルトは自分で決めて進め、事後報告。ただし工数の大きい別トラック（PowerShell対応など）は着手前に確認する。
+- 作業単位: 1改修1コミット。レビュー→修正→再レビュー→コミット&pushのサイクルを細かく回す。
 - メモリ: `~/.claude/projects/-home-ishihara1447-projects-localRAG/memory/` に保存済み。
 
 ---
