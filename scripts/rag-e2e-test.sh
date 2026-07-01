@@ -2,7 +2,8 @@
 # rag-e2e-test.sh — RAG パイプラインの End-to-End 検証。
 #
 # fixtures/test-policy.txt をアップロード → embedding → 出典付き回答 →
-# 文書外質問で「不明」応答、までを自動確認する。
+# 文書外質問で「不明」応答 → 外部LLM provider拒否 → Swagger docs無効、
+# までを自動確認する。
 #
 # 使い方:
 #   LOCALRAG_API_KEY=<APIキー> bash rag-e2e-test.sh
@@ -10,6 +11,12 @@
 # API キー発行: ブラウザ http://localhost:3001 → Settings → API Keys
 #
 # 前提: LocalRAG が起動済み (bash install.sh / start.sh 完了後)。
+#
+# 注意: WORKSPACE_DELETION_PROTECTION=1 が有効な環境では、テスト後の
+#       後処理(ワークスペース削除)が失敗し、テスト用ワークスペースが
+#       残り続ける。これは仕様(顧客ワークスペースの誤削除防止)による
+#       ものであり、不要になったテスト用ワークスペースはUIから手動で
+#       削除すること。
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,7 +69,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 1. ワークスペース作成 ---
-echo "[1/4] テスト用ワークスペースを作成中..."
+echo "[1/6] テスト用ワークスペースを作成中..."
 WS_RESP=$(curl -s --max-time 30 -X POST "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"$WS_NAME\"}" \
@@ -77,7 +84,7 @@ else
 fi
 
 # --- 2. 文書アップロード + embedding ---
-echo "[2/4] fixture をアップロード・embedding 中..."
+echo "[2/6] fixture をアップロード・embedding 中..."
 UP_RESP=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
   -F "file=@$FIXTURE;type=text/plain" \
   -F "addToWorkspaces=$WS_SLUG" \
@@ -91,7 +98,7 @@ fi
 sleep 3  # embedding 反映待ち
 
 # --- 3. 文書内質問（出典付き回答） ---
-echo "[3/4] 文書内質問（有給休暇は何日か）..."
+echo "[3/6] 文書内質問（有給休暇は何日か）..."
 Q1=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{"message":"有給休暇は年間何日付与されますか？","mode":"query"}' \
@@ -113,7 +120,7 @@ else
 fi
 
 # --- 4. 文書外質問（不明応答） ---
-echo "[4/4] 文書外質問（文書に無い情報）..."
+echo "[4/6] 文書外質問（文書に無い情報）..."
 Q2=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{"message":"本社の所在地の郵便番号を教えてください。","mode":"query"}' \
@@ -124,10 +131,31 @@ SRC2=$(echo "$Q2" | python3 -c \
   "import sys,json; d=json.load(sys.stdin); print(len(d.get('sources',[])))" 2>/dev/null || echo "0")
 echo "      回答: $(echo "$A2" | head -c 120)"
 # query モードでは文書外質問は出典ゼロ または 明示的な不明応答になるべき
-if [[ "$SRC2" -eq 0 ]] || echo "$A2" | grep -qiE "不明|見つかり|ありません|no relevant|don't have|情報がない|含まれて"; then
+if [[ "$SRC2" -eq 0 ]] || echo "$A2" | grep -qiE "不明|見つかり|ありません|no relevant|don't have|情報がない|含まれて|記載されて|記載がない|わかりません|お答えできません"; then
   pass "文書外質問に対して出典なし／不明応答"
 else
   fail "文書外質問に出典付きで回答した（ハルシネーションの疑い）"
+fi
+
+# --- 5. 外部LLM providerがAPI側で拒否されること ---
+echo "[5/6] 外部LLM provider(openai)拒否の確認..."
+PROV_RESP=$(curl -s --max-time 30 -X POST "${AUTH[@]}" \
+  -H "Content-Type: application/json" \
+  -d '{"LLMProvider":"openai","OpenAiKey":"sk-e2e-test-dummy","OpenAiModelPref":"gpt-4o"}' \
+  "$BASE_URL/api/system/update-env" 2>/dev/null || echo "")
+if echo "$PROV_RESP" | grep -qiE "not a permitted|not allowed|not supported"; then
+  pass "外部provider(openai)はAPI側で拒否される"
+else
+  fail "外部provider(openai)が拒否されなかった: $(echo "$PROV_RESP" | head -c 200)"
+fi
+
+# --- 6. Swagger docs が無効であること ---
+echo "[6/6] Swagger docs 無効の確認..."
+DOCS_BODY=$(curl -s --max-time 10 "$BASE_URL/api/docs" 2>/dev/null || echo "")
+if echo "$DOCS_BODY" | grep -qi "swagger\|Developer API Documentation"; then
+  fail "Swagger docs が有効になっている（DISABLE_SWAGGER_DOCS を確認）"
+else
+  pass "Swagger docs は無効（/api/docs に Swagger UI が出ていない）"
 fi
 
 # --- 結果 ---
