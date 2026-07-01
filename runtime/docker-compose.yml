@@ -65,8 +65,20 @@ services:
         condition: service_healthy
     environment:
       - STORAGE_DIR=/app/server/storage
-      # Telemetry OFF (顧客配布制約)
+      # === セキュリティ既定値 (顧客配布制約 / OFFLINE_DISTRIBUTION_HARDENING_PLAN §6) ===
+      # Telemetry OFF
       - DISABLE_TELEMETRY=true
+      # Swagger API ドキュメント (/api/docs) を無効化 (攻撃面の縮小)
+      - DISABLE_SWAGGER_DOCS=true
+      # ワークスペース誤削除防止 (顧客文書・ベクターの保護)
+      - WORKSPACE_DELETION_PROTECTION=1
+      # --- 以下は「意図的に未設定」で無効化される項目 (値を設定しないこと) ---
+      # COMMUNITY_HUB_BUNDLE_DOWNLOADS_ENABLED:
+      #   未設定 = Community Hub からの bundle/Agent Skill DL を完全拒否 (422)。
+      #   "false" 等を設定すると逆に verified public アイテムのDLを許可してしまうため設定禁止。
+      #   (参照: server/utils/middleware/communityHubDownloadsEnabled.js)
+      # AGENT_*_API_KEY (SerpAPI, Tavily, Bing 等の外部 Web 検索):
+      #   未設定 = 外部 Web 検索 Agent は API キーが無く機能しない (外部通信が発生しない)。
       # LLM: Docker 内部ネットワーク経由で Ollama に接続
       - LLM_PROVIDER=ollama
       - OLLAMA_BASE_PATH=http://ollama:11434
