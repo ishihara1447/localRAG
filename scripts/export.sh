@@ -102,6 +102,10 @@ sha256_cmd() {
 # 準備
 # ---------------------------------------------------------------------------
 mkdir -p "$OUTPUT_DIR/images" "$OUTPUT_DIR/ollama-models" "$OUTPUT_DIR/checksums"
+# 以降 `cd "$OUTPUT_DIR/..."` した後にも $OUTPUT_DIR を使って書き込むため、
+# 相対パスのまま (--output に相対パスを渡した場合) だと cd 後に意図しない
+# 場所を指してしまう。作成直後に絶対パスへ正規化する。
+OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 log INFO "=== LocalRAG オフライン配布パッケージ作成 ==="
@@ -180,6 +184,15 @@ docker exec "$TEMP_CONTAINER" ollama pull "$LLM_MODEL"
 log INFO "      $EMBED_MODEL..."
 docker exec "$TEMP_CONTAINER" ollama pull "$EMBED_MODEL"
 docker rm -f "$TEMP_CONTAINER" >/dev/null
+
+# ollama コンテナは root で動作し、/root/.ollama 配下 (id_ed25519 等) を
+# root所有・600権限で作成する。ホスト側の非rootユーザーがその後の
+# checksum生成・パッケージングで読めなくなるため、コンテナ経由で
+# 現在のホストユーザーに所有権を戻す。
+docker run --rm --entrypoint chown \
+  -v "$OUTPUT_DIR/ollama-models:/root/.ollama" "$OLLAMA_IMAGE" \
+  -R "$(id -u):$(id -g)" /root/.ollama
+
 log INFO "      モデルサイズ: $(du -sh "$OUTPUT_DIR/ollama-models" | cut -f1)"
 
 # ---------------------------------------------------------------------------
