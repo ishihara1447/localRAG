@@ -10,6 +10,17 @@
 - ディスク空き容量: 最低 30GB、推奨 100GB 以上。
 - ポート 3001 が他のアプリケーションで使用されていないこと。
 
+> **Windows 11 に導入する場合**: 本製品は Docker Desktop を使わず、
+> **WSL2 の Ubuntu ディストロ内**で動作します。事前に次の土台が必要です
+> （詳細は下記「Windows 11 + WSL2 で利用する場合」を参照）。
+> - WSL2 の有効化と Ubuntu ディストロの導入（`wsl --install -d Ubuntu`）
+> - **WSL2 の Ubuntu 内に** Docker Engine + Docker Compose v2
+> - GPU を使う場合: Windows ホストに NVIDIA ドライバ、**WSL2 の Ubuntu 内に**
+>   nvidia-container-toolkit（ドライバ/CUDA を WSL 内やコンテナ内に入れる必要は
+>   ありません）
+> これらの土台構築はオフラインでは行えないため、ネットワーク接続のある環境で
+> IT 担当者が事前に用意してください。
+
 ## パッケージの内容
 
 配布されたフォルダには、以下が含まれています。
@@ -67,6 +78,18 @@ Docker Engine と既存の bash スクリプトを使います。Ubuntu の
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -Distro Ubuntu
 ```
+
+補足:
+
+- **Docker Desktop を併用している環境の場合**: 本製品は `-Distro` で指定した
+  WSL2 ディストロ内の Docker Engine を使うため、Docker Desktop とは独立して
+  動作します。ただし Docker Desktop 側でも 3001 番ポートを使うコンテナが起動
+  していると競合するため、その場合はどちらかを停止してください。
+- `-WslPath` オプションで WSL 内パスを明示指定した場合、配置先が WSL2 Linux
+  ファイルシステム上かどうかの自動チェックは行われません（利用者の責任で
+  指定してください）。通常は指定不要です。
+- PowerShell から実行した際に日本語のログが文字化けする場合は、Windows
+  Terminal を使うか、事前に `chcp 65001` を実行してください。
 
 ## インストール手順
 
