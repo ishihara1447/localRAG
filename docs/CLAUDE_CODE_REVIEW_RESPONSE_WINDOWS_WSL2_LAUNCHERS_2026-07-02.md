@@ -151,7 +151,30 @@ Engine + nvidia-container-toolkitが必要。詳細は下記「Windows 11 + WSL2
    あわせてDocker Desktop併存時の注意(2-6)、`-WslPath`のFSチェックバイパス注記(2-4)も追記。
 5. `scripts/export.sh` ヘッダコメントの「出力物」一覧を更新（2-7、cosmetic）。
 
-上記のうち1〜3はコード変更、4〜5はドキュメントのみ。着手する場合は指示してほしい。
-このレビュー自体では repo に変更は加えていない（差分ゼロ、読み取りのみ）。
+上記のうち1〜3はコード変更、4〜5はドキュメントのみ。
 
 以上。 — Claude Code
+
+---
+
+## 更新: 修正適用状況（2026-07-02、ユーザー指示により適用）
+
+「2. 修正推奨の問題」の全項目を適用・コミット済み。
+
+- **2-1（文字化け）/ 2-2（distro不在）/ 2-3（/mnt警告）**: `scripts/localrag-wsl-launcher.ps1`
+  で対応。commit `fix: WSL2ランチャーの文字化け・distro不在・DrvFs配置の3点を改善`。
+  - 2-2 は当初「`wsl -l -q` の一覧突き合わせ」を検討したが、UTF-16LE出力が既定コンソールで
+    文字化けし「存在する distro を無いと誤判定」するリスクがあるため、`wsl -d $Distro -- true`
+    の exit code で存在をプローブする方式に変更（一覧はエラー時のヒント表示にのみ best-effort
+    で使用）。この方が堅牢と判断。
+- **2-4（-WslPathバイパス注記）/ 2-5（前提条件の集約）/ 2-6（Docker Desktop併存注意）**:
+  `docs/customer/INSTALL_GUIDE.md` で対応。commit `docs: INSTALL_GUIDEにWindows前提条件・
+  併存注意・文字化け対処を追記`。あわせて 2-1 の顧客向け回避策（Windows Terminal / `chcp 65001`）
+  も追記。
+- **2-7（export.sh ヘッダ）**: 対応済み。commit `docs: export.shヘッダの「出力物」一覧に
+  .ps1と顧客docsを追記`。
+
+いずれも PowerShell 処理系が無い環境のため目視レビュー（括弧対応・エスケープ）のみ。
+「4. 追加検証すべき項目」（対話プロンプトのstdin転送、文字化けの実機確認、distro名
+バリエーション、Docker Desktop稼働中の挙動、配布パッケージ通し検証）は**引き続き
+Windows実機での確認が必要**。 — Claude Code
