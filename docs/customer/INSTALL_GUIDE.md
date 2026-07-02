@@ -17,9 +17,12 @@
 ```
 localrag-<バージョン>/
   install.sh              インストール用スクリプト
+  install.ps1             Windows PowerShell から WSL2 内の install.sh を呼ぶランチャー
   uninstall.sh             アンインストール用スクリプト
   start.sh / stop.sh       起動・停止
+  start.ps1 / stop.ps1     Windows PowerShell から WSL2 内の起動・停止を呼ぶランチャー
   backup.sh / restore.sh   バックアップ・復元
+  backup.ps1 / restore.ps1 Windows PowerShell から WSL2 内のバックアップ・復元を呼ぶランチャー
   smoke-test.sh            簡易動作確認
   rag-e2e-test.sh          RAG動作の詳細確認
   docker-compose.yml       サービス定義
@@ -29,6 +32,40 @@ localrag-<バージョン>/
   ollama-models/           LLM・embedding モデル本体
   fixtures/                動作確認用サンプル文書
   LICENSES/ NOTICE         ライセンス情報
+```
+
+## Windows 11 + WSL2 で利用する場合
+
+Windows 11 へ配布する場合も、実行場所は WSL2 Ubuntu の Linux
+ファイルシステム上にしてください。`C:\` や `/mnt/c` 配下に置くと、
+モデル・文書ストレージの I/O が大きく低下します。
+
+推奨配置例:
+
+```text
+\\wsl.localhost\Ubuntu-22.04\home\<user>\localrag
+```
+
+WSL2 内で実行する場合:
+
+```bash
+cd ~/localrag
+bash install.sh
+```
+
+Windows PowerShell から実行する場合:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+PowerShell ランチャーは Docker を Windows 側から直接操作しません。
+内部で `wsl.exe -d Ubuntu-22.04 -- bash ...` を呼び、WSL2 内の
+Docker Engine と既存の bash スクリプトを使います。Ubuntu の
+ディストリビューション名が異なる場合は `-Distro` を指定してください。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -Distro Ubuntu
 ```
 
 ## インストール手順

@@ -46,7 +46,24 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 3. **rag-e2e-test.shの拡充**: 外部provider拒否・Swagger無効の検証を追加（計画§10.4の未実装項目）。文書外質問の「不明」判定パターンがLLM応答の表現ゆれで誤FAILすることも発見・パターン拡張。
 4. **LICENSES/NOTICE**: AnythingLLM(MIT)/Ollama(MIT)/Apache-2.0(llm-jp・mxbai-embed-large)/Llama 3.1 Community Licenseの実ライセンス全文を公式配布元から取得して同梱。
 5. **顧客向けドキュメント5点**: `docs/customer/`にREADME/INSTALL_GUIDE/OPERATIONS_GUIDE/SECURITY_GUIDE/TROUBLESHOOTINGを作成（`export.sh`が自動でパッケージ直下にコピー）。
-6. **Windows PowerShell版スクリプト**: install/start/stop/backup/restore/uninstallの6本を作成。**PowerShell処理系が無い開発環境のため実行検証はできておらず、目視レビューのみ**。Windows実機での動作確認が必要。
+6. **Windows PowerShell版スクリプト**: install/start/stop/backup/restore/uninstallの6本を作成。
+
+### 追加作業（Windows 11 + WSL2 + Docker Engine 方針の検証 / 2026-07-02）
+
+- Docker Desktop を使わない方針を現環境で検証。
+  - WSL2 `Ubuntu-22.04` 上の Docker Engine (`unix:///var/run/docker.sock`) が使われていることを確認。
+  - Windows 側 Docker context は `desktop-linux` を指しており、PowerShell から Docker を直接叩く実装は方針に合わないことを確認。
+  - Docker service は `active` / `enabled`。
+  - NVIDIA GPU (`NVIDIA GeForce RTX 5070 Ti`, 16GB級VRAM) が WSL2 と `rag-ollama` コンテナ内の両方で認識されることを確認。
+  - `nvidia-container-toolkit` (`1.19.0`) と Docker runtime `nvidia` を確認。
+- `scripts/*.ps1` を Docker Desktop 前提の直接 Docker 操作から、WSL2 内の既存 bash スクリプトを呼ぶ薄いランチャーへ変更。
+  - 共通ヘルパー: `scripts/localrag-wsl-launcher.ps1`
+  - `export.sh` は `.ps1` ランチャーも配布パッケージへ同梱する。
+  - PowerShell → WSL2 → bash → Docker 経路で `smoke-test.sh` 実行成功。
+- `docs/customer/INSTALL_GUIDE.md` に Windows 11 + WSL2 手順を追記。
+- 検証詳細は `docs/WINDOWS_WSL2_VALIDATION_REPORT_2026-07-02.md`。
+
+注意: UNC 上の `.ps1` は既定 ExecutionPolicy でブロックされた。顧客手順では `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1` を明記する。
 
 ### 実機検証で確認できたこと（今セッション）
 
@@ -59,8 +76,9 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 ### まだ検証していないこと
 
 - `install.sh`のフルサイクル（今回生成した`dist/localrag-1.0.0/`を使って実際にゼロから`bash install.sh`を実行する検証）。現在稼働中のコンテナと名前・ポートが衝突するため、このセッションでは実施しなかった。
-- Windows実機でのPowerShellスクリプト動作確認。
+- 生成済み配布パッケージ上での PowerShell ランチャー動作確認（共通ランチャー経由の `smoke-test.sh` は現環境で確認済み）。
 - 完全オフライン（ネットワーク遮断）環境での通し検証（計画のP4）。
+- APIキー未設定のため、今回の Windows/WSL2 再検証では `rag-e2e-test.sh` は未実行。
 
 ## 4. ★未解決ブロッカー
 
@@ -99,7 +117,7 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 
 7. 完全オフライン（ネットワーク遮断）実機検証。
 8. SBOM・MODEL_CARDS の作成。
-9. Windows実機でのPowerShellスクリプト動作確認。
+9. 生成済み配布パッケージ上でのPowerShellランチャー動作確認。
 
 ## 6. 現在のファイル構成
 
@@ -107,7 +125,7 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 - `runtime/anythingllm-storage/`: データ永続化ボリューム（DB, ベクター, 設定）。コミット禁止。
 - `runtime/ollama-models/`: Ollamaモデルファイル。コミット禁止。
 - `anything-llm/`: AnythingLLM fork（branch: `product/customer-rag-base`、独立git、親からは`.gitignore`で除外）。
-- `scripts/`: export/install/uninstall/start/stop/backup/restore/smoke-test/rag-e2e-test（bash）+ 同等のPowerShell版(.ps1)。
+- `scripts/`: export/install/uninstall/start/stop/backup/restore/smoke-test/rag-e2e-test（bash）+ WSL2ランチャー版PowerShellスクリプト(.ps1)。
 - `docs/customer/`: 顧客向けドキュメント5点。
 - `LICENSES/`, `NOTICE`: 第三者ライセンス。
 

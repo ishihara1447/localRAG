@@ -243,6 +243,9 @@ for s in install.sh uninstall.sh smoke-test.sh rag-e2e-test.sh start.sh stop.sh 
     chmod +x "$OUTPUT_DIR/$s"
   fi
 done
+for s in localrag-wsl-launcher.ps1 install.ps1 uninstall.ps1 start.ps1 stop.ps1 backup.ps1 restore.ps1; do
+  [[ -f "$SCRIPT_DIR/$s" ]] && cp "$SCRIPT_DIR/$s" "$OUTPUT_DIR/$s"
+done
 # 付属ディレクトリ (存在すればコピー)
 [[ -d "$PROJECT_ROOT/fixtures" ]] && cp -r "$PROJECT_ROOT/fixtures" "$OUTPUT_DIR/fixtures"
 [[ -d "$PROJECT_ROOT/LICENSES" ]] && cp -r "$PROJECT_ROOT/LICENSES" "$OUTPUT_DIR/LICENSES"
