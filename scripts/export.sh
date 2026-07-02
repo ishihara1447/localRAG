@@ -17,7 +17,10 @@
 #
 # 出力物:
 #   <出力先>/
-#     install.sh / uninstall.sh / smoke-test.sh / start.sh / stop.sh / backup.sh / restore.sh
+#     install.sh / uninstall.sh / smoke-test.sh / rag-e2e-test.sh / start.sh / stop.sh / backup.sh / restore.sh
+#     *.ps1                               Windows/WSL2 用 PowerShell ランチャー
+#                                         (localrag-wsl-launcher.ps1 + install/uninstall/start/stop/backup/restore.ps1)
+#     README.md / INSTALL_GUIDE.md / …    顧客向けドキュメント (docs/customer/ から, 存在すれば)
 #     docker-compose.yml
 #     versions.lock                       バージョン・digest・git commit
 #     checksums/
