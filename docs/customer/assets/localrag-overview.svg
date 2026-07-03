@@ -10,8 +10,8 @@
     <marker id="arrowG" markerWidth="12" markerHeight="12" refX="8" refY="4" orient="auto">
       <path d="M0,0 L8,4 L0,8 Z" fill="#a9862f"/>
     </marker>
-    <marker id="arrowR" markerWidth="12" markerHeight="12" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="#cf3b32"/>
+    <marker id="arrowS" markerWidth="12" markerHeight="12" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8895a5"/>
     </marker>
   </defs>
 
@@ -42,59 +42,51 @@
   <text x="70" y="316" fill="#1b2a3a" font-size="26" font-weight="700">概要図（システム構成）</text>
 
   <!-- 顧客環境 boundary (閉じた環境) -->
-  <rect x="60" y="336" width="760" height="470" rx="10" fill="#f2f8f4" stroke="#1f9d76" stroke-width="2.5"/>
-  <text x="76" y="362" fill="#1f7d5c" font-size="19" font-weight="700">顧客環境（社内ネットワーク・インターネット接続不要／外部通信なし）</text>
+  <rect x="90" y="340" width="900" height="470" rx="10" fill="#f2f8f4" stroke="#1f9d76" stroke-width="2.5"/>
+  <text x="112" y="372" fill="#1f7d5c" font-size="19" font-weight="700">顧客環境（社内ネットワーク・インターネット接続不要）</text>
+  <!-- badge: 外部通信なし -->
+  <rect x="774" y="350" width="196" height="42" rx="21" fill="#1f9d76"/>
+  <polyline points="794,371 802,381 818,359" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="832" y="378" fill="#ffffff" font-size="19" font-weight="700">外部通信なし</text>
 
   <!-- Windows/WSL2/Docker host -->
-  <rect x="82" y="384" width="718" height="300" rx="8" fill="#eef3f9" stroke="#94accb" stroke-width="2"/>
-  <text x="98" y="410" fill="#2c4a6e" font-size="17" font-weight="700">Windows 11 + WSL2（Ubuntu）＋ Docker Engine ／ Linux サーバー</text>
+  <rect x="180" y="406" width="720" height="250" rx="8" fill="#eef3f9" stroke="#94accb" stroke-width="2"/>
+  <text x="200" y="432" fill="#2c4a6e" font-size="17" font-weight="700">Windows 11 + WSL2（Ubuntu）＋ Docker Engine ／ Linux サーバー</text>
 
   <!-- service: AnythingLLM -->
-  <rect x="108" y="430" width="238" height="170" rx="8" fill="#ffffff" stroke="#2c6fb0" stroke-width="2"/>
-  <text x="227" y="468" fill="#1b2a3a" font-size="20" font-weight="700" text-anchor="middle">AnythingLLM</text>
-  <text x="227" y="500" fill="#4a5b6d" font-size="16" text-anchor="middle">チャット UI</text>
-  <text x="227" y="524" fill="#4a5b6d" font-size="16" text-anchor="middle">文書管理・RAG 制御</text>
-  <text x="227" y="566" fill="#2c6fb0" font-size="15" font-weight="700" text-anchor="middle">LanceDB（ベクトルDB）内蔵</text>
+  <rect x="220" y="456" width="300" height="178" rx="8" fill="#ffffff" stroke="#2c6fb0" stroke-width="2"/>
+  <text x="370" y="496" fill="#1b2a3a" font-size="21" font-weight="700" text-anchor="middle">AnythingLLM</text>
+  <text x="370" y="528" fill="#4a5b6d" font-size="16" text-anchor="middle">チャット UI</text>
+  <text x="370" y="554" fill="#4a5b6d" font-size="16" text-anchor="middle">文書管理・RAG 制御</text>
+  <text x="370" y="602" fill="#2c6fb0" font-size="15" font-weight="700" text-anchor="middle">LanceDB（ベクトルDB）内蔵</text>
 
   <!-- service: Ollama -->
-  <rect x="378" y="430" width="238" height="170" rx="8" fill="#ffffff" stroke="#b8631f" stroke-width="2"/>
-  <text x="497" y="468" fill="#1b2a3a" font-size="20" font-weight="700" text-anchor="middle">Ollama</text>
-  <text x="497" y="500" fill="#4a5b6d" font-size="16" text-anchor="middle">LLM 推論</text>
-  <text x="497" y="524" fill="#4a5b6d" font-size="16" text-anchor="middle">Embedding 生成</text>
-  <text x="497" y="566" fill="#b8631f" font-size="15" font-weight="700" text-anchor="middle">GPU アクセラレーション</text>
+  <rect x="560" y="456" width="300" height="178" rx="8" fill="#ffffff" stroke="#b8631f" stroke-width="2"/>
+  <text x="710" y="496" fill="#1b2a3a" font-size="21" font-weight="700" text-anchor="middle">Ollama</text>
+  <text x="710" y="528" fill="#4a5b6d" font-size="16" text-anchor="middle">LLM 推論</text>
+  <text x="710" y="554" fill="#4a5b6d" font-size="16" text-anchor="middle">Embedding 生成</text>
+  <text x="710" y="602" fill="#b8631f" font-size="15" font-weight="700" text-anchor="middle">GPU アクセラレーション</text>
 
   <!-- AnythingLLM <-> Ollama double arrow -->
-  <line x1="346" y1="503" x2="378" y2="503" stroke="#8895a5" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="378" y1="527" x2="346" y2="527" stroke="#8895a5" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="520" y1="534" x2="560" y2="534" stroke="#8895a5" stroke-width="2.5" marker-end="url(#arrowS)"/>
+  <line x1="560" y1="560" x2="520" y2="560" stroke="#8895a5" stroke-width="2.5" marker-end="url(#arrowS)"/>
 
   <!-- 利用者 -->
-  <rect x="108" y="706" width="238" height="74" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="2"/>
-  <text x="227" y="740" fill="#1b2a3a" font-size="19" font-weight="700" text-anchor="middle">利用者（Web ブラウザ）</text>
-  <text x="227" y="764" fill="#4a5b6d" font-size="15" text-anchor="middle">http://localhost:3001</text>
+  <rect x="220" y="690" width="300" height="78" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="2"/>
+  <text x="370" y="726" fill="#1b2a3a" font-size="19" font-weight="700" text-anchor="middle">利用者（Web ブラウザ）</text>
+  <text x="370" y="751" fill="#4a5b6d" font-size="15" text-anchor="middle">http://localhost:3001</text>
 
   <!-- 社内文書 -->
-  <rect x="378" y="706" width="238" height="74" rx="8" fill="#fbf7ee" stroke="#c9a94a" stroke-width="2"/>
-  <text x="497" y="736" fill="#1b2a3a" font-size="18" font-weight="700" text-anchor="middle">社内文書</text>
-  <text x="497" y="762" fill="#8a7320" font-size="15" text-anchor="middle">PDF / DOCX / TXT</text>
+  <rect x="560" y="690" width="300" height="78" rx="8" fill="#fbf7ee" stroke="#c9a94a" stroke-width="2"/>
+  <text x="710" y="722" fill="#1b2a3a" font-size="18" font-weight="700" text-anchor="middle">社内文書</text>
+  <text x="710" y="748" fill="#8a7320" font-size="15" text-anchor="middle">PDF / DOCX / TXT</text>
 
   <!-- arrow 利用者 -> AnythingLLM -->
-  <line x1="227" y1="706" x2="227" y2="602" stroke="#2c6fb0" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <text x="248" y="666" fill="#2c6fb0" font-size="14">質問／回答</text>
+  <line x1="370" y1="690" x2="370" y2="636" stroke="#2c6fb0" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="388" y="672" fill="#2c6fb0" font-size="14">質問／回答</text>
   <!-- arrow 社内文書 -> AnythingLLM -->
-  <line x1="430" y1="706" x2="300" y2="602" stroke="#a9862f" stroke-width="2.5" marker-end="url(#arrowG)"/>
-  <text x="360" y="690" fill="#a9862f" font-size="14">アップロード</text>
-
-  <!-- 完全ローカル完結を示すシール (外部接続の要素は描かない) -->
-  <rect x="846" y="428" width="172" height="196" rx="16" fill="#eef7f2" stroke="#1f9d76" stroke-width="2.5"/>
-  <!-- padlock icon -->
-  <path d="M915,486 L915,474 A17,17 0 0 1 949,474 L949,486" fill="none" stroke="#1f9d76" stroke-width="6"/>
-  <rect x="906" y="486" width="52" height="40" rx="7" fill="#1f9d76"/>
-  <circle cx="932" cy="503" r="5" fill="#eef7f2"/>
-  <rect x="929" y="504" width="6" height="12" rx="3" fill="#eef7f2"/>
-  <!-- text -->
-  <text x="932" y="560" fill="#1f7d5c" font-size="21" font-weight="700" text-anchor="middle">外部通信なし</text>
-  <text x="932" y="588" fill="#33465a" font-size="16" text-anchor="middle">推論・ベクトル化・</text>
-  <text x="932" y="610" fill="#33465a" font-size="16" text-anchor="middle">保存を環境内で完結</text>
+  <line x1="612" y1="690" x2="478" y2="636" stroke="#a9862f" stroke-width="2.5" marker-end="url(#arrowG)"/>
+  <text x="516" y="676" fill="#a9862f" font-size="14">アップロード</text>
 
   <!-- ============ 特徴 ============ -->
   <rect x="1060" y="278" width="500" height="560" rx="12" fill="#ffffff" stroke="#d5dee8"/>
