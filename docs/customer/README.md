@@ -1,5 +1,10 @@
 # LocalRAG
 
+![LocalRAG 製品概要（概要・システム構成・特徴・動作環境）](./assets/localrag-overview.png)
+
+> 上図は本製品の概要資料です（概要・概要図・特徴・動作環境）。
+> 画像元データ: [`assets/localrag-overview.svg`](./assets/localrag-overview.svg)
+
 社内文書を対象にした、完全ローカル動作の日本語 RAG（Retrieval-Augmented
 Generation）アプリケーションです。
 
