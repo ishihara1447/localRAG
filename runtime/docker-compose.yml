@@ -84,10 +84,11 @@ services:
       # LLM: Docker 内部ネットワーク経由で Ollama に接続
       - LLM_PROVIDER=ollama
       - OLLAMA_BASE_PATH=http://ollama:11434
-      - OLLAMA_MODEL_PREF=llama3.1:8b
+      - OLLAMA_MODEL_PREF=hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M
       - OLLAMA_MODEL_TOKEN_LIMIT=8192
-      # llm-jp-4-8b-thinking 用タイムアウト(20分)。thinking モデル切り替え時に有効化:
-      # - OLLAMA_RESPONSE_TIMEOUT=1200000
+      # llm-jp-4-8b-thinking 用タイムアウト(20分)。2026-07-04: GPU(RTX 5070 Ti)ではウォーム時1〜7秒で応答することを
+      # 生Ollama呼び出しで確認したが、RAGコンテキスト付きの長いプロンプトでの余裕を見て有効化しておく。
+      - OLLAMA_RESPONSE_TIMEOUT=1200000
       # Embedding: mxbai-embed-large (多言語対応, F16, 334MB) を Ollama 経由で使用
       # mxbai-embed-large の最大入力は 512 tokens → チャンクを 500 chars に設定
       - EMBEDDING_ENGINE=ollama

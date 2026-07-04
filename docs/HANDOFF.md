@@ -1,6 +1,6 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-02 / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-04（Claude・[B2]設定変更＋再検証） / 次セッション開始時にまずこれを読む。
 権威ドキュメント: `AGENTS.md`/`CLAUDE.md`（制約集約） → 本ファイル → `docs/OFFLINE_DISTRIBUTION_HARDENING_PLAN.md`（配布ハードニング計画） → `docs/PROJECT_STATUS.md`（俯瞰） → `docs/anythingllm_customer_distribution_plan.md`（配布計画＝一次情報）。
 
 ---
@@ -13,7 +13,7 @@ AnythingLLM(MIT) を fork 改修し、完全ローカルの日本語RAGを構築
 
 - **AnythingLLM**: `http://localhost:3001`（healthy）。
   - image: **`localrag-anythingllm:1.0.0`**（`anything-llm/`(`product/customer-rag-base`)からカスタムビルド。外部LLM provider allowlist改修が反映済み。公式 `mintplexlabs/anythingllm:latest` は使用していない）。
-  - LLM: `llama3.1:8b`（Phase1検証用の暫定モデル。本番想定は `llm-jp-4-8b-thinking` だが [B1][B2] 未解決のため保留）。
+  - LLM: `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M`（2026-07-04にClaudeが切替。[B2]参照）。
   - Embedding: `mxbai-embed-large:latest`（Apache-2.0, 日本語対応）。
   - VectorDB: LanceDB（内蔵）。
 - **Ollama**: Docker サービス（`rag-ollama`, `rag-internal` ネットワーク、外部非公開）。ホストプロセスは使っていない。
@@ -89,11 +89,15 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 - **本番対応（未着手）**: Dockerfile で GPUModelRunnerV2 の UVA チェックをパッチした独自 vLLM イメージをビルド。
   - 参考: https://discuss.vllm.ai/t/project-vllm-docker-for-running-smoothly-on-rtx-5090-wsl2/1697
 
-### [B2] llm-jp-4-8b-thinking が実用速度で使えない（未解決）
+### [B2] llm-jp-4-8b-thinking が実用速度で使えない（2026-07-04 再検証・大幅改善を確認）
 
-- 症状: 単純な質問でも 3分13秒（thinking フェーズで大量トークン生成）。AnythingLLM のデフォルト HTTP タイムアウトを超える。
-- **対処方法（次セッション）**: compose に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を追加し、`OLLAMA_MODEL_PREF=hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に戻してテスト。thinking OFF (`/no_think`) も試す。
-- **代替**: llm-jp-4 の非 thinking 版 GGUF、または qwen3:8b（高速, 日本語対応）で継続。
+- 従来症状: 単純な質問でも 3分13秒（thinking フェーズで大量トークン生成）。AnythingLLM のデフォルト HTTP タイムアウトを超える。
+- **2026-07-04 実施した対処**:
+  1. `runtime/docker-compose.yml` に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を有効化。
+  2. `OLLAMA_MODEL_PREF` を `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に切替、`docker compose up -d anythingllm` でコンテナ再作成 → `healthy` 復帰・`/api/ping` 正常を確認。
+  3. `docker exec rag-ollama ollama run ...` で生Ollama呼び出しを2回実測: 1回目（コールドスタート）**6.6秒**、2回目（ウォーム、就業規則要約という多少実務的な質問）**1.06秒**。GPU（RTX 5070 Ti）がしっかり効いており、当初の「3分13秒」は再現しなかった。
+- **未検証（次セッションで実施）**: AnythingLLMの`/api/v1/workspace/.../chat`経由のRAGフルパス（文書検索＋長いコンテキスト付与）でのレイテンシ。生Ollama呼び出しより長くなるはずだが、`LOCALRAG_API_KEY`が手元になく`rag-e2e-test.sh`を実行できなかったため未検証。AnythingLLM管理画面（Settings → API Keys）でキーを発行し、`LOCALRAG_API_KEY=<key> bash scripts/rag-e2e-test.sh` を実行して確認すること。
+- **代替（もしRAGフルパスで依然遅い場合）**: llm-jp-4 の非 thinking 版 GGUF、または qwen3:8b（高速, 日本語対応、既にpull済み）に切替可能。
 
 ### [B3] コンテナ内DNS失敗 → **解決済み（2026-07-02）**
 
@@ -103,7 +107,7 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 
 ### P1 — Phase 1 完了に必須
 
-1. **[B2] llm-jp-4-8b-thinking タイムアウト対処**: `OLLAMA_RESPONSE_TIMEOUT=1200000` を追加してテスト。
+1. **[B2] フルパス検証**: AnythingLLM管理画面でAPIキーを発行し、`LOCALRAG_API_KEY=<key> bash scripts/rag-e2e-test.sh` でRAG経由のレイテンシを確認（設定変更・生Ollama速度は2026-07-04に確認済み、残るはこの1点）。
 2. **PDF/DOCX テスト**: サンプル PDF/DOCX をアップロードして RAG が動くか確認（現状 `.txt` のみ検証済み）。
 3. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら `pfnet/plamo-embedding-1b` 等に変更（変更時は全文書の再embeddingが必須）。
 
