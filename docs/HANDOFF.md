@@ -1,6 +1,10 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-04（Claude・[B2]設定変更＋再検証） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-08（Claude・P1全項目完了: ハルシネーション対策/日本語PDF修正/embedding選定。image 1.0.2） / 次セッション開始時にまずこれを読む。
+
+> **P1完了（2026-07-08）**: Phase 1完了に必須の技術タスクはすべて消化した。残るPhase 1タスクは
+> **士業ヒアリング（核心仮説「士業はローカルAIに金を払うか」の検証）のみ**で、これはユーザー自身の作業。
+> 技術側の次はP2（配布品質: trust_remote_codeレビュー・install.shフルサイクル検証）。
 権威ドキュメント: `AGENTS.md`/`CLAUDE.md`（制約集約） → 本ファイル → `docs/OFFLINE_DISTRIBUTION_HARDENING_PLAN.md`（配布ハードニング計画） → `docs/PROJECT_STATUS.md`（俯瞰） → `docs/anythingllm_customer_distribution_plan.md`（配布計画＝一次情報）。
 
 ---
@@ -19,7 +23,7 @@ AnythingLLM(MIT) を fork 改修し、完全ローカルの日本語RAGを構築
 - **Ollama**: Docker サービス（`rag-ollama`, `rag-internal` ネットワーク、外部非公開）。ホストプロセスは使っていない。
 
 ```bash
-cd /home/ishihara1447/projects/localRAG/runtime
+cd /home/ishihara1447/projects/fukugyo/repos/localRAG/runtime
 docker compose ps
 curl -s http://localhost:3001/api/ping           # {"online":true}
 ```
@@ -89,15 +93,18 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 - **本番対応（未着手）**: Dockerfile で GPUModelRunnerV2 の UVA チェックをパッチした独自 vLLM イメージをビルド。
   - 参考: https://discuss.vllm.ai/t/project-vllm-docker-for-running-smoothly-on-rtx-5090-wsl2/1697
 
-### [B2] llm-jp-4-8b-thinking が実用速度で使えない（2026-07-04 再検証・大幅改善を確認）
+### [B2] llm-jp-4-8b-thinking が実用速度で使えない → **解決済み（2026-07-08、RAGフルパス検証完了）**
 
 - 従来症状: 単純な質問でも 3分13秒（thinking フェーズで大量トークン生成）。AnythingLLM のデフォルト HTTP タイムアウトを超える。
 - **2026-07-04 実施した対処**:
   1. `runtime/docker-compose.yml` に `OLLAMA_RESPONSE_TIMEOUT=1200000`（20分）を有効化。
   2. `OLLAMA_MODEL_PREF` を `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` に切替、`docker compose up -d anythingllm` でコンテナ再作成 → `healthy` 復帰・`/api/ping` 正常を確認。
   3. `docker exec rag-ollama ollama run ...` で生Ollama呼び出しを2回実測: 1回目（コールドスタート）**6.6秒**、2回目（ウォーム、就業規則要約という多少実務的な質問）**1.06秒**。GPU（RTX 5070 Ti）がしっかり効いており、当初の「3分13秒」は再現しなかった。
-- **未検証（次セッションで実施）**: AnythingLLMの`/api/v1/workspace/.../chat`経由のRAGフルパス（文書検索＋長いコンテキスト付与）でのレイテンシ。生Ollama呼び出しより長くなるはずだが、`LOCALRAG_API_KEY`が手元になく`rag-e2e-test.sh`を実行できなかったため未検証。AnythingLLM管理画面（Settings → API Keys）でキーを発行し、`LOCALRAG_API_KEY=<key> bash scripts/rag-e2e-test.sh` を実行して確認すること。
-- **代替（もしRAGフルパスで依然遅い場合）**: llm-jp-4 の非 thinking 版 GGUF、または qwen3:8b（高速, 日本語対応、既にpull済み）に切替可能。
+- **2026-07-08 実施したRAGフルパス検証**: AnythingLLM管理画面を使わず、`POST /api/system/generate-api-key`をAPI直叩きでAPIキーを発行（single-user mode・AUTH_TOKEN未設定のため無認証で発行可能だった）。`LOCALRAG_API_KEY=<key> bash scripts/rag-e2e-test.sh`を2回実行:
+  - ワークスペース作成→文書アップロード・embedding→文書内質問（RAG検索＋LLM推論＋出典付き回答）→文書外質問→外部provider拒否確認→Swagger無効確認、の全6ステップが**合計6.4秒**で完走（タイムアウトなし）。当初懸念していた「3分13秒」は文書検索を挟んだフルパスでも再現せず、[B2]は完全解消と判断してよい。
+  - 文書内質問（「有給休暇は年間何日か」）には正しく「22」を含む回答＋出典1件が返り、PASS。
+  - **新たに発見した問題**: 文書外質問（文書に無い情報を聞く）に対して、AnythingLLMが「不明」と答えずに出典付きで回答してしまい、FAIL（ハルシネーションの疑い）。これは`CLAUDE.md`の絶対ルール「RAG回答は出典必須・文書外は『不明』を既定プロンプトで強制」が未実装であることを示す。下記P1に追加。
+- 使用したテスト用APIキーはすべてテスト後に`DELETE /api/system/api-key/:id`で削除済み。
 
 ### [B3] コンテナ内DNS失敗 → **解決済み（2026-07-02）**
 
@@ -107,13 +114,13 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 
 ### P1 — Phase 1 完了に必須
 
-1. **[B2] フルパス検証**: AnythingLLM管理画面でAPIキーを発行し、`LOCALRAG_API_KEY=<key> bash scripts/rag-e2e-test.sh` でRAG経由のレイテンシを確認（設定変更・生Ollama速度は2026-07-04に確認済み、残るはこの1点）。
-2. **PDF/DOCX テスト**: サンプル PDF/DOCX をアップロードして RAG が動くか確認（現状 `.txt` のみ検証済み）。
-3. **日本語 embedding 正式選定**: mxbai-embed-large で実用水準か評価。不十分なら `pfnet/plamo-embedding-1b` 等に変更（変更時は全文書の再embeddingが必須）。
+1. ~~**[B2] フルパス検証**~~ → **完了（2026-07-08）**。6ステップ合計6.4秒、タイムアウトなし。詳細は上記[B2]セクション参照。
+2. ~~**RAG回答の「出典必須・文書外は不明」を既定システムプロンプトで強制**~~ → **完了（2026-07-08）**。fork commit `b29d5567`で`saneDefaultSystemPrompt`を日本語RAG厳格版に変更（出典必須・文書外は「提供された文書には該当する情報がありません」・日本語回答強制）。image 1.0.1に反映しrag-e2e-test.shで文書外質問の不明応答を確認済み。
+3. ~~**PDF/DOCX テスト**~~ → **完了（2026-07-08）**。DOCXは素通し成功。**日本語CIDフォントPDFは取り込み失敗するバグを発見・修正**（fork commit `5773dc9f`: pdf-parse同梱の古いpdf.jsがcMap非対応 → pdfjs-dist@4.4.168+同梱cMapsに切替。upstream masterも未修正の制約だった）。image 1.0.2に反映、fixtures/test-expense.pdf（CIDフォント）＋test-attendance.docxで検証、rag-e2e-test.shに回帰テスト[3b][3c]を追加（11/11 PASS）。
+4. ~~**日本語 embedding 正式選定**~~ → **mxbai-embed-largeを正式採用（2026-07-08）**。文書の語彙を避けた言い換え質問5問（年休→有給休暇・手当→日当・リモートワーク→在宅勤務等の同義語検索を含む）で5/5正答を確認し実用水準と判断。plamo-embedding-1b等への切替（全文書再embedding必須）は不要。※サンプル5問・3文書での評価のため、実文書規模での再確認はPhase 2で行う。
 
 ### P2 — 配布品質
 
-4. RAG回答の「出典必須・文書外は不明」を既定システムプロンプトで強制。
 5. `trust_remote_code` コードレビュー（llm-jp-4-8b-thinking 採用時）とコミットハッシュ固定。
 6. `install.sh` のフルサイクル実機検証（別マシンまたは現行コンテナ停止後に実施）。
 
