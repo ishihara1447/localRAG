@@ -32,6 +32,18 @@ for cand in "$SCRIPT_DIR/fixtures/test-policy.txt" \
   [[ -f "$cand" ]] && { FIXTURE="$cand"; break; }
 done
 
+# PDF/DOCX fixture（無ければ該当ステップをスキップ。scripts/make-fixtures.py で再生成可能）
+PDF_FIXTURE=""
+for cand in "$SCRIPT_DIR/fixtures/test-expense.pdf" \
+            "$SCRIPT_DIR/../fixtures/test-expense.pdf"; do
+  [[ -f "$cand" ]] && { PDF_FIXTURE="$cand"; break; }
+done
+DOCX_FIXTURE=""
+for cand in "$SCRIPT_DIR/fixtures/test-attendance.docx" \
+            "$SCRIPT_DIR/../fixtures/test-attendance.docx"; do
+  [[ -f "$cand" ]] && { DOCX_FIXTURE="$cand"; break; }
+done
+
 PASS=0; FAIL=0
 pass() { echo "  [PASS] $*"; ((PASS++)) || true; }
 fail() { echo "  [FAIL] $*"; ((FAIL++)) || true; }
@@ -117,6 +129,65 @@ if [[ "$SRC1" -gt 0 ]]; then
   pass "出典 (sources) が $SRC1 件付与されている"
 else
   fail "出典が付与されていない"
+fi
+
+# --- 3b. 日本語(CIDフォント)PDFのパース + RAG検索 ---
+# 過去バグ: pdf.js(旧)がcMap非対応で日本語CID PDFのテキスト抽出が空になり
+# 「No text content found」で取り込み失敗していた（2026-07-08修正）。
+if [[ -n "$PDF_FIXTURE" ]]; then
+  echo "[3b] 日本語PDF（CIDフォント）のアップロード・RAG検索..."
+  UPP=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
+    -F "file=@$PDF_FIXTURE;type=application/pdf" \
+    -F "addToWorkspaces=$WS_SLUG" \
+    "$BASE_URL/api/v1/document/upload" 2>/dev/null || echo "")
+  if echo "$UPP" | grep -q '"success":true'; then
+    pass "日本語PDFアップロード・embedding 完了"
+    sleep 3
+    QP=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
+      -H "Content-Type: application/json" \
+      -d '{"message":"国内出張の日当は1日あたりいくらですか？","mode":"query"}' \
+      "$BASE_URL/api/v1/workspace/$WS_SLUG/chat" 2>/dev/null || echo "")
+    AP=$(echo "$QP" | python3 -c \
+      "import sys,json; d=json.load(sys.stdin); print(d.get('textResponse',''))" 2>/dev/null || echo "")
+    if echo "$AP" | grep -qE "3,?400"; then
+      pass "PDF内の固有値「3,400」を含む回答"
+    else
+      fail "PDF由来の回答に「3,400」が含まれない: $(echo "$AP" | head -c 120)"
+    fi
+  else
+    fail "日本語PDFのアップロードに失敗: $(echo "$UPP" | head -c 200)"
+  fi
+else
+  echo "[3b] SKIP: fixtures/test-expense.pdf が見つからない（scripts/make-fixtures.py で生成可能）"
+fi
+
+# --- 3c. DOCXのパース + RAG検索 ---
+if [[ -n "$DOCX_FIXTURE" ]]; then
+  echo "[3c] DOCXのアップロード・RAG検索..."
+  UPD=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
+    -F "file=@$DOCX_FIXTURE;type=application/vnd.openxmlformats-officedocument.wordprocessingml.document" \
+    -F "addToWorkspaces=$WS_SLUG" \
+    "$BASE_URL/api/v1/document/upload" 2>/dev/null || echo "")
+  if echo "$UPD" | grep -q '"success":true'; then
+    pass "DOCXアップロード・embedding 完了"
+    sleep 3
+    QD=$(curl -s --max-time "$TIMEOUT" -X POST "${AUTH[@]}" \
+      -H "Content-Type: application/json" \
+      -d '{"message":"フレックスタイム制のコアタイムは何時から何時までですか？","mode":"query"}' \
+      "$BASE_URL/api/v1/workspace/$WS_SLUG/chat" 2>/dev/null || echo "")
+    AD=$(echo "$QD" | python3 -c \
+      "import sys,json; d=json.load(sys.stdin); print(d.get('textResponse',''))" 2>/dev/null || echo "")
+    # 全角/半角スペース・表記ゆれ（10:20 / 10時20分 / 10 時 20 分）を許容
+    if echo "$AD" | grep -qE "10[ 　]*[:時][ 　]*20"; then
+      pass "DOCX内の固有値「コアタイム10時20分」を含む回答"
+    else
+      fail "DOCX由来の回答にコアタイム開始時刻が含まれない: $(echo "$AD" | head -c 120)"
+    fi
+  else
+    fail "DOCXのアップロードに失敗: $(echo "$UPD" | head -c 200)"
+  fi
+else
+  echo "[3c] SKIP: fixtures/test-attendance.docx が見つからない（scripts/make-fixtures.py で生成可能）"
 fi
 
 # --- 4. 文書外質問（不明応答） ---
