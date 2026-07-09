@@ -1,6 +1,6 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-09（Claude・PoC Go判断確定。課題#1/#2対応済み、Phase 4設計メモ作成。次はPhase 4実装） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-10（Claude・ハング診断完了/Ollamaバージョン誤解を解明。Codexに第2ラウンド検証を依頼） / 次セッション開始時にまずこれを読む。
 
 > **【新トラック 2026-07-09】Windows native配布（Docker/WSLなし配布）— PoC合格・Go確定**
 > Codex提案（`docs/CLAUDE_CODE_MEMO_WINDOWS_NATIVE_DISTRIBUTION_2026-07-09.md`）→ Phase 0（Claude）→
@@ -18,9 +18,18 @@
 >   全ps1はPowerShell 7.4.6 parserでSYNTAX OK・ASCII-only（rag-e2e-test.ps1のみ日本語＋UTF-8 BOM）。
 >   設計判断: STORAGE_DIRは`app\server\storage`固定（prisma schemaのDBパスがソースツリー相対のため）、
 >   InstallRoot既定は`C:\LocalRAG`（Program Filesの空白パスリスク回避）、モデル/ログのみProgramData。
-> - **次: Codexが配布ビルド＋実機検証を実行** — 依頼書 `docs/CODEX_WINDOWS_NATIVE_BUILD_AND_VERIFY_2026-07-09.md`
->   （Part A=パッケージ生成、Part B=顧客手順での通しインストール→E2E→backup→uninstall検証。
->   結果は `docs/WINDOWS_NATIVE_BUILD_VERIFY_RESULT_2026-07-09.md` に記録）
+> - **Codex実行結果（2026-07-10）**: 配布ビルドPart Aは成功。成果物は `C:\LocalRAG\dist\LocalRAG-win64-v1.0.0.zip`
+>   （6.04GiB、100513 files、`versions.lock`作成済み）。結果詳細は `docs/WINDOWS_NATIVE_BUILD_VERIFY_RESULT_2026-07-09.md`。
+>   Part Bは非管理者のため中断。「Expand-Archive展開後のinstall.ps1がPS5.1でハング」を発見。
+> - **Claude診断完了（2026-07-10）**: ハングは成果物の欠陥ではなく、Expand-Archiveが書いたNTFSファイル実体に残る
+>   開発機ローカルのフィルタドライバ状態と特定（13項目の切り分け: 同一内容の複製は動く・rename追従・pwsh正常・
+>   排他オープン成功）。**展開手順は`tar.exe -xf`を正式化、PS5.1のExpand-Archiveは使用禁止**。
+>   Ollama「0.23.0」表示は接続先サーバー（WSL Docker側）のバージョンで、**同梱exeは正しくv0.31.2**（再DL不要）。
+>   詳細: `docs/WINDOWS_NATIVE_EXPAND_ARCHIVE_HANG_DIAGNOSIS_2026-07-10.md`
+> - **次: Codexが第2ラウンド検証を実行** — 依頼書 `docs/CODEX_WINDOWS_NATIVE_VERIFY_ROUND2_2026-07-10.md`
+>   （管理者権限でtar展開→install→**サービスからのGPU動作確認（Session 0でCUDAが効くかが今回の核心）**→
+>   E2E(PS5.1)→backup/stop/start→uninstall。障害予測と対策表・昇格不可時の代替手順を同梱。
+>   ポートは3001でなく3005を使用＝wsl --shutdownがWSL上のClaude Codeを殺すため回避）
 > - 現行のWSL2+Docker方式は保険として無変更で温存。P2（install.shフルサイクル検証等）はWindows native版の顧客配布方針確定後に要否を再判断
 
 > **P1完了（2026-07-08）**: Phase 1完了に必須の技術タスクはすべて消化した。残るPhase 1タスクは
