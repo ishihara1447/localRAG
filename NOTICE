@@ -14,6 +14,10 @@ LICENSES/ ディレクトリを参照すること。
 - llm-jp/llm-jp-4-8b-thinking (LLM, 本番想定) - Apache License 2.0
 - mxbai-embed-large (Embedding, 既定)       - Apache License 2.0
 - llama3.1:8b (LLM, Phase1検証用/現行既定)  - Llama 3.1 Community License
+- WinSW (Windows Service wrapper, Windows native配布版のみ) - MIT License
+- Node.js v22 (win-x64 portable runtime, Windows native配布版のみ)
+                                            - MIT License ほか同梱物
+                                              (ICU, OpenSSL等) の複合ライセンス
 
 詳細は LICENSES/THIRD_PARTY_NOTICES.txt を参照。
 

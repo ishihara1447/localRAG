@@ -11,6 +11,8 @@ LocalRAG 第三者コンポーネント ライセンス一覧
 | llm-jp/llm-jp-4-8b-thinking (本番想定LLM) | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/llm-jp |
 | mxbai-embed-large (Embedding, 既定)       | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1 |
 | llama3.1:8b (Phase1検証用LLM, 現行既定)   | Llama 3.1 Community License     | Llama-3.1-Community-License.txt          | https://github.com/meta-llama/llama-models |
+| WinSW (Windows Service wrapper)           | MIT                             | WinSW_LICENSE.txt                        | https://github.com/winsw/winsw |
+| Node.js v22 (win-x64 portable runtime)    | MIT + 同梱物の複合ライセンス    | Node.js_LICENSE.txt                      | https://github.com/nodejs/node |
 
 ## 注意事項
 
@@ -28,6 +30,22 @@ LocalRAG 第三者コンポーネント ライセンス一覧
 - モデルファイル自体（重み）はこのリポジトリに含まれない。
   `scripts/export.sh` が生成する配布パッケージの `ollama-models/`
   配下に実体が含まれる。
+- WinSW / Node.js は Windows native 配布版
+  (`windows-native/export-windows.ps1` が生成するパッケージ) にのみ
+  同梱される。
+- `Node.js_LICENSE.txt` は Node.js 本体 (MIT) に加え、同梱される
+  第三者コンポーネント (ICU, OpenSSL, V8, zlib, npm 等) のライセンス
+  全文を含む複合ライセンスファイルである。正は実際に同梱する Node
+  配布物 (node-v22.x-win-x64) 内の LICENSE ファイルであり、同梱する
+  Node のバージョンを固定・変更した際は配布物内の LICENSE と本ファイル
+  の内容が一致していることを確認すること。
+
+## 取得記録
+
+| ライセンス全文ファイル | 取得元URL | 取得日 |
+|------------------------|-----------|--------|
+| WinSW_LICENSE.txt      | https://raw.githubusercontent.com/winsw/winsw/master/LICENSE.txt | 2026-07-10 |
+| Node.js_LICENSE.txt    | https://raw.githubusercontent.com/nodejs/node/v22.x/LICENSE | 2026-07-10 |
 
 ## 更新方法
 
