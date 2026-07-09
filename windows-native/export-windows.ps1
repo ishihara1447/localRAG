@@ -155,8 +155,12 @@ if (Test-Path (Join-Path $repoRoot "LICENSES")) {
 if (Test-Path (Join-Path $repoRoot "NOTICE")) {
     Copy-Item (Join-Path $repoRoot "NOTICE") (Join-Path $Pkg "NOTICE")
 }
-if (Test-Path (Join-Path $repoRoot "docs\customer")) {
-    robocopy (Join-Path $repoRoot "docs\customer") (Join-Path $Pkg "docs") /E /NFL /NDL /NJH /NJS | Out-Null
+# Windows native package ships the Windows-native customer docs
+# (docs\customer is the Docker-distribution manual and does not apply here).
+if (Test-Path (Join-Path $repoRoot "docs\customer-windows")) {
+    robocopy (Join-Path $repoRoot "docs\customer-windows") (Join-Path $Pkg "docs") /E /NFL /NDL /NJH /NJS | Out-Null
+} else {
+    Write-Host "WARN: docs\customer-windows not found; package will ship without customer docs."
 }
 $global:LASTEXITCODE = 0
 
