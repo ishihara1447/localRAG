@@ -1,6 +1,11 @@
 # Windows Native オフラインインストール 作業計画（ルーズ版）
 
-作成日: 2026-07-09（Claude Code）
+作成日: 2026-07-09（Claude Code）／最終更新: 2026-07-09（Claude Code — PoC合格・Go判断を反映）
+
+> **進捗（2026-07-09時点）**: Phase 0（Claude Code）✅ → Phase 1〜3（Codex実機PoC）✅ **E2E 11/11 PASS**
+> （`docs/WINDOWS_NATIVE_POC_RESULT_2026-07-09.md`）→ PoC judge ✅ **Go判断**。
+> PoC課題#1（PS5.1文字化け→BOM付き化）・#2（hotdir誤解決→fork `fd67e830`で`COLLECTOR_HOTDIR_PATH`追加）は対応済み。
+> **Phase 4の詳細設計とタスク分解は `docs/WINDOWS_NATIVE_PHASE4_DESIGN_2026-07-09.md` に移管**（本ファイルのPhase 4節より優先）。
 背景: `CLAUDE_CODE_MEMO_WINDOWS_NATIVE_DISTRIBUTION_2026-07-09.md`（Codex提案）を受け、Claude Codeが技術的実現可能性を独自検証した上で作成。士業ヒアリング（コア仮説検証）は本計画のスコープから**意図的に除外**し、技術トラックを先行させる方針（ユーザー判断）。
 
 ## 前提・方針

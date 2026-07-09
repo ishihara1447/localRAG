@@ -1,4 +1,4 @@
-# rag-e2e-test.ps1 - RAG パイプラインの End-to-End 検証 (Windows native 版)
+﻿# rag-e2e-test.ps1 - RAG パイプラインの End-to-End 検証 (Windows native 版)
 #
 # scripts/rag-e2e-test.sh の PowerShell 移植。検証項目・合否判定は bash 版と同一:
 #   fixtures/test-policy.txt をアップロード → embedding → 出典付き回答 →
@@ -14,6 +14,11 @@
 #
 # 注意: WORKSPACE_DELETION_PROTECTION=1 が有効な環境では、テスト後の
 #       ワークスペース削除が失敗して残り続ける(仕様)。不要ならUIから手動削除。
+#
+# エンコーディング: このファイルは UTF-8 BOM 付きで保存すること。
+#       BOM が無いと Windows PowerShell 5.1 が日本語を誤解釈し parser error になる
+#       (PoC 2026-07-09 課題#1)。PowerShell 7 (pwsh) は BOM 無しでも動くが、
+#       5.1 互換のため BOM を維持する。
 
 $ErrorActionPreference = "Continue"
 $BaseUrl = "http://localhost:3001"

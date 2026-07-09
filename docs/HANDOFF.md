@@ -1,16 +1,18 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-09（Claude・Windows native配布トラック開始。Phase 0完了、Codexに実機PoCを依頼） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-09（Claude・PoC Go判断確定。課題#1/#2対応済み、Phase 4設計メモ作成。次はPhase 4実装） / 次セッション開始時にまずこれを読む。
 
-> **【新トラック 2026-07-09】Windows native配布PoC（Docker/WSLなし配布の検証）**
-> Codex提案（`docs/CLAUDE_CODE_MEMO_WINDOWS_NATIVE_DISTRIBUTION_2026-07-09.md`）を受け、
-> 顧客配布の本命候補としてWindows native方式のPoCを開始（ユーザー承認済み。士業ヒアリングは別トラック扱い）。
-> - 作業計画: `docs/WINDOWS_NATIVE_OFFLINE_INSTALL_WORKPLAN_2026-07-09.md`（担当分担: Claude Code=WSL側コード、Codex=Windows実機）
-> - **Phase 0（Claude Code担当）完了**: ①`DISABLE_WEB_SCRAPING`フラグ+puppeteer遅延ロード化（fork `cdd1c292`）
->   ②prisma `binaryTargets`にwindows追加（fork `1f5658b6`）③`windows-native/`にenvテンプレ2点+`rag-e2e-test.ps1`
->   ④Codex向け実機手順書 `docs/CODEX_WINDOWS_NATIVE_POC_INSTRUCTIONS_2026-07-09.md`
-> - **次: CodexがPhase 1〜3（実機PoC）を実行**し、結果を`docs/WINDOWS_NATIVE_POC_RESULT_2026-07-09.md`に記録
-> - 現行のWSL2+Docker方式は保険として無変更で温存。下記P2（install.shフルサイクル検証等）はPoC結果と整合を取ってから実施
+> **【新トラック 2026-07-09】Windows native配布（Docker/WSLなし配布）— PoC合格・Go確定**
+> Codex提案（`docs/CLAUDE_CODE_MEMO_WINDOWS_NATIVE_DISTRIBUTION_2026-07-09.md`）→ Phase 0（Claude）→
+> Codex実機PoC（`docs/WINDOWS_NATIVE_POC_RESULT_2026-07-09.md`、**RAG E2E 11/11 PASS**・GPU認識・オフラインモデル投入OK）→
+> **ClaudeがGo判断を確定（2026-07-09）**。判断根拠とPhase 4詳細設計は `docs/WINDOWS_NATIVE_PHASE4_DESIGN_2026-07-09.md`。
+> - **PoC課題対応済み**: #1 PS5.1文字化け → `windows-native/rag-e2e-test.ps1`をUTF-8 BOM付き化。
+>   #2 hotdir誤解決 → fork `fd67e830`で`COLLECTOR_HOTDIR_PATH` env追加（server/collector共有）、envテンプレ更新済み。
+> - **Phase 4方針**: WinSWでWindows Service 3本（Server/Collector/専用Ollama@11435）、
+>   ビルド済み成果物同梱のzip+install.ps1配布、preflight（ポートowner/GPU/VRAM/ディスク検出）。
+>   タスク分解4-1〜4-8と担当は設計メモ参照（4-1〜4-4=Claude、4-5/4-6実機検証=Codex）。
+> - **次: Claude CodeがPhase 4-1（WinSW XML+サービス登録ps1）から実装開始**
+> - 現行のWSL2+Docker方式は保険として無変更で温存。P2（install.shフルサイクル検証等）はWindows native版の顧客配布方針確定後に要否を再判断
 
 > **P1完了（2026-07-08）**: Phase 1完了に必須の技術タスクはすべて消化した。残るPhase 1タスクは
 > **士業ヒアリング（核心仮説「士業はローカルAIに金を払うか」の検証）のみ**で、これはユーザー自身の作業。
