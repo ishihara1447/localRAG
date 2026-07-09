@@ -1,0 +1,27 @@
+<!--
+  LocalRAG-Collector — WinSW service definition.
+  AnythingLLM document collector (parses TXT/PDF/DOCX dropped into hotdir).
+  Reads runtime config from <install root>\app\collector\.env
+  (STORAGE_DIR / COLLECTOR_HOTDIR_PATH / DISABLE_WEB_SCRAPING).
+-->
+<service>
+  <id>LocalRAG-Collector</id>
+  <name>LocalRAG Collector</name>
+  <description>LocalRAG document collector. Parses uploaded documents locally (127.0.0.1:8888). No data leaves this machine.</description>
+
+  <executable>%BASE%\..\runtime\node\node.exe</executable>
+  <arguments>index.js</arguments>
+  <workingdirectory>%BASE%\..\app\collector</workingdirectory>
+
+  <env name="NODE_ENV" value="production" />
+
+  <logpath>C:\ProgramData\LocalRAG\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>

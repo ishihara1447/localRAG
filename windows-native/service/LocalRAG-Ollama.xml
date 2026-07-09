@@ -1,0 +1,32 @@
+<!--
+  LocalRAG-Ollama — WinSW service definition.
+  Dedicated Ollama instance for LocalRAG. Runs on 127.0.0.1:11435 so it never
+  collides with a customer's own Ollama (11434) or a WSL relay (PoC issue #3).
+  Layout assumption (see docs/WINDOWS_NATIVE_PHASE4_DESIGN_2026-07-09.md):
+    %BASE%           = <install root>\winsw   (this XML + renamed WinSW exe)
+    <install root>\runtime\ollama\ollama.exe
+    C:\ProgramData\LocalRAG\{models,logs}
+-->
+<service>
+  <id>LocalRAG-Ollama</id>
+  <name>LocalRAG Ollama</name>
+  <description>LocalRAG dedicated local LLM runtime (Ollama). Serves llm-jp / mxbai-embed-large on 127.0.0.1:11435. No data leaves this machine.</description>
+
+  <executable>%BASE%\..\runtime\ollama\ollama.exe</executable>
+  <arguments>serve</arguments>
+
+  <env name="OLLAMA_HOST" value="127.0.0.1:11435" />
+  <env name="OLLAMA_MODELS" value="C:\ProgramData\LocalRAG\models" />
+  <env name="OLLAMA_KEEP_ALIVE" value="24h" />
+  <env name="OLLAMA_NUM_PARALLEL" value="4" />
+
+  <logpath>C:\ProgramData\LocalRAG\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>

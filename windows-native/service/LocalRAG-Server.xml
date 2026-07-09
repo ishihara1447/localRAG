@@ -1,0 +1,30 @@
+<!--
+  LocalRAG-Server — WinSW service definition.
+  AnythingLLM server (UI + API on http://localhost:3001 by default; the actual
+  port comes from SERVER_PORT in <install root>\app\server\.env).
+  Depends on Collector (document parsing) and Ollama (LLM/embedding).
+-->
+<service>
+  <id>LocalRAG-Server</id>
+  <name>LocalRAG Server</name>
+  <description>LocalRAG main server (UI/API). Fully local Japanese RAG for confidential documents. No data leaves this machine.</description>
+
+  <executable>%BASE%\..\runtime\node\node.exe</executable>
+  <arguments>index.js</arguments>
+  <workingdirectory>%BASE%\..\app\server</workingdirectory>
+
+  <env name="NODE_ENV" value="production" />
+
+  <depend>LocalRAG-Collector</depend>
+  <depend>LocalRAG-Ollama</depend>
+
+  <logpath>C:\ProgramData\LocalRAG\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>
