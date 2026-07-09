@@ -49,9 +49,10 @@ if (-not (Test-Path $WinSW)) {
 }
 
 # --- Ensure data directories exist ---
+# storage lives at <install root>\app\server\storage (prisma schema resolves the
+# SQLite file relative to the source tree) and hotdir at app\collector\hotdir,
+# both created by the installer. Only models/logs live under ProgramData.
 foreach ($dir in @(
-    "C:\ProgramData\LocalRAG\storage",
-    "C:\ProgramData\LocalRAG\hotdir",
     "C:\ProgramData\LocalRAG\models",
     "C:\ProgramData\LocalRAG\logs"
 )) {

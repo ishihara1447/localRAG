@@ -21,7 +21,8 @@
 #       5.1 互換のため BOM を維持する。
 
 $ErrorActionPreference = "Continue"
-$BaseUrl = "http://localhost:3001"
+# $env:LOCALRAG_BASE_URL で上書き可能 (PoC環境=http://localhost:3002 等)
+$BaseUrl = if ($env:LOCALRAG_BASE_URL) { $env:LOCALRAG_BASE_URL } else { "http://localhost:3001" }
 $ApiKey = $env:LOCALRAG_API_KEY
 $WsName = "localrag-smoketest"
 $TimeoutSec = 180
