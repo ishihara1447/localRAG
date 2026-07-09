@@ -26,6 +26,10 @@
 >   排他オープン成功）。**展開手順は`tar.exe -xf`を正式化、PS5.1のExpand-Archiveは使用禁止**。
 >   Ollama「0.23.0」表示は接続先サーバー（WSL Docker側）のバージョンで、**同梱exeは正しくv0.31.2**（再DL不要）。
 >   詳細: `docs/WINDOWS_NATIVE_EXPAND_ARCHIVE_HANG_DIAGNOSIS_2026-07-10.md`
+> - **Phase 4-7/4-8完了（2026-07-10、サブエージェント委譲で並行実施）**: 顧客向けdocs 4点を`docs/customer-windows/`に
+>   作成しexport-windows.ps1の同梱対象を切替（Docker版docs同梱バグも修正）。LICENSES/にWinSW(MIT)・
+>   Node.js v22(複合)の全文追加、NOTICE/THIRD_PARTY_NOTICES更新。
+>   実機確認待ち2点: WinSWログファイル名の実名、アップロードUIの実文言（第2ラウンド検証時または次回に確認）
 > - **次: Codexが第2ラウンド検証を実行** — 依頼書 `docs/CODEX_WINDOWS_NATIVE_VERIFY_ROUND2_2026-07-10.md`
 >   （管理者権限でtar展開→install→**サービスからのGPU動作確認（Session 0でCUDAが効くかが今回の核心）**→
 >   E2E(PS5.1)→backup/stop/start→uninstall。障害予測と対策表・昇格不可時の代替手順を同梱。
