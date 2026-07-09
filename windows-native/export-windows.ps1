@@ -51,7 +51,12 @@ function Assert-Path([string]$p, [string]$what) {
 Assert-Path $SourceDir "SourceDir"
 Assert-Path (Join-Path $SourceDir "server\node_modules") "server\node_modules (run yarn install on Windows first)"
 Assert-Path (Join-Path $SourceDir "collector\node_modules") "collector\node_modules (run yarn install on Windows first)"
-Assert-Path (Join-Path $SourceDir "server\public\index.html") "built frontend at server\public (build frontend and copy dist)"
+$publicDir = Join-Path $SourceDir "server\public"
+if (-not ((Test-Path (Join-Path $publicDir "index.html")) -or (Test-Path (Join-Path $publicDir "_index.html")))) {
+    Write-Host "ERROR: built frontend at server\public not found (expected index.html or _index.html)."
+    Write-Host "       Build frontend and copy dist to server\public first."
+    exit 1
+}
 Assert-Path (Join-Path $NodeDir "node.exe") "node.exe in NodeDir"
 Assert-Path (Join-Path $OllamaDir "ollama.exe") "ollama.exe in OllamaDir"
 Assert-Path $WinSWExe "WinSW executable"
@@ -159,7 +164,18 @@ $global:LASTEXITCODE = 0
 Write-Host "[6/7] Writing versions.lock..."
 $nodeVer = & (Join-Path $Pkg "runtime\node\node.exe") --version
 $ollamaVer = "unknown"
-try { $ollamaVer = (& (Join-Path $Pkg "runtime\ollama\ollama.exe") --version 2>$null | Select-Object -First 1) } catch {}
+try {
+    # "ollama --version" reports the version of a REACHABLE SERVER on the first
+    # line (e.g. a WSL relay on 11434), plus "Warning: client version is X" when
+    # they differ. versions.lock must record the bundled CLIENT binary version.
+    $verOut = & (Join-Path $Pkg "runtime\ollama\ollama.exe") --version 2>&1
+    $clientLine = $verOut | Where-Object { $_ -match "client version is" } | Select-Object -First 1
+    if ($clientLine) {
+        $ollamaVer = ($clientLine -replace ".*client version is\s*", "").Trim()
+    } else {
+        $ollamaVer = ($verOut | Select-Object -First 1) -replace "ollama version is\s*", ""
+    }
+} catch {}
 @(
     "package_version=$Version",
     "build_date=$(Get-Date -Format yyyy-MM-ddTHH:mm:ssK)",
@@ -187,7 +203,25 @@ if (-not $NoZip) {
     $zipPath = Join-Path $OutputDir "$PkgName.zip"
     Write-Host "Compressing to $zipPath (large, please wait)..."
     if (Test-Path $zipPath) { Remove-Item $zipPath }
-    Compress-Archive -Path $Pkg -DestinationPath $zipPath -CompressionLevel Optimal
+    $largeFiles = Get-ChildItem -Path $Pkg -Recurse -File | Where-Object { $_.Length -gt 1900MB }
+    if ($largeFiles) {
+        $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
+        if (-not $tar) {
+            Write-Host "ERROR: package contains files larger than 2GB, but tar.exe was not found."
+            Write-Host "       Install a zip tool that supports large files or rerun with -NoZip and archive manually."
+            exit 1
+        }
+        Write-Host "  Large files detected; using tar.exe because Compress-Archive is not reliable above 2GB per file."
+        Push-Location $OutputDir
+        try {
+            & $tar.Source -a -cf "$PkgName.zip" $PkgName
+            if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: tar.exe zip creation failed ($LASTEXITCODE)"; exit 1 }
+        } finally {
+            Pop-Location
+        }
+    } else {
+        Compress-Archive -Path $Pkg -DestinationPath $zipPath -CompressionLevel Optimal
+    }
     Write-Host "Package zip: $zipPath"
 }
 
