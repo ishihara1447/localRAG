@@ -11,7 +11,16 @@
 > - **Phase 4方針**: WinSWでWindows Service 3本（Server/Collector/専用Ollama@11435）、
 >   ビルド済み成果物同梱のzip+install.ps1配布、preflight（ポートowner/GPU/VRAM/ディスク検出）。
 >   タスク分解4-1〜4-8と担当は設計メモ参照（4-1〜4-4=Claude、4-5/4-6実機検証=Codex）。
-> - **次: Claude CodeがPhase 4-1（WinSW XML+サービス登録ps1）から実装開始**
+> - **Phase 4-1〜4-4実装完了（2026-07-09 Claude）**: WinSWサービス定義3本＋登録/解除ps1、
+>   `export-windows.ps1`（配布zip生成、モデルはmanifest解析で必要blobのみ同梱）、
+>   `install.ps1`（preflight＋checksum検証＋env生成＋prisma migrate＋サービス登録＋疎通確認）、
+>   運用5本（start/stop/backup/restore/uninstall）、本番envテンプレ（`windows-native/config/`）。
+>   全ps1はPowerShell 7.4.6 parserでSYNTAX OK・ASCII-only（rag-e2e-test.ps1のみ日本語＋UTF-8 BOM）。
+>   設計判断: STORAGE_DIRは`app\server\storage`固定（prisma schemaのDBパスがソースツリー相対のため）、
+>   InstallRoot既定は`C:\LocalRAG`（Program Filesの空白パスリスク回避）、モデル/ログのみProgramData。
+> - **次: Codexが配布ビルド＋実機検証を実行** — 依頼書 `docs/CODEX_WINDOWS_NATIVE_BUILD_AND_VERIFY_2026-07-09.md`
+>   （Part A=パッケージ生成、Part B=顧客手順での通しインストール→E2E→backup→uninstall検証。
+>   結果は `docs/WINDOWS_NATIVE_BUILD_VERIFY_RESULT_2026-07-09.md` に記録）
 > - 現行のWSL2+Docker方式は保険として無変更で温存。P2（install.shフルサイクル検証等）はWindows native版の顧客配布方針確定後に要否を再判断
 
 > **P1完了（2026-07-08）**: Phase 1完了に必須の技術タスクはすべて消化した。残るPhase 1タスクは
