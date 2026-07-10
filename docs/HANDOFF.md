@@ -1,6 +1,14 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-10（Claude・ハング診断完了/Ollamaバージョン誤解を解明。Codexに第2ラウンド検証を依頼） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-10（Claude・Codex検証ランナーをレビュー/取り込み。管理者実行だけがユーザー待ち） / 次セッション開始時にまずこれを読む。
+
+> **【今すぐの状況 2026-07-10】Round2検証は「ユーザーが管理者権限で1回実行」だけ待ち**
+> Codexは第2ラウンド検証で再び管理者権限の壁に当たり（予測どおり）、代わりに検証を通しで自動実行する
+> ランナー `windows-native/verify/round2-admin-verify.ps1` を完成させて実行待ちにした。ClaudeがレビューしASCII/構文OKを確認、
+> リポジトリに取り込み＋UAC自己昇格ランチャー `Run-Round2-Verify.cmd` を追加（Codex版.cmdは自己昇格しないため）。
+> 実行物は `C:\Temp\localrag-round2\` にも配置済み。**ユーザーがこの.cmdをダブルクリック→UAC承認するだけ**で
+> tar展開→install→E2E→backup→uninstallまで走り、`C:\Temp\localrag-round2-logs\*.summary.json`に結果が出る。
+> それをClaudeが判定して仕上げ（顧客docsの実機確認2点・完全オフライン検証4-6へ）。
 
 > **【新トラック 2026-07-09】Windows native配布（Docker/WSLなし配布）— PoC合格・Go確定**
 > Codex提案（`docs/CLAUDE_CODE_MEMO_WINDOWS_NATIVE_DISTRIBUTION_2026-07-09.md`）→ Phase 0（Claude）→
