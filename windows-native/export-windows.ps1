@@ -39,9 +39,12 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Models to bundle: model name -> manifest relative path
+# 2026-07-11: switched to qwen3:8b + bge-m3 after the RAG accuracy evaluation
+# (docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md). The previous llm-jp GGUF had a
+# broken chat template (empty answers) and mxbai missed Japanese paraphrases.
 $BundleModels = @{
-    "hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M" = "manifests\hf.co\mmnga-o\llm-jp-4-8b-thinking-gguf\Q4_K_M";
-    "mxbai-embed-large:latest"                       = "manifests\registry.ollama.ai\library\mxbai-embed-large\latest";
+    "qwen3:8b"        = "manifests\registry.ollama.ai\library\qwen3\8b";
+    "bge-m3:latest"   = "manifests\registry.ollama.ai\library\bge-m3\latest";
 }
 
 function Assert-Path([string]$p, [string]$what) {

@@ -289,6 +289,10 @@ def main() -> int:
         "--top-n", type=int, default=None, metavar="N",
         help="ワークスペースのtopN（検索で参照するチャンク数）。省略時はワークスペースの既定値のまま。",
     )
+    parser.add_argument(
+        "--chat-model", type=str, default=None, metavar="MODEL",
+        help="ワークスペースのchatModel（LLM比較用。例: qwen3:8b）。省略時は環境既定のまま。",
+    )
     args = parser.parse_args()
 
     missing = [f for f in FIXTURE_FILES if not (SCALE_DIR / f).exists()]
@@ -309,10 +313,13 @@ def main() -> int:
 
         try:
             topn_desc = f"topN={args.top_n}" if args.top_n is not None else "topN=ワークスペース既定値"
-            print(f"=== 実運用規模評価: 規程10本を同一ワークスペースに投入（{topn_desc}） ===")
+            model_desc = f", chatModel={args.chat_model}" if args.chat_model else ""
+            print(f"=== 実運用規模評価: 規程10本を同一ワークスペースに投入（{topn_desc}{model_desc}） ===")
             slug = new_workspace(client, headers, "scale-eval")
             if args.top_n is not None:
                 update_workspace(client, headers, slug, topN=args.top_n)
+            if args.chat_model is not None:
+                update_workspace(client, headers, slug, chatProvider="ollama", chatModel=args.chat_model)
             for name in FIXTURE_FILES:
                 upload(client, headers, slug, SCALE_DIR / name, "text/plain")
             time.sleep(10)

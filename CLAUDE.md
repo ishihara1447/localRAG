@@ -6,16 +6,17 @@
 
 - フェーズ: **Phase 1（個人PC検証）の技術タスクは全完了（2026-07-08）**。**セッション開始時はまず `docs/HANDOFF.md` を読む**（最新状態・ブロッカー・次手）。
 - **対象プラットフォーム（2026-07-08確定）**: Windows（GPU搭載機、RTX 5070 Ti相当以上を想定）。当初のApple Silicon Mac限定戦略は撤回。macOS向け実装は行わない。この変更は当初の批判リスク「士業事務所PCはほぼGPU非搭載」と矛盾するため、対象顧客のGPU保有実態が未検証の新規リスクとして残っている（`fukugyo/ideas/2026-06-29_local-rag-pro.md`の批判・懸念点参照）。
-- 済: ハルシネーション対策・日本語CIDフォントPDF対応（upstream未修正のバグをfork側で修正）・mxbai-embed-large正式採用。`localrag-anythingllm:1.0.2`でe2eテスト11/11 PASS。
-- 次: 士業（および対象拡張時は医療・官公庁）へのヒアリングでコア仮説とGPU保有実態を検証 → P2（`trust_remote_code`レビュー、`install.sh`フルサイクル検証）。
-- 起動は自前ビルドイメージ＝`runtime/docker-compose.yml`の`localrag-anythingllm:1.0.2`。push は当面後回し、ローカルに細かくコミット。
+- 済: ハルシネーション対策・日本語CIDフォントPDF対応（upstream未修正のバグをfork側で修正）。
+- **モデル構成確定（2026-07-11、実運用規模30問評価に基づく）**: LLM=`qwen3:8b`・Embedding=`bge-m3`・topN既定8・日本語セパレータ。旧構成（llm-jp GGUF+mxbai）はGGUFテンプレート破損による空回答と日本語言い換え検索の弱さで撤回（`docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）。
+- 次: 士業（および対象拡張時は医療・官公庁）へのヒアリングでコア仮説とGPU保有実態を検証 → Windows native配布の実機検証（Round2）完了 → 新モデル構成でのパッケージ再生成。
+- 起動は自前ビルドイメージ＝`runtime/docker-compose.yml`の`localrag-anythingllm:1.0.3`。push は当面後回し、ローカルに細かくコミット。
 
 ## 技術スタック / 構成（予定）
 
 - 改修元: `Mintplex-Labs/anything-llm`（MIT）の **GitHub ソース版**。Desktop 配布バイナリは使わない。
 - monorepo: `frontend`(Vite+React) / `server`(Node+Express, LLM・VectorDB・Workspace管理) / `collector`(文書パース) / `docker` / `embed`。
-- LLM: `llm-jp/llm-jp-4-8b-thinking`（Apache-2.0, ctx 65536）。16GB VRAM に bf16(≈17GB)は収まらないため **vLLM + FP8 量子化**で OpenAI 互換 API 提供（GGUF/Ollama は保険）。`--trust-remote-code` 必須＝コミット固定が前提。
-- Vector DB: LanceDB（既定）。Embedding は日本語対応モデルを別途選定（標準の `all-MiniLM-L6-v2` は英語向け）。
+- LLM: **`qwen3:8b`**（Apache-2.0, Ollama公式・thinking正式対応）。2026-07-11確定。llm-jp系はコミュニティGGUFのテンプレート破損（本文が生成されない）により撤回。Ollama公式配布モデルのみを使う方針（`trust_remote_code`不要になった）。
+- Vector DB: LanceDB（既定）。Embedding: **`bge-m3`**（MIT, 多言語）。2026-07-11確定。mxbaiは日本語の言い換え検索で正解文書をtop8にも入れられず撤回。**embedding変更時は全文書の再embedが必須**。
 - 開発環境: Windows 11 + WSL2 Ubuntu + Docker Desktop。Node >= 18（推奨20）、Yarn は Corepack 経由。
 
 ## コマンド（fork 取得後）

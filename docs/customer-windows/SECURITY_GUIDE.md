@@ -19,8 +19,8 @@ LocalRAG は、お客様の文書・質問・回答・チャット履歴を
 
 ### 2-1. AI の処理がすべてパソコン内で完結する
 
-- 回答を生成する AI（LLM: `llm-jp-4-8b-thinking`、日本語特化モデル）と、
-  文書を検索用データに変換する AI（embedding: `mxbai-embed-large`）は、
+- 回答を生成する AI（LLM: `Qwen3-8B`、日本語対応モデル）と、
+  文書を検索用データに変換する AI（embedding: `bge-m3`）は、
   どちらも**配布パッケージに同梱**され、このパソコンのディスク
   （`C:\ProgramData\LocalRAG\models`）から読み込まれます。
   利用時にインターネットからダウンロードすることはありません。
@@ -89,6 +89,6 @@ LocalRAG はネットワークがなくても動作するため、
 ## 5. ライセンス
 
 同梱している OSS（AnythingLLM、Ollama、WinSW、Node.js）および
-AI モデル（llm-jp-4-8b-thinking、mxbai-embed-large）のライセンス・
+AI モデル（Qwen3-8B、bge-m3）のライセンス・
 著作権表示は、インストール先の `LICENSES\` フォルダと `NOTICE`
 ファイルに同梱しています。これらの表示を削除しないでください。

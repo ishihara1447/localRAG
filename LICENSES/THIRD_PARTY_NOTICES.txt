@@ -8,23 +8,21 @@ LocalRAG 第三者コンポーネント ライセンス一覧
 |------------------------------------------|--------------------------------|------------------------------------------|--------|
 | AnythingLLM (localrag-anythingllm image) | MIT                             | AnythingLLM_LICENSE.txt                  | https://github.com/Mintplex-Labs/anything-llm |
 | Ollama                                    | MIT                             | Ollama_LICENSE.txt                       | https://github.com/ollama/ollama |
-| llm-jp/llm-jp-4-8b-thinking (本番想定LLM) | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/llm-jp |
-| mxbai-embed-large (Embedding, 既定)       | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1 |
-| llama3.1:8b (Phase1検証用LLM, 現行既定)   | Llama 3.1 Community License     | Llama-3.1-Community-License.txt          | https://github.com/meta-llama/llama-models |
+| Qwen3-8B (LLM, 既定)                      | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/Qwen/Qwen3-8B |
+| BAAI bge-m3 (Embedding, 既定)             | MIT                             | BGE-M3_LICENSE.txt                       | https://huggingface.co/BAAI/bge-m3 |
 | WinSW (Windows Service wrapper)           | MIT                             | WinSW_LICENSE.txt                        | https://github.com/winsw/winsw |
 | Node.js v22 (win-x64 portable runtime)    | MIT + 同梱物の複合ライセンス    | Node.js_LICENSE.txt                      | https://github.com/nodejs/node |
 
 ## 注意事項
 
-- `llama3.1:8b` は Phase 1 検証用の暫定 LLM であり、Meta の
-  Llama 3.1 Community License Agreement (MIT/Apache とは異なる
-  独自ライセンス) が適用される。月間アクティブユーザー数 7 億人
-  超の場合は別途 Meta からライセンスを取得する必要があるなど、
-  MIT/Apache-2.0 系とは異なる利用条件が課されるため、本番配布前に
-  同ライセンスの内容を必ず確認すること。
-- 本番想定の `llm-jp/llm-jp-4-8b-thinking` に切り替えた場合は
-  Apache-2.0 のみとなり、上記の追加条件は課されない
-  (`CLAUDE.md` の技術スタック方針を参照)。
+- 既定モデルは 2026-07-11 の RAG 精度検証
+  (`docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`) に基づき
+  Qwen3-8B (Apache-2.0) + bge-m3 (MIT) に確定した。
+  過去に検証した llm-jp-4-8b-thinking (Apache-2.0)・
+  mxbai-embed-large (Apache-2.0)・llama3.1:8b (Llama 3.1
+  Community License) は現在は同梱しない。llama3.1 を再同梱する
+  場合は Meta 独自ライセンスの利用条件 (MAU 7億超の追加許諾等) を
+  必ず確認すること (Llama-3.1-Community-License.txt は参照用に残置)。
 - `trust_remote_code` を要するモデルはコードの事前レビューと
   コミットハッシュ固定が必須（`CLAUDE.md` 「絶対に守るルール」参照）。
 - モデルファイル自体（重み）はこのリポジトリに含まれない。
@@ -46,6 +44,7 @@ LocalRAG 第三者コンポーネント ライセンス一覧
 |------------------------|-----------|--------|
 | WinSW_LICENSE.txt      | https://raw.githubusercontent.com/winsw/winsw/master/LICENSE.txt | 2026-07-10 |
 | Node.js_LICENSE.txt    | https://raw.githubusercontent.com/nodejs/node/v22.x/LICENSE | 2026-07-10 |
+| BGE-M3_LICENSE.txt     | https://raw.githubusercontent.com/FlagOpen/FlagEmbedding/master/LICENSE (bge-m3のモデルカードLicense=MIT、開発元FlagEmbeddingリポジトリのLICENSE) | 2026-07-11 |
 
 ## 更新方法
 
