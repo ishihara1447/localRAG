@@ -8,7 +8,7 @@
 #          and a copy of the service logs.
 # -KeepProgramData keeps C:\ProgramData\LocalRAG (models/logs/preserved data) after the run.
 param(
-    [string]$ZipPath = "C:\LocalRAG\dist\LocalRAG-win64-v1.0.0.zip",
+    [string]$ZipPath = "C:\LocalRAG\dist\LocalRAG-win64-v1.1.0.zip",
     [string]$VerifyRoot = "C:\Temp\localrag-verify",
     [string]$InstallRoot = "C:\LocalRAGProd",
     [int]$ServerPort = 3005,
@@ -16,6 +16,9 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
+# PS5.1 decodes native stdout (curl.exe) with the console codepage; force UTF-8
+# so Japanese JSON responses survive ConvertFrom-Json (see rag-e2e-test.ps1).
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 $LogRoot = "C:\Temp\localrag-round2-logs"
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
 $Stamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -59,10 +62,26 @@ function Run-External([string]$Name, [scriptblock]$Block, [switch]$ContinueOnErr
     }
 }
 
-function CurlText([string[]]$Args) {
-    $out = & curl.exe -s @Args 2>$null
+# NOTE: parameter must NOT be named $Args - PowerShell 5.1 clobbers a parameter
+# named $Args with the (empty) automatic variable, so curl.exe received only -s
+# ("curl: (2) no URL specified" in the 2026-07-11 run).
+function CurlText([string[]]$CurlArgs) {
+    $out = & curl.exe -s @CurlArgs 2>$null
     if ($out -is [array]) { return ($out -join "`n") }
     return [string]$out
+}
+
+# JSON bodies must go through a temp file: PS5.1 does not escape inner double
+# quotes when building native command lines, so curl.exe would receive
+# {name:value} and the server fails to parse the body.
+function CurlJsonPost([string]$Url, [string]$Body, [string]$MaxTime = "30") {
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tmp, $Body, (New-Object System.Text.UTF8Encoding $false))
+        return CurlText @("--max-time", $MaxTime, "-X", "POST", "-H", "Content-Type: application/json", "--data-binary", "@$tmp", $Url)
+    } finally {
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Write-Section([string]$Title) {
@@ -114,7 +133,7 @@ try {
         $extractSw.Stop()
         $global:LASTEXITCODE = 0
     }
-    $PkgRoot = Join-Path $VerifyRoot "LocalRAG-win64-v1.0.0"
+    $PkgRoot = Join-Path $VerifyRoot ([System.IO.Path]::GetFileNameWithoutExtension($ZipPath))
     if (-not (Test-Path (Join-Path $PkgRoot "install.ps1"))) { throw "install.ps1 not found after extract: $PkgRoot" }
     Add-StepResult "B2-1 tar extract" "OK" "elapsed=$($extractSw.Elapsed)"
 
@@ -140,7 +159,7 @@ try {
 
     Write-Section "API key generation"
     $BaseUrl = "http://localhost:$ServerPort"
-    $keyRaw = CurlText @("--max-time", "30", "-X", "POST", "-H", "Content-Type: application/json", "-d", '{"name":"codex-round2"}', "$BaseUrl/api/system/generate-api-key")
+    $keyRaw = CurlJsonPost "$BaseUrl/api/system/generate-api-key" '{"name":"codex-round2"}'
     Write-Host "generate_api_key_raw=$keyRaw"
     $apiKeyJson = $null
     try { $apiKeyJson = $keyRaw | ConvertFrom-Json } catch {}
@@ -188,7 +207,21 @@ try {
     Write-Section "B2-3 GPU state after E2E"
     $ollamaAfter = CurlText @("--max-time", "10", "http://127.0.0.1:11435/api/ps")
     Write-Host "ollama_api_ps_after=$ollamaAfter"
-    if ($ollamaAfter -match "GPU") { Add-StepResult "B2-3 GPU" "OK" "api/ps mentions GPU" } else { Add-StepResult "B2-3 GPU" "WARN" "api/ps did not mention GPU" }
+    # Core Round2 question: does the Session 0 (Windows Service) Ollama use CUDA?
+    # /api/ps size_vram must be nonzero for the loaded model right after E2E.
+    $vramTotal = [long]0
+    $psJson = $null
+    try { $psJson = $ollamaAfter | ConvertFrom-Json } catch {}
+    if ($psJson -and $psJson.models) {
+        foreach ($m in @($psJson.models)) { if ($m.size_vram) { $vramTotal += [long]$m.size_vram } }
+    }
+    if ($vramTotal -gt 0) {
+        Add-StepResult "B2-3 GPU" "OK" "size_vram_total=$vramTotal"
+    } elseif ($psJson -and $psJson.models -and @($psJson.models).Count -gt 0) {
+        Add-StepResult "B2-3 GPU" "NG" "models loaded but size_vram=0 (CPU-only inference)"
+    } else {
+        Add-StepResult "B2-3 GPU" "NG" "no loaded models in /api/ps (model may have unloaded before check)"
+    }
 
     Write-Section "Delete generated API key"
     if ($ApiKeyId) {
@@ -258,7 +291,10 @@ finally {
         finishedAt = (Get-Date).ToString("s")
         transcript = $TranscriptPath
         serviceLogCopy = $ServiceLogCopy
-        steps = @($StepResults)
+        # .ToArray() is required: [pscustomobject]@{ x = @(List[object]) } throws
+        # "argument type mismatch" on PS5.1, which silently killed the summary
+        # JSON in the 2026-07-11 run.
+        steps = $StepResults.ToArray()
     }
     $summary | ConvertTo-Json -Depth 6 | Set-Content -Path $SummaryPath -Encoding UTF8
     Write-Host "summary=$SummaryPath"
