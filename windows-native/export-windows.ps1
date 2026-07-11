@@ -165,6 +165,10 @@ if (Test-Path (Join-Path $repoRoot "docs\customer-windows")) {
 } else {
     Write-Host "WARN: docs\customer-windows not found; package will ship without customer docs."
 }
+if (Test-Path (Join-Path $repoRoot "docs\MODEL_CARDS.md")) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $Pkg "docs") | Out-Null
+    Copy-Item (Join-Path $repoRoot "docs\MODEL_CARDS.md") (Join-Path $Pkg "docs\MODEL_CARDS.md")
+}
 $global:LASTEXITCODE = 0
 
 # --- 6. versions.lock ---

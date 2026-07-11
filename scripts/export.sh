@@ -256,6 +256,7 @@ done
 for doc in README.md INSTALL_GUIDE.md OPERATIONS_GUIDE.md SECURITY_GUIDE.md TROUBLESHOOTING.md; do
   [[ -f "$PROJECT_ROOT/docs/customer/$doc" ]] && cp "$PROJECT_ROOT/docs/customer/$doc" "$OUTPUT_DIR/$doc"
 done
+[[ -f "$PROJECT_ROOT/docs/MODEL_CARDS.md" ]] && cp "$PROJECT_ROOT/docs/MODEL_CARDS.md" "$OUTPUT_DIR/MODEL_CARDS.md"
 
 # パッケージ全体の checksum manifest (checksums/ 自身と log は除外)
 log INFO "      package.sha256 を生成中..."
