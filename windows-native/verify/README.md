@@ -13,7 +13,8 @@ Windows native配布パッケージの通しインストール検証（依頼書
 
 1. このフォルダを **Cドライブ上の場所**にコピーする（例: `C:\Temp\localrag-round2\`）。
    ※WSLの `\\wsl.localhost\...` 上のままだと、既定のPowerShell実行ポリシーで `.ps1` がブロックされるため。
-   ※配布zip本体（`C:\LocalRAG\dist\LocalRAG-win64-v1.0.0.zip`）は既にビルド済みのものを使う。
+   ※配布zip本体（`C:\LocalRAG\dist\LocalRAG-win64-v1.1.0.zip`）は既にビルド済みのものを使う。
+   （v1.0.0はOllamaランタイム欠落（lib/なし）のため出荷不可と判定済み。Round2再検証はv1.1.0で行う）
 2. `Run-Round2-Verify.cmd` を**ダブルクリック**する。UACの確認が出たら「はい」を押す。
 3. 20〜60分ほどかかる（checksum検証とモデルロードで長い沈黙があるが正常）。完了すると `pause` で止まる。
 

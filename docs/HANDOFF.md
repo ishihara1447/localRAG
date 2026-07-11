@@ -1,6 +1,37 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-11（Claude・v1.1.0再ビルド前提を整備: bge-m3をWindows側`.ollama\models`へコピー検証済み・MODEL_CARDS.md作成・両export同梱対応） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-12（Claude・Round2指摘の改良完了: PS5.1バグ7件修正＋build-deps修復＋v1.1.0再ビルド） / 次セッション開始時にまずこれを読む。
+
+> **【今すぐの状況 2026-07-12】Round2指摘の修正完了、v1.1.0で再検証待ち（ユーザー管理者実行）**
+> Codexレポート（`docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-11.md`）の全指摘に対応済み:
+> - **配布zipのOllamaランタイム欠落（根本原因）**: `C:\LocalRAG\build-deps\ollama`に`ollama.exe`しか無かった
+>   → 公式zip（v0.31.2）を丸ごと展開し直し（lib/ollama/llama-server.exe・DLL・cuda_v12/v13、計1.9GB）。
+>   export-windows.ps1のllama-server.exe必須チェック（Codex追加）も維持。
+> - **Round2ランナーのバグ**（curl "no URL specified"／summary JSON未生成）を修正:
+>   (1) `CurlText([string[]]$Args)`のパラメータ名がPS5.1自動変数`$args`に潰され空になる→`$CurlArgs`に改名。
+>   (2) `[pscustomobject]@{steps=@(List[object])}`がPS5.1で「引数の型が一致しません」→`.ToArray()`。いずれも実PS5.1で再現→修正確認。
+>   (3) GPU判定を文字列"GPU"検索→`/api/ps`の`size_vram`実値でOK/NG判定に変更（Round2の核心を正式判定化）。
+> - **rag-e2e-test.ps1のPS5.1バグ**を修正: JSON bodyの二重引用符剥がれ→一時ファイル+`--data-binary`化。
+>   さらに実走で新規発見した3件も修正: curl stdoutのCP932誤デコード（日本語JSON破壊）→`[Console]::OutputEncoding=UTF8`、
+>   例外時に偽PASS（exit 0）で終わる構造欠陥→catch追加、UNC上のfixtureをResolve-Path .Pathが壊す→`.ProviderPath`。
+>   **修正後、WSL稼働インスタンス（qwen3:8b+bge-m3）相手にPS5.1/pwsh両方でPASS=11 FAIL=0を実測確認。**
+> - **fork新コミット（日本語セパレータenv化・プロンプト文書名指示）をWindows側`C:\LocalRAG\src`へ同期**（3ファイル、
+>   同期前がfd67e830と完全一致であることを確認した上での最小コピー）。
+> - **v1.1.0再ビルド**（qwen3:8b+bge-m3同梱・MODEL_CARDS同梱・完全Ollamaランタイム）。
+>   ランナー既定ZipPathはv1.1.0に更新済み、修正版ランナー/READMEは`C:\Temp\localrag-round2\`へ配置済み。
+> - **次: ユーザーが`C:\Temp\localrag-round2\Run-Round2-Verify.cmd`を管理者実行**（クリーン再インストールで
+>   Session 0 GPU＝`size_vram>0`を確認するのが核心。Codexが2026-07-12に前回残骸を掃除済みでクリーン状態）。
+
+> **【重要 2026-07-11 Codex】Round2実機検証は「部分成功・配布zipはNG」**
+> 詳細: `docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-11.md`。
+> - 管理者実行でtar展開、preflight、install、WinSWサービス3本、`/api/ping`は到達。ポートは`3005/8888/11435`で起動。
+> - ただしRound2ランナー自体は`curl: (2) no URL specified`でAPI ping/API key生成に失敗し、summary JSONもPowerShell型不一致で未生成。手動curlではAPIは正常なのでランナー側バグ。
+> - 配布zipの重大欠陥: `runtime/ollama/ollama.exe`しか入っておらず、`lib/ollama/llama-server.exe`とDLL/CUDAツリーが欠落。Embeddingが`llama-server binary not found`で失敗。
+> - 診断用に公式Ollama zipから`lib/`を`C:\LocalRAGProd\runtime\ollama`へ手動追加したところ、PowerShell 7版E2Eは`PASS=11 FAIL=0`。つまり製品経路は動くが、現zipは出荷不可。
+> - GPU検証は未解決。サービス起動時ログは`inference compute id=cpu` / `total_vram="0 B"`、`/api/ps`も`size_vram:0`。完全Ollama同梱で再ビルド・クリーン再インストール後にSession 0 GPUを再確認する。
+> - Codexで再発防止として`windows-native/export-windows.ps1`に`lib\ollama\llama-server.exe`必須チェックを追加済み。次はWindows側`C:\LocalRAG\build-deps\ollama`を公式zip丸ごと展開に直して再ビルド。
+> - 追加修正候補: `rag-e2e-test.ps1`はWindows PowerShell 5.1でJSON body quotingに失敗するため、JSONを一時ファイルまたはstdin経由にする。
+> - 2026-07-12 Codex: 再検証前の初期化として途中インストールを削除済み。LocalRAGサービス3本なし、`C:\LocalRAGProd` / `C:\ProgramData\LocalRAG` / `C:\Temp\localrag-verify` は削除済み。Round2ログ `C:\Temp\localrag-round2-logs` と cleanupログのみ保持。
 
 > **【重要 2026-07-11】RAG精度検証の結果、モデル構成を全面変更（詳細: `docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）**
 > - **旧LLM（llm-jpコミュニティGGUF）はテンプレート破損で本文が空になる致命的問題**があり撤回。
