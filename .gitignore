@@ -35,6 +35,7 @@ build/
 .cache/
 coverage/
 .vite/
+__pycache__/
 
 # OS / editor
 .DS_Store

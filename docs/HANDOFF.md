@@ -1,6 +1,6 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-11（Claude・RAG精度検証→モデル構成をqwen3:8b+bge-m3に確定、30問評価0/30→26/30） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-11（Claude・v1.1.0再ビルド前提を整備: bge-m3をWindows側`.ollama\models`へコピー検証済み・MODEL_CARDS.md作成・両export同梱対応） / 次セッション開始時にまずこれを読む。
 
 > **【重要 2026-07-11】RAG精度検証の結果、モデル構成を全面変更（詳細: `docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）**
 > - **旧LLM（llm-jpコミュニティGGUF）はテンプレート破損で本文が空になる致命的問題**があり撤回。
@@ -9,8 +9,9 @@
 >   実運用規模30問評価（紛らわしい規程10本、`scripts/scale-eval.py`）で26/30・ハルシネーションゼロ・不明応答5/5。
 >   回帰: e2e 11/11 PASS。配布側（compose/envテンプレ/export-windows.ps1のBundleModels/LICENSES）も反映済み。
 > - **Round2実機検証（ユーザーの管理者実行待ち）は旧構成zipのまま実施してよい**（インストーラ機構の検証として有効）。
->   合格後にv1.1.0として新モデル構成で再ビルドする。bge-m3はWSL側`runtime/ollama-models`に取得済み、
->   Windows側`%USERPROFILE%\.ollama\models`へのbge-m3コピーが再ビルド前に必要。
+>   合格後にv1.1.0として新モデル構成で再ビルドする。**再ビルドのモデル前提は整備済み（2026-07-11 Claude）**:
+>   bge-m3をWSL側`runtime/ollama-models`からWindows側`%USERPROFILE%\.ollama\models`へコピーし全blobのsha256検証OK、
+>   qwen3:8bもWindows側で全blob存在を検証済み。`docs/MODEL_CARDS.md`を作成し両export（export.sh / export-windows.ps1）に同梱処理を追加。
 
 > **【今すぐの状況 2026-07-10】Round2検証は「ユーザーが管理者権限で1回実行」だけ待ち**
 > Codexは第2ラウンド検証で再び管理者権限の壁に当たり（予測どおり）、代わりに検証を通しで自動実行する
@@ -180,7 +181,7 @@ curl -s http://localhost:3001/api/ping           # {"online":true}
 ### P3 — 仕上げ
 
 7. 完全オフライン（ネットワーク遮断）実機検証。
-8. SBOM・MODEL_CARDS の作成。
+8. SBOM の作成（MODEL_CARDSは2026-07-11完了: `docs/MODEL_CARDS.md`、両exportで同梱済み）。
 9. 生成済み配布パッケージ上でのPowerShellランチャー動作確認。
 
 ## 6. 現在のファイル構成
