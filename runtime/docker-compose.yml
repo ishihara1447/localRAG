@@ -51,9 +51,9 @@ services:
 
   anythingllm:
     # localRAG 改修版 (外部LLM provider allowlist 等) をソースからビルドしたカスタム image。
-    # ビルド: cd anything-llm && docker build --network=host -t localrag-anythingllm:1.0.3 -f docker/Dockerfile .
+    # ビルド: cd anything-llm && docker build --network=host -t localrag-anythingllm:1.0.4 -f docker/Dockerfile .
     # (WSL2のDNS不調時は --add-host=github.com:<IP> 等を追加。docs/HANDOFF.md [B3]参照)
-    image: localrag-anythingllm:1.0.3
+    image: localrag-anythingllm:1.0.4
     pull_policy: never
     container_name: anythingllm
     networks:

@@ -1,6 +1,18 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-12（Claude・**v1.1.0 Round2完全PASS。Windows native配布インストーラ技術トラックはP0/P1相当が完了、残りは仕上げレベル**） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-12（Claude・**UIデザイン刷新完了（fork commit `50a11701`・image 1.0.4）**。Round2完全PASSに続き実施） / 次セッション開始時にまずこれを読む。
+
+> **【デザイン刷新 2026-07-12】「LocalRAG for ℳシステム」ブランド + 2テーマ（fork `50a11701`, image 1.0.4）**
+> ユーザー指示による全面デザイン改修。(1)AnythingLLM表記をユーザー可視面から排除（タイトル/favicon/ロゴ/
+> オンボーディング/ロケール等28ファイル102件。**本番のindex.htmlはserver/utils/boot/MetaGenerator.jsが動的生成**
+> するためサーバー側も変更が必要だった点に注意）。Community Hub等の外部製品実名は虚偽になるため温存。
+> (2)既定テーマをダークに変更、アクセントはダーク=蛍光青緑#00e5c0系/ライト=マゼンタ#d61f8d系。
+> ハードコードsky/blueのTailwindクラス（サイドバー選択・ログイン・進捗バー）も置換。
+> 主要ボタンのweight強化・hoverネオングロー・コントラスト是正込み。新ロゴはSVG3点
+> （frontend/src/media/logo/localrag-*.svg）。WSL側は`runtime/docker-compose.yml`をimage 1.0.4に切替済み・動作確認済み。
+> **注意: Windows native配布zip v1.1.0とGitHub Release `v1.1.0-demo` は旧デザイン（AnythingLLMブランド）のまま。**
+> デザイン込みで配布するにはWindows側`C:\LocalRAG\src`へのfork再同期（今回はfrontend/server広範囲のため
+> 差分コピーでなくソースツリー再コピー+yarn install/build推奨）→v1.2.0再ビルド→Release再アップロードが必要。
 
 > **【重要 2026-07-12 Codex】v1.1.0 Round2再検証 PASS — Windows native配布の核心課題は解決**
 > 詳細: `docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-12.md`。
