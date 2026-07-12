@@ -1,6 +1,18 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-12（Claude・Round2指摘の改良完了: PS5.1バグ7件修正＋build-deps修復＋v1.1.0再ビルド） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-12（Claude・**v1.1.0 Round2完全PASS。Windows native配布インストーラ技術トラックはP0/P1相当が完了、残りは仕上げレベル**） / 次セッション開始時にまずこれを読む。
+
+> **【重要 2026-07-12 Codex】v1.1.0 Round2再検証 PASS — Windows native配布の核心課題は解決**
+> 詳細: `docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-12.md`。
+> - `C:\LocalRAG\dist\LocalRAG-win64-v1.1.0.zip`でRound2通し検証が完走。summary=`C:\Temp\localrag-round2-logs\round2-admin-20260712-074657.summary.json`。
+> - tar展開、install、API ping、API key生成、PS5.1 E2E、GPU判定、backup、stop/start、uninstall、cleanupはいずれもOK。PS5.1 E2Eは`PASS=11 FAIL=0`。
+> - **主要確認（2026-07-09から3セッションかけて追ってきた核心問い）**: Windows Service / Session 0 のOllamaでCUDA認識成功。`NVIDIA GeForce RTX 5070 Ti`、`total_vram=15.9 GiB`、`/api/ps size_vram_total=10537381395`。これでDocker/WSLなしの完全native配布がGPU込みで動作することが実証された。
+> - 残タスク（いずれも仕上げレベル、出荷ブロッカーではない）:
+>   1. B2-6 reboot resilienceはランナー仕様でSKIP → 手動でWindows再起動後のサービス自動起動・API ping・GPU VRAM確認が必要
+>   2. `C:\LocalRAGProd\uninstall.ps1`だけ残る（軽微、uninstall設計の仕様。除去するかドキュメント化するか要判断）
+>   3. 完全オフライン（ネットワーク遮断）実機検証が未実施（ログにcontext-window map syncやOllama cloud既定値の挙動あり、顧客配布前に強めるべき）
+>   4. PS5.1のtranscriptで日本語グリフが重複表示される見た目の問題（pass/failには無関係）
+> - **次に大きく残っているのは技術ではなく、士業ヒアリング（核心仮説A）**。技術トラックはここで一区切り。
 
 > **【今すぐの状況 2026-07-12】Round2指摘の修正完了、v1.1.0で再検証待ち（ユーザー管理者実行）**
 > Codexレポート（`docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-11.md`）の全指摘に対応済み:
