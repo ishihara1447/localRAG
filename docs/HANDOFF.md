@@ -1,6 +1,20 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-12（Claude・**UIデザイン刷新完了（fork commit `50a11701`・image 1.0.4）**。Round2完全PASSに続き実施） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-13（Claude・**サービス制御UI+デスクトップランチャー実装完了（fork `57b5d115`・image 1.0.5）**。次はWindows側v1.2.0再ビルド+再検証） / 次セッション開始時にまずこれを読む。
+
+> **【機能追加 2026-07-13】Web UIからのサービス制御 + デスクトップショートカット（fork `57b5d115`, image 1.0.5, localRAG側もコミット済み）**
+> ユーザー要望「常時各サーバを起動しているとメモリを消費するため画面から自由にオン/オフしたい」への対応。
+> - **API**: `GET /api/system/local-services`（3サービス状態）、`POST .../{llm|collector}/{start|stop}`（sc.exe経由でWinSW制御）。
+>   `LOCAL_SERVICE_CONTROL=winsw`（server.env.templateに追加済み）のときのみ制御有効。**serverはUI提供中のため制御不可**（鶏卵問題）。
+> - **UI**: チャット/ホーム右上に状態ピル→クリックで3サービスパネル。llm停止中は入力欄上にバナー+起動ボタン。15秒ポーリング。
+> - **デスクトップショートカット**: install.ps1が全ユーザーデスクトップに`LocalRAG.lnk`を作成（uninstallで削除）。
+>   飛び先は`InstallRoot\LocalRAG.html`（疎通確認ランチャー: 正常→アプリへ自動遷移／サーバー停止→日本語案内+再接続ボタン。
+>   file://のCORSを避けるため画像ロード方式でping）。アイコンは`LocalRAG.ico`（brand PNG埋め込みICO）。
+> - 検証: dev(image 1.0.5)でllm停止/復帰の状態遷移・停止バナー表示を実機確認、rag-e2e 11/11 PASS。
+>   **sc.exeによる実サービス制御はdevでは検証不可能 → 次のWindows実機検証（v1.2.0）の必須確認項目**。
+> - **次: Windows側v1.2.0再ビルド** — `C:\LocalRAG\src`へforkソースツリー再同期（50a11701+57b5d115、frontend/server広範囲のため
+>   再コピー+yarn install/build推奨）→export-windows.ps1（launcher同梱・ショートカット込み）→Round2系の再検証
+>   （新規確認: デスクトップショートカット動作・ランチャー・サービス制御UIからのOllama停止起動・VRAM解放）。
 
 > **【デザイン刷新 2026-07-12】「LocalRAG for ℳシステム」ブランド + 2テーマ（fork `50a11701`, image 1.0.4）**
 > ユーザー指示による全面デザイン改修。(1)AnythingLLM表記をユーザー可視面から排除（タイトル/favicon/ロゴ/
