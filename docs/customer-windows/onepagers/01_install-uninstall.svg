@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="LocalRAG 導入と撤去の流れ">
+  <defs>
+    <style>
+      .jp { font-family: 'Yu Gothic UI','Yu Gothic','Meiryo','Noto Sans CJK JP',sans-serif; }
+      .mono { font-family: 'Cascadia Mono','Consolas','Yu Gothic UI',monospace; }
+      .title { font-size:42px;font-weight:800;fill:#18324a; }
+      .subtitle { font-size:20px;font-weight:650;fill:#526173; }
+      .h2 { font-size:24px;font-weight:800;fill:#18324a; }
+      .h3 { font-size:20px;font-weight:800;fill:#18324a; }
+      .body { font-size:17px;font-weight:650;fill:#172033; }
+      .small { font-size:14px;font-weight:650;fill:#526173; }
+      .tiny { font-size:12px;font-weight:650;fill:#526173; }
+      .monoText { font-size:16px;font-weight:700;fill:#172033; }
+      .white { fill:#fff; }
+      .shadow { filter: drop-shadow(0 8px 18px rgba(24,50,74,.12)); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="#f7fafc"/>
+  <rect width="1600" height="98" fill="#fff"/><rect y="96" width="1600" height="2" fill="#dbeafe"/>
+  <text class="jp title" x="54" y="58">LocalRAG 導入と撤去の流れ</text>
+  <text class="jp subtitle" x="56" y="86">オフライン完結・管理者権限はインストール時だけ</text>
+  <text class="jp small" x="1450" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp tiny" x="1450" y="80" text-anchor="end">所内文書AI検索システム</text>  <rect class="shadow" x="54" y="130" width="320" height="245" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="82" y="170" text-anchor="start">事前条件</text>
+  <text class="jp body" x="82" y="201" text-anchor="start">OS: Windows 11</text>
+  <text class="jp body" x="82" y="232" text-anchor="start">GPU: NVIDIA VRAM 16GB以上</text>
+  <text class="jp body" x="82" y="263" text-anchor="start">ディスク空き: 20GB以上</text>
+  <text class="jp body" x="82" y="294" text-anchor="start">権限: 管理者権限</text>
+  <text class="jp body" x="82" y="325" text-anchor="start">インターネット: 不要</text>
+  <rect x="210" y="338" width="135" height="36" rx="18" fill="#dcfce7"/><text class="jp h3" x="277.5" y="362" text-anchor="middle" fill="#10b981">オフライン完結</text>
+  <rect class="shadow" x="430" y="210" width="225" height="260" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="542" cy="260" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="542" y="269" text-anchor="middle">1</text>
+  <text class="jp h3" x="542" y="325" text-anchor="middle">1. 受け渡し・展開</text>
+  <text class="jp body" x="456" y="365" text-anchor="start">配布zipをPCへコピー</text>
+  <text class="jp body" x="456" y="393" text-anchor="start">tar.exe または「すべて展開」</text>
+  <text class="jp body" x="456" y="421" text-anchor="start">Expand-Archiveは禁止</text>
+  <line x1="665" y1="340" x2="680" y2="340" stroke="#2563eb" stroke-width="6" marker-end="url(#arrow)"/>
+  <rect class="shadow" x="700" y="210" width="225" height="260" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="812" cy="260" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="812" y="269" text-anchor="middle">2</text>
+  <text class="jp h3" x="812" y="325" text-anchor="middle">2. 管理者PowerShell</text>
+  <text class="jp body" x="726" y="365" text-anchor="start">install.ps1 を実行</text>
+  <text class="jp body" x="726" y="393" text-anchor="start">既定先 C:\LocalRAG</text>
+  <text class="jp body" x="726" y="421" text-anchor="start">ポート 3001</text>
+  <line x1="935" y1="340" x2="950" y2="340" stroke="#2563eb" stroke-width="6" marker-end="url(#arrow)"/>
+  <rect class="shadow" x="970" y="210" width="225" height="260" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="1082" cy="260" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="1082" y="269" text-anchor="middle">3</text>
+  <text class="jp h3" x="1082" y="325" text-anchor="middle">3. 自動処理</text>
+  <text class="jp body" x="996" y="365" text-anchor="start">事前チェック → checksum</text>
+  <text class="jp body" x="996" y="393" text-anchor="start">20〜40分“無表示”は正常</text>
+  <text class="jp body" x="996" y="421" text-anchor="start">3サービス登録・起動</text>
+  <line x1="1205" y1="340" x2="1220" y2="340" stroke="#2563eb" stroke-width="6" marker-end="url(#arrow)"/>
+  <rect class="shadow" x="1240" y="210" width="225" height="260" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="1352" cy="260" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="1352" y="269" text-anchor="middle">4</text>
+  <text class="jp h3" x="1352" y="325" text-anchor="middle">4. 完了</text>
+  <text class="jp body" x="1266" y="365" text-anchor="start">http://localhost:3001</text>
+  <text class="jp body" x="1266" y="393" text-anchor="start">初回だけ管理者作成</text>
+  <text class="jp body" x="1266" y="421" text-anchor="start">以後は自動起動</text>
+  <rect x="1010" y="481" width="210" height="36" rx="18" fill="#fef3c7"/><text class="jp h3" x="1115" y="505" text-anchor="middle" fill="#f59e0b">20〜40分の沈黙は正常</text>
+  <rect class="shadow" x="960" y="580" width="560" height="210" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+  <text class="jp body" x="995" y="625" text-anchor="start">アンインストール</text>
+  <text class="jp body" x="995" y="657" text-anchor="start">管理者PowerShellで uninstall.ps1</text>
+  <text class="jp body" x="995" y="689" text-anchor="start">既定はデータを退避して残す</text>
+  <text class="jp body" x="995" y="721" text-anchor="start">完全削除は -RemoveData（元に戻せない）</text>
+  <text class="mono monoText" x="995" y="747">C:\ProgramData\LocalRAG\uninstalled-&lt;日時&gt;\storage</text>
+  <rect class="shadow" x="54" y="620" width="760" height="120" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="jp body" x="82" y="664" text-anchor="start">3サービスが自動起動・異常時自動再起動</text>
+  <text class="jp body" x="82" y="695" text-anchor="start">LocalRAG-Server / LocalRAG-Collector / LocalRAG-Ollama</text>
+  <text class="jp tiny" x="54" y="874">外部AIへ送信しない / 出典付き回答 / 文書外は不明</text><text class="jp tiny" x="1546" y="874" text-anchor="end">Qwen3-8B + bge-m3 / NVIDIA VRAM 16GB以上</text>
+</svg>

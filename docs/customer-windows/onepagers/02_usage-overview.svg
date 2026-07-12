@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="毎日の使い方はこれだけ">
+  <defs>
+    <style>
+      .jp { font-family: 'Yu Gothic UI','Yu Gothic','Meiryo','Noto Sans CJK JP',sans-serif; }
+      .mono { font-family: 'Cascadia Mono','Consolas','Yu Gothic UI',monospace; }
+      .title { font-size:42px;font-weight:800;fill:#18324a; }
+      .subtitle { font-size:20px;font-weight:650;fill:#526173; }
+      .h2 { font-size:24px;font-weight:800;fill:#18324a; }
+      .h3 { font-size:20px;font-weight:800;fill:#18324a; }
+      .body { font-size:17px;font-weight:650;fill:#172033; }
+      .small { font-size:14px;font-weight:650;fill:#526173; }
+      .tiny { font-size:12px;font-weight:650;fill:#526173; }
+      .monoText { font-size:16px;font-weight:700;fill:#172033; }
+      .white { fill:#fff; }
+      .shadow { filter: drop-shadow(0 8px 18px rgba(24,50,74,.12)); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="#f7fafc"/>
+  <rect width="1600" height="98" fill="#fff"/><rect y="96" width="1600" height="2" fill="#dbeafe"/>
+  <text class="jp title" x="54" y="58">毎日の使い方はこれだけ</text>
+  <text class="jp subtitle" x="56" y="86">起動不要・ブラウザで開くだけ・所内で完結</text>
+  <text class="jp small" x="1450" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp tiny" x="1450" y="80" text-anchor="end">所内文書AI検索システム</text>  <ellipse cx="800" cy="455" rx="360" ry="250" fill="#ecfeff" stroke="#14b8a6" stroke-width="5" stroke-dasharray="16 10"/>
+  <rect x="625" y="300" width="350" height="220" rx="12" fill="#1e293b"/><rect x="645" y="320" width="310" height="165" rx="6" fill="#fff"/><rect x="705" y="520" width="190" height="20" rx="10" fill="#475569"/>
+  <text class="jp body" x="670" y="355" text-anchor="start">LocalRAG</text>
+  <text class="jp body" x="670" y="380" text-anchor="start">Q. 就業規則の有給休暇は？</text>
+  <text class="jp body" x="670" y="405" text-anchor="start">A. 年22日です。</text>
+  <text class="jp body" x="670" y="430" text-anchor="start">出典: 就業規則.pdf</text>
+  <circle cx="560" cy="500" r="55" fill="#fde68a"/><rect x="520" y="555" width="80" height="95" rx="28" fill="#2563eb"/><circle cx="542" cy="488" r="6" fill="#172033"/><circle cx="578" cy="488" r="6" fill="#172033"/><path d="M540 515 Q560 532 582 515" fill="none" stroke="#172033" stroke-width="4"/>
+  <path d="M1110 285 l70 0 l0 54 l-70 0 z" fill="#e2e8f0" stroke="#94a3b8"/><line x1="1090" y1="355" x2="1210" y2="255" stroke="#dc2626" stroke-width="8"/><line x1="1210" y1="355" x2="1090" y2="255" stroke="#dc2626" stroke-width="8"/>
+  <rect class="shadow" x="75" y="170" width="390" height="130" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="105" y="212" text-anchor="start">① PCの電源を入れるだけ</text>
+  <text class="jp body" x="105" y="241" text-anchor="start">起動・停止操作は不要</text>
+  <text class="jp body" x="105" y="270" text-anchor="start">裏でWindowsサービスが動作</text>
+  <rect class="shadow" x="1080" y="155" width="410" height="130" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="1110" y="197" text-anchor="start">② ブラウザで開く</text>
+  <text class="jp body" x="1110" y="226" text-anchor="start">同じPCのEdge等で開く</text>
+  <text class="jp body" x="1110" y="255" text-anchor="start">http://localhost:3001</text>
+  <rect class="shadow" x="1080" y="575" width="410" height="140" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="1110" y="617" text-anchor="start">③ 質問する</text>
+  <text class="jp body" x="1110" y="646" text-anchor="start">ワークスペースを選んで日本語で質問</text>
+  <text class="jp body" x="1110" y="675" text-anchor="start">出典付きで回答</text>
+  <rect class="shadow" x="90" y="610" width="420" height="110" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="120" y="650" text-anchor="start">毎日の起動・停止は不要</text>
+  <text class="jp body" x="120" y="680" text-anchor="start">初回回答だけ少し時間がかかる場合あり</text>
+  <line x1="465" y1="230" x2="620" y2="330" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/><line x1="1080" y1="225" x2="970" y2="350" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/><line x1="1080" y1="620" x2="950" y2="470" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect class="shadow" x="130" y="780" width="390" height="70" rx="8" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text class="jp body" x="165" y="822" text-anchor="start">データは外部に出ない</text>
+  <rect class="shadow" x="605" y="780" width="390" height="70" rx="8" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text class="jp body" x="640" y="822" text-anchor="start">回答には出典が付く</text>
+  <rect class="shadow" x="1080" y="780" width="390" height="70" rx="8" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text class="jp body" x="1115" y="822" text-anchor="start">文書に無いことは不明</text>
+</svg>

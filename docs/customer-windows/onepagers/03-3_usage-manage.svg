@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="ふだんの管理と保存場所">
+  <defs>
+    <style>
+      .jp { font-family: 'Yu Gothic UI','Yu Gothic','Meiryo','Noto Sans CJK JP',sans-serif; }
+      .mono { font-family: 'Cascadia Mono','Consolas','Yu Gothic UI',monospace; }
+      .title { font-size:42px;font-weight:800;fill:#18324a; }
+      .subtitle { font-size:20px;font-weight:650;fill:#526173; }
+      .h2 { font-size:24px;font-weight:800;fill:#18324a; }
+      .h3 { font-size:20px;font-weight:800;fill:#18324a; }
+      .body { font-size:17px;font-weight:650;fill:#172033; }
+      .small { font-size:14px;font-weight:650;fill:#526173; }
+      .tiny { font-size:12px;font-weight:650;fill:#526173; }
+      .monoText { font-size:16px;font-weight:700;fill:#172033; }
+      .white { fill:#fff; }
+      .shadow { filter: drop-shadow(0 8px 18px rgba(24,50,74,.12)); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="#f7fafc"/>
+  <rect width="1600" height="98" fill="#fff"/><rect y="96" width="1600" height="2" fill="#dbeafe"/>
+  <text class="jp title" x="54" y="58">ふだんの管理と保存場所</text>
+  <text class="jp subtitle" x="56" y="86">3サービスが Running なら正常</text>
+  <text class="jp small" x="1450" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp tiny" x="1450" y="80" text-anchor="end">所内文書AI検索システム</text>  <rect x="500" y="190" width="600" height="370" rx="28" fill="#ecfeff" stroke="#14b8a6" stroke-width="5"/>
+  <circle cx="620" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="620" y="339" text-anchor="middle">歯</text>
+  <text class="jp h3" x="620" y="405" text-anchor="middle">Server</text>
+  <circle cx="800" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="800" y="339" text-anchor="middle">歯</text>
+  <text class="jp h3" x="800" y="405" text-anchor="middle">Collector</text>
+  <circle cx="980" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="980" y="339" text-anchor="middle">歯</text>
+  <text class="jp h3" x="980" y="405" text-anchor="middle">Ollama</text>
+  <path d="M610 250 Q800 160 990 250" fill="none" stroke="#2563eb" stroke-width="5" marker-end="url(#arrow)"/><text class="jp body" x="800" y="230" text-anchor="middle">PC起動で自動起動・異常時は自動再起動</text>
+  <rect class="shadow" x="80" y="190" width="360" height="140" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="115" y="235" text-anchor="start">起動・停止</text>
+  <text class="jp body" x="115" y="266" text-anchor="start">通常は不要</text>
+  <text class="jp body" x="115" y="297" text-anchor="start">メンテ時のみ start.ps1 / stop.ps1</text>
+  <rect class="shadow" x="1160" y="190" width="360" height="140" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text class="jp body" x="1195" y="235" text-anchor="start">状態確認</text>
+  <text class="jp body" x="1195" y="266" text-anchor="start">Get-Service LocalRAG-*</text>
+  <text class="jp body" x="1195" y="297" text-anchor="start">3つとも Running なら正常</text>
+  <rect class="shadow" x="95" y="610" width="430" height="145" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="jp body" x="130" y="652" text-anchor="start">文書/履歴/検索データ/設定</text>
+  <text class="jp body" x="130" y="682" text-anchor="start">C:\LocalRAG\app\server\storage</text>
+  <text class="jp body" x="130" y="712" text-anchor="start">手作業で移動・削除しない</text>
+  <rect class="shadow" x="585" y="610" width="430" height="145" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="jp body" x="620" y="652" text-anchor="start">AIモデル</text>
+  <text class="jp body" x="620" y="682" text-anchor="start">C:\ProgramData\LocalRAG\models</text>
+  <text class="jp body" x="620" y="712" text-anchor="start">ログ: C:\ProgramData\LocalRAG\logs</text>
+  <rect class="shadow" x="1075" y="610" width="430" height="145" rx="8" fill="#ecfdf5" stroke="#bbf7d0"/>
+  <text class="jp body" x="1110" y="652" text-anchor="start">誤削除防止</text>
+  <text class="jp body" x="1110" y="682" text-anchor="start">ワークスペース削除防止は既定ON</text>
+  <text class="jp body" x="1110" y="712" text-anchor="start">削除は画面から明示操作</text>
+  <rect x="650" y="486" width="315" height="36" rx="18" fill="#dcfce7"/><text class="jp h3" x="807.5" y="510" text-anchor="middle" fill="#10b981">3サービスが Running なら正常</text>
+  <text class="jp tiny" x="54" y="874">外部AIへ送信しない / 出典付き回答 / 文書外は不明</text><text class="jp tiny" x="1546" y="874" text-anchor="end">Qwen3-8B + bge-m3 / NVIDIA VRAM 16GB以上</text>
+</svg>
