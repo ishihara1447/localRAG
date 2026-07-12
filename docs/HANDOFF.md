@@ -1,6 +1,13 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-13（Claude・**C:\LocalRAG\src / windows-native の同期完了、v1.2.0ビルド依頼書を作成**。次はCodexが`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`に沿ってビルド＋実機検証） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-13（Claude・**v1.2.0ビルド未実行のズレ発覚。Codex 1回目はv1.1.0を再検証しPASSしたが、v1.2.0新機能は未検証**。ビルドを明示した再依頼書に改訂） / 次セッション開始時にまずこれを読む。
+
+> **【要対応 2026-07-13 第2報】v1.2.0ビルド未実行のズレ → 再依頼**
+> Codex 1回目の実行（`docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-13.md`）は、Part A/B（ビルド）を飛ばして
+> 検証ランナーだけを回したため、**v1.2.0ではなく既存v1.1.0.zipを検証**してしまった（ランナー既定ZipPathがv1.1.0だったため）。
+> - v1.1.0の回帰は全PASS（install→E2E PASS=11→GPU size_vram 10.5GB→backup/stop/start→uninstall、8分15秒）。だが**v1.2.0新機能（ショートカット・ランチャー・サービス制御UI）は未検証**。
+> - 対策: (1)`round2-admin-verify.ps1`の既定ZipPathをv1.2.0に変更（未ビルドなら「zip not found」で止まり誤検証を防止）。(2)依頼書`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`冒頭に「必ずPart A/Bのビルドを先に完了させてからPart Cへ」を明記。
+> - **次: Codexが依頼書どおりPart A（yarn install/build）→Part B（export-windows.ps1 -Version 1.2.0でv1.2.0.zip生成）→Part C（-ZipPath v1.2.0で検証）を通しで実行**。
 
 > **【同期完了・Codex依頼 2026-07-13】v1.2.0ビルド準備完了**
 > - `C:\LocalRAG\src`（frontend/server, fork `57b5d115`）は既に同期済みと確認（diffなし）。

@@ -8,7 +8,7 @@
 #          and a copy of the service logs.
 # -KeepProgramData keeps C:\ProgramData\LocalRAG (models/logs/preserved data) after the run.
 param(
-    [string]$ZipPath = "C:\LocalRAG\dist\LocalRAG-win64-v1.1.0.zip",
+    [string]$ZipPath = "C:\LocalRAG\dist\LocalRAG-win64-v1.2.0.zip",
     [string]$VerifyRoot = "C:\Temp\localrag-verify",
     [string]$InstallRoot = "C:\LocalRAGProd",
     [int]$ServerPort = 3005,
