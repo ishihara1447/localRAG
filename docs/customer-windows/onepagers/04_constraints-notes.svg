@@ -3,56 +3,78 @@
     <style>
       .jp { font-family: 'Yu Gothic UI','Yu Gothic','Meiryo','Noto Sans CJK JP',sans-serif; }
       .mono { font-family: 'Cascadia Mono','Consolas','Yu Gothic UI',monospace; }
-      .title { font-size:42px;font-weight:800;fill:#18324a; }
-      .subtitle { font-size:20px;font-weight:650;fill:#526173; }
-      .h2 { font-size:24px;font-weight:800;fill:#18324a; }
-      .h3 { font-size:20px;font-weight:800;fill:#18324a; }
+      .title { font-size:42px;font-weight:800;fill:#17324a; }
+      .subtitle { font-size:20px;font-weight:650;fill:#5b6778; }
+      .h2 { font-size:23px;font-weight:800;fill:#17324a; }
+      .h3 { font-size:20px;font-weight:800;fill:#17324a; }
       .body { font-size:17px;font-weight:650;fill:#172033; }
-      .small { font-size:14px;font-weight:650;fill:#526173; }
-      .tiny { font-size:12px;font-weight:650;fill:#526173; }
-      .monoText { font-size:16px;font-weight:700;fill:#172033; }
+      .small { font-size:14px;font-weight:650;fill:#5b6778; }
+      .tiny { font-size:12px;font-weight:650;fill:#5b6778; }
+      .monoText { font-size:15px;font-weight:700;fill:#172033; }
       .white { fill:#fff; }
-      .shadow { filter: drop-shadow(0 8px 18px rgba(24,50,74,.12)); }
+      .card { fill:#fff;stroke:#cbd5e1;stroke-width:1.5;rx:8; }
+      .softBlue { fill:#eff6ff;stroke:#bfdbfe;stroke-width:1.5;rx:8; }
+      .softGreen { fill:#ecfdf5;stroke:#bbf7d0;stroke-width:1.5;rx:8; }
+      .softAmber { fill:#fffbeb;stroke:#fde68a;stroke-width:1.5;rx:8; }
+      .softRed { fill:#fff1f2;stroke:#fecdd3;stroke-width:1.5;rx:8; }
+      .shadow { filter: drop-shadow(0 9px 18px rgba(23,50,74,.11)); }
+      .icon { fill:none;stroke:#2563eb;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconG { fill:none;stroke:#10b981;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconA { fill:none;stroke:#f59e0b;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconR { fill:none;stroke:#dc2626;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .chipBlue { fill:#dbeafe; }
+      .chipGreen { fill:#dcfce7; }
+      .chipAmber { fill:#fef3c7; }
+      .chipRed { fill:#fee2e2; }
     </style>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
     <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
   </defs>
   <rect width="1600" height="900" fill="#f7fafc"/>
-  <rect width="1600" height="98" fill="#fff"/><rect y="96" width="1600" height="2" fill="#dbeafe"/>
-  <text class="jp title" x="54" y="58">使う前に知っておくこと</text>
-  <text class="jp subtitle" x="56" y="86">制約と安全のしくみ</text>
-  <text class="jp small" x="1450" y="58" text-anchor="end">LocalRAG v1.1.0</text>
-  <text class="jp tiny" x="1450" y="80" text-anchor="end">所内文書AI検索システム</text>  <rect class="shadow" x="70" y="150" width="430" height="610" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
-  <text class="jp h2" x="100" y="200" text-anchor="start">① 動作の制約</text>
-  <rect class="shadow" x="555" y="150" width="430" height="610" rx="8" fill="#fff" stroke="#cbd5e1"/>
-  <text class="jp h2" x="585" y="200" text-anchor="start">② 変更しないこと</text>
-  <rect class="shadow" x="1040" y="150" width="430" height="610" rx="8" fill="#ecfdf5" stroke="#bbf7d0"/>
-  <text class="jp h2" x="1070" y="200" text-anchor="start">③ 外部に出ない理由</text>
-  <text class="jp body" x="105" y="255" text-anchor="start">GPU必須</text>
-  <text class="jp body" x="105" y="289" text-anchor="start">NVIDIA VRAM 16GB以上</text>
-  <text class="jp body" x="105" y="323" text-anchor="start">RTX 5070 Ti相当</text>
-  <text class="jp body" x="105" y="357" text-anchor="start">不足PCでは動作しない</text>
-  <text class="jp body" x="105" y="391" text-anchor="start">1台にインストール</text>
-  <text class="jp body" x="105" y="425" text-anchor="start">難問は数分かかる場合あり</text>
-  <text class="jp body" x="105" y="459" text-anchor="start">他ソフトのGPU使用で遅くなる</text>
-  <text class="jp body" x="105" y="493" text-anchor="start">スキャン画像PDFは不可の場合あり</text>
-  <rect x="115" y="346" width="165" height="36" rx="18" fill="#fee2e2"/><text class="jp h3" x="197.5" y="370" text-anchor="middle" fill="#dc2626">購入判断の分かれ目</text>
-  <text class="jp body" x="590" y="255" text-anchor="start">Expand-Archive を使わない</text>
-  <text class="jp body" x="590" y="289" text-anchor="start">tar.exe かエクスプローラー展開</text>
-  <text class="jp body" x="590" y="323" text-anchor="start">同梱ソフトを勝手に更新しない</text>
-  <text class="jp body" x="590" y="357" text-anchor="start">versions.lock の固定構成</text>
-  <text class="jp body" x="590" y="391" text-anchor="start">データ用フォルダを移動・削除しない</text>
-  <text class="jp body" x="590" y="425" text-anchor="start">LICENSES / NOTICE を削除しない</text>
-  <text class="jp body" x="590" y="459" text-anchor="start">8888 / 11435 は内部用</text>
-  <text class="jp body" x="590" y="493" text-anchor="start">3001 は変更可</text>
-  <text class="jp body" x="1075" y="255" text-anchor="start">AI処理はすべてPC内</text>
-  <text class="jp body" x="1075" y="289" text-anchor="start">Qwen3-8B / bge-m3</text>
-  <text class="jp body" x="1075" y="323" text-anchor="start">Ollama: 127.0.0.1:11435</text>
-  <text class="jp body" x="1075" y="357" text-anchor="start">外部AIはAPI許可リストで遮断</text>
-  <text class="jp body" x="1075" y="391" text-anchor="start">Telemetry / Swagger は無効</text>
-  <text class="jp body" x="1075" y="425" text-anchor="start">実行時のモデル外部取得なし</text>
-  <text class="jp body" x="1075" y="459" text-anchor="start">LANを抜いても通常どおり動く</text>
-  <text class="jp body" x="1075" y="493" text-anchor="start">BitLocker等の暗号化を推奨</text>
-  <rect x="1095" y="461" width="225" height="36" rx="18" fill="#dcfce7"/><text class="jp h3" x="1207.5" y="485" text-anchor="middle" fill="#10b981">最大の売り: 外部に出ない</text>
-  <line x1="1010" y1="425" x2="1470" y2="425" stroke="#10b981" stroke-width="4" stroke-dasharray="10 8"/><rect x="450" y="785" width="700" height="58" rx="8" fill="#18324a"/><text class="jp white" x="800" y="822" font-size="22" font-weight="800" text-anchor="middle">安全性は「PC内完結」と「外部AI遮断」を実機で確認できる</text>
+  <rect width="1600" height="104" fill="#fff"/><rect y="102" width="1600" height="2" fill="#dbeafe"/>
+  <text class="jp title" x="64" y="59">使う前に知っておくこと</text>
+  <text class="jp subtitle" x="66" y="88">制約・変更禁止事項・安全のしくみ</text>
+  <text class="jp small" x="1536" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp tiny" x="1536" y="80" text-anchor="end">所内文書AI検索システム</text>
+
+  <rect class="shadow softAmber" x="80" y="148" width="440" height="596"/>
+  <circle cx="300" cy="220" r="46" class="chipAmber"/><g class="iconA" transform="translate(270 190)"><circle cx="30" cy="30" r="26"/><path d="M30 16v22M30 48v2"/></g>
+  <text class="jp h2" x="300" y="296" text-anchor="middle">1. 動作の制約</text>
+  <g class="iconA" transform="translate(122 344)"><rect x="4" y="8" width="58" height="44" rx="8"/><path d="M16 0v8M30 0v8M44 0v8M58 0v8"/></g>
+  <text class="jp body" x="210" y="373">NVIDIA VRAM 16GB以上</text>
+  <g class="iconA" transform="translate(122 420)"><rect x="0" y="10" width="72" height="46" rx="6"/><path d="M12 26h48M12 42h32"/></g>
+  <text class="jp body" x="210" y="449">1台のWindows PCに導入</text>
+  <g class="iconA" transform="translate(122 496)"><path d="M8 8h56v70H8z"/><path d="M20 28h32M20 44h22M20 60h28"/></g>
+  <text class="jp body" x="210" y="525">画像だけのPDFは不可の場合あり</text>
+  <g class="iconA" transform="translate(122 572)"><circle cx="36" cy="36" r="30"/><path d="M36 16v22M36 54v2"/></g>
+  <text class="jp body" x="210" y="601">難問・大量文書は時間がかかる</text>
+
+  <rect class="shadow card" x="580" y="148" width="440" height="596"/>
+  <circle cx="800" cy="220" r="46" class="chipRed"/><g class="iconR" transform="translate(770 190)"><circle cx="30" cy="30" r="26"/><path d="M16 16l28 28M44 16L16 44"/></g>
+  <text class="jp h2" x="800" y="296" text-anchor="middle">2. 変更しないこと</text>
+  <g class="iconR" transform="translate(622 344)"><path d="M8 52V14h38l18 18v38H8z"/><path d="M46 14v18h18"/><path d="M18 52h36"/></g>
+  <text class="jp body" x="710" y="373">Expand-Archive を使わない</text>
+  <g class="iconR" transform="translate(622 420)"><rect x="6" y="8" width="58" height="44" rx="8"/><path d="M18 0v8M32 0v8M46 0v8M60 0v8"/></g>
+  <text class="jp body" x="710" y="449">同梱ソフトを勝手に更新しない</text>
+  <g class="iconR" transform="translate(622 496)"><path d="M8 8h64v64H8z"/><path d="M22 26h36M22 42h26"/></g>
+  <text class="jp body" x="710" y="525">データフォルダを移動・削除しない</text>
+  <g class="iconR" transform="translate(622 572)"><path d="M8 10h60v64H8z"/><path d="M22 28h32M22 44h32M22 60h20"/></g>
+  <text class="jp body" x="710" y="601">LICENSES / NOTICE を削除しない</text>
+
+  <rect class="shadow softGreen" x="1080" y="148" width="440" height="596"/>
+  <circle cx="1300" cy="220" r="46" class="chipGreen"/><g class="iconG" transform="translate(1270 190)"><circle cx="30" cy="30" r="26"/><path d="M16 32l12 12l26-30"/></g>
+  <text class="jp h2" x="1300" y="296" text-anchor="middle">3. 外部に出ない理由</text>
+  <g class="iconG" transform="translate(1122 344)"><rect x="4" y="8" width="64" height="46" rx="8"/><path d="M20 54v16M52 54v16M18 28h36"/></g>
+  <text class="jp body" x="1210" y="373">AI処理はPC内で完結</text>
+  <g class="iconG" transform="translate(1122 420)"><path d="M8 28h64M40 4v48"/><circle cx="40" cy="28" r="26"/></g>
+  <text class="jp body" x="1210" y="449">外部AIはAPI許可リストで遮断</text>
+  <g class="iconG" transform="translate(1122 496)"><circle cx="36" cy="36" r="30"/><path d="M18 36h36M36 18v36"/></g>
+  <text class="jp body" x="1210" y="525">Telemetry / Swagger は無効</text>
+  <g class="iconG" transform="translate(1122 572)"><path d="M8 32h72"/><path d="M36 8l-24 24l24 24"/><path d="M60 8l-24 24l24 24"/></g>
+  <text class="jp body" x="1210" y="601">ネットワークなしで使う設計</text>
+
+  <rect x="438" y="784" width="724" height="56" rx="8" fill="#17324a"/>
+  <text class="jp white" x="800" y="820" font-size="22" font-weight="800" text-anchor="middle">安全性の中心は「PC内完結」と「外部AI遮断」</text>
+  <text class="jp tiny" x="64" y="874">完全オフライン実機検証はリリース前の仕上げ確認として継続</text>
+  <text class="jp tiny" x="1536" y="874" text-anchor="end">Qwen3-8B + bge-m3 / 127.0.0.1:11435</text>
 </svg>

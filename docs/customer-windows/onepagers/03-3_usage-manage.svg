@@ -1,55 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="ふだんの管理と保存場所">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="日常の管理と保存場所">
   <defs>
     <style>
       .jp { font-family: 'Yu Gothic UI','Yu Gothic','Meiryo','Noto Sans CJK JP',sans-serif; }
       .mono { font-family: 'Cascadia Mono','Consolas','Yu Gothic UI',monospace; }
-      .title { font-size:42px;font-weight:800;fill:#18324a; }
-      .subtitle { font-size:20px;font-weight:650;fill:#526173; }
-      .h2 { font-size:24px;font-weight:800;fill:#18324a; }
-      .h3 { font-size:20px;font-weight:800;fill:#18324a; }
+      .title { font-size:42px;font-weight:800;fill:#17324a; }
+      .subtitle { font-size:20px;font-weight:650;fill:#5b6778; }
+      .h2 { font-size:23px;font-weight:800;fill:#17324a; }
+      .h3 { font-size:20px;font-weight:800;fill:#17324a; }
       .body { font-size:17px;font-weight:650;fill:#172033; }
-      .small { font-size:14px;font-weight:650;fill:#526173; }
-      .tiny { font-size:12px;font-weight:650;fill:#526173; }
-      .monoText { font-size:16px;font-weight:700;fill:#172033; }
+      .small { font-size:14px;font-weight:650;fill:#5b6778; }
+      .tiny { font-size:12px;font-weight:650;fill:#5b6778; }
+      .monoText { font-size:15px;font-weight:700;fill:#172033; }
       .white { fill:#fff; }
-      .shadow { filter: drop-shadow(0 8px 18px rgba(24,50,74,.12)); }
+      .card { fill:#fff;stroke:#cbd5e1;stroke-width:1.5;rx:8; }
+      .softBlue { fill:#eff6ff;stroke:#bfdbfe;stroke-width:1.5;rx:8; }
+      .softGreen { fill:#ecfdf5;stroke:#bbf7d0;stroke-width:1.5;rx:8; }
+      .softAmber { fill:#fffbeb;stroke:#fde68a;stroke-width:1.5;rx:8; }
+      .softRed { fill:#fff1f2;stroke:#fecdd3;stroke-width:1.5;rx:8; }
+      .shadow { filter: drop-shadow(0 9px 18px rgba(23,50,74,.11)); }
+      .icon { fill:none;stroke:#2563eb;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconG { fill:none;stroke:#10b981;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconA { fill:none;stroke:#f59e0b;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .iconR { fill:none;stroke:#dc2626;stroke-width:6;stroke-linecap:round;stroke-linejoin:round; }
+      .chipBlue { fill:#dbeafe; }
+      .chipGreen { fill:#dcfce7; }
+      .chipAmber { fill:#fef3c7; }
+      .chipRed { fill:#fee2e2; }
     </style>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
     <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
   </defs>
   <rect width="1600" height="900" fill="#f7fafc"/>
-  <rect width="1600" height="98" fill="#fff"/><rect y="96" width="1600" height="2" fill="#dbeafe"/>
-  <text class="jp title" x="54" y="58">ふだんの管理と保存場所</text>
-  <text class="jp subtitle" x="56" y="86">3サービスが Running なら正常</text>
-  <text class="jp small" x="1450" y="58" text-anchor="end">LocalRAG v1.1.0</text>
-  <text class="jp tiny" x="1450" y="80" text-anchor="end">所内文書AI検索システム</text>  <rect x="500" y="190" width="600" height="370" rx="28" fill="#ecfeff" stroke="#14b8a6" stroke-width="5"/>
-  <circle cx="620" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="620" y="339" text-anchor="middle">歯</text>
-  <text class="jp h3" x="620" y="405" text-anchor="middle">Server</text>
-  <circle cx="800" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="800" y="339" text-anchor="middle">歯</text>
-  <text class="jp h3" x="800" y="405" text-anchor="middle">Collector</text>
-  <circle cx="980" cy="330" r="38" fill="#dbeafe" stroke="#bfdbfe"/><text class="jp h2" x="980" y="339" text-anchor="middle">歯</text>
-  <text class="jp h3" x="980" y="405" text-anchor="middle">Ollama</text>
-  <path d="M610 250 Q800 160 990 250" fill="none" stroke="#2563eb" stroke-width="5" marker-end="url(#arrow)"/><text class="jp body" x="800" y="230" text-anchor="middle">PC起動で自動起動・異常時は自動再起動</text>
-  <rect class="shadow" x="80" y="190" width="360" height="140" rx="8" fill="#fff" stroke="#cbd5e1"/>
-  <text class="jp body" x="115" y="235" text-anchor="start">起動・停止</text>
-  <text class="jp body" x="115" y="266" text-anchor="start">通常は不要</text>
-  <text class="jp body" x="115" y="297" text-anchor="start">メンテ時のみ start.ps1 / stop.ps1</text>
-  <rect class="shadow" x="1160" y="190" width="360" height="140" rx="8" fill="#fff" stroke="#cbd5e1"/>
-  <text class="jp body" x="1195" y="235" text-anchor="start">状態確認</text>
-  <text class="jp body" x="1195" y="266" text-anchor="start">Get-Service LocalRAG-*</text>
-  <text class="jp body" x="1195" y="297" text-anchor="start">3つとも Running なら正常</text>
-  <rect class="shadow" x="95" y="610" width="430" height="145" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
-  <text class="jp body" x="130" y="652" text-anchor="start">文書/履歴/検索データ/設定</text>
-  <text class="jp body" x="130" y="682" text-anchor="start">C:\LocalRAG\app\server\storage</text>
-  <text class="jp body" x="130" y="712" text-anchor="start">手作業で移動・削除しない</text>
-  <rect class="shadow" x="585" y="610" width="430" height="145" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
-  <text class="jp body" x="620" y="652" text-anchor="start">AIモデル</text>
-  <text class="jp body" x="620" y="682" text-anchor="start">C:\ProgramData\LocalRAG\models</text>
-  <text class="jp body" x="620" y="712" text-anchor="start">ログ: C:\ProgramData\LocalRAG\logs</text>
-  <rect class="shadow" x="1075" y="610" width="430" height="145" rx="8" fill="#ecfdf5" stroke="#bbf7d0"/>
-  <text class="jp body" x="1110" y="652" text-anchor="start">誤削除防止</text>
-  <text class="jp body" x="1110" y="682" text-anchor="start">ワークスペース削除防止は既定ON</text>
-  <text class="jp body" x="1110" y="712" text-anchor="start">削除は画面から明示操作</text>
-  <rect x="650" y="486" width="315" height="36" rx="18" fill="#dcfce7"/><text class="jp h3" x="807.5" y="510" text-anchor="middle" fill="#10b981">3サービスが Running なら正常</text>
-  <text class="jp tiny" x="54" y="874">外部AIへ送信しない / 出典付き回答 / 文書外は不明</text><text class="jp tiny" x="1546" y="874" text-anchor="end">Qwen3-8B + bge-m3 / NVIDIA VRAM 16GB以上</text>
+  <rect width="1600" height="104" fill="#fff"/><rect y="102" width="1600" height="2" fill="#dbeafe"/>
+  <text class="jp title" x="64" y="59">日常の管理と保存場所</text>
+  <text class="jp subtitle" x="66" y="88">3サービス・4つの保存場所・削除保護を把握する</text>
+  <text class="jp small" x="1536" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp tiny" x="1536" y="80" text-anchor="end">所内文書AI検索システム</text>
+
+  <rect class="shadow card" x="92" y="160" width="442" height="560"/>
+  <text class="jp h2" x="313" y="214" text-anchor="middle">Windowsサービス</text>
+  <g transform="translate(138 258)">
+    <rect class="softBlue" width="350" height="86"/>
+    <g class="icon" transform="translate(28 20)"><rect x="0" y="0" width="56" height="40" rx="6"/><path d="M12 16h32M12 30h22"/></g>
+    <text class="jp h3" x="112" y="35">LocalRAG-Server</text><text class="jp small" x="112" y="62">画面・API・回答生成</text>
+  </g>
+  <g transform="translate(138 382)">
+    <rect class="softBlue" width="350" height="86"/>
+    <g class="icon" transform="translate(28 18)"><path d="M6 8h46l18 18v46H6z"/><path d="M52 8v18h18"/></g>
+    <text class="jp h3" x="112" y="35">LocalRAG-Collector</text><text class="jp small" x="112" y="62">文書の読み取り</text>
+  </g>
+  <g transform="translate(138 506)">
+    <rect class="softBlue" width="350" height="86"/>
+    <g class="icon" transform="translate(28 18)"><rect x="6" y="8" width="58" height="44" rx="8"/><circle cx="22" cy="30" r="4"/><circle cx="48" cy="30" r="4"/><path d="M20 62h30"/></g>
+    <text class="jp h3" x="112" y="35">LocalRAG-Ollama</text><text class="jp small" x="112" y="62">AIモデル実行</text>
+  </g>
+  <rect x="154" y="648" width="318" height="42" rx="21" class="chipGreen"/><text class="jp h3" x="313" y="675" text-anchor="middle" fill="#047857">通常は操作不要</text>
+
+  <rect class="shadow card" x="588" y="160" width="442" height="560"/>
+  <text class="jp h2" x="809" y="214" text-anchor="middle">保存場所</text>
+  <g class="iconG" transform="translate(626 262)"><path d="M6 28h70v54H6z"/><path d="M6 28l18-18h52v18"/></g>
+  <text class="jp h3" x="722" y="288">文書・履歴・DB</text>
+  <text class="mono monoText" x="722" y="318">C:\LocalRAG\app\server\storage</text>
+  <g class="iconG" transform="translate(626 380)"><rect x="6" y="10" width="66" height="52" rx="8"/><path d="M18 0v10M32 0v10M46 0v10M60 0v10"/></g>
+  <text class="jp h3" x="722" y="406">AIモデル本体</text>
+  <text class="mono monoText" x="722" y="436">C:\ProgramData\LocalRAG\models</text>
+  <g class="iconG" transform="translate(626 498)"><path d="M8 8h64v62H8z"/><path d="M20 26h40M20 42h40M20 58h24"/></g>
+  <text class="jp h3" x="722" y="524">ログ・バックアップ</text>
+  <text class="mono monoText" x="722" y="554">C:\ProgramData\LocalRAG</text>
+  <rect x="662" y="648" width="294" height="42" rx="21" class="chipAmber"/><text class="jp h3" x="809" y="675" text-anchor="middle" fill="#b45309">手作業で削除しない</text>
+
+  <rect class="shadow card" x="1084" y="160" width="424" height="560"/>
+  <text class="jp h2" x="1296" y="214" text-anchor="middle">管理の要点</text>
+  <g class="icon" transform="translate(1130 270)"><path d="M8 34h82"/><path d="M34 8v52"/><circle cx="34" cy="34" r="26"/></g>
+  <text class="jp h3" x="1238" y="288">稼働確認</text>
+  <text class="mono monoText" x="1238" y="318">Get-Service LocalRAG-*</text>
+  <g class="iconA" transform="translate(1130 388)"><circle cx="38" cy="38" r="30"/><path d="M38 20v22M38 56v2"/></g>
+  <text class="jp h3" x="1238" y="406">停止・起動</text>
+  <text class="jp body" x="1238" y="436">メンテナンス時のみ</text>
+  <g class="iconG" transform="translate(1130 506)"><path d="M16 34V18a22 22 0 0 1 44 0v16"/><rect x="8" y="34" width="60" height="48" rx="8"/></g>
+  <text class="jp h3" x="1238" y="524">削除保護</text>
+  <text class="jp body" x="1238" y="554">API経由の誤削除を抑止</text>
+  <rect x="1162" y="648" width="268" height="42" rx="21" class="chipBlue"/><text class="jp h3" x="1296" y="675" text-anchor="middle" fill="#1d4ed8">管理者が判断</text>
+
+  <text class="jp tiny" x="64" y="874">保存場所の移動・削除は提供元またはIT担当へ相談</text>
+  <text class="jp tiny" x="1536" y="874" text-anchor="end">サービスは自動起動・自動再起動</text>
 </svg>
