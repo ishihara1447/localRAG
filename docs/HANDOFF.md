@@ -1,6 +1,12 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-13（Claude・**サービス制御UI+デスクトップランチャー実装完了（fork `57b5d115`・image 1.0.5）**。次はWindows側v1.2.0再ビルド+再検証） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-13（Claude・**C:\LocalRAG\src / windows-native の同期完了、v1.2.0ビルド依頼書を作成**。次はCodexが`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`に沿ってビルド＋実機検証） / 次セッション開始時にまずこれを読む。
+
+> **【同期完了・Codex依頼 2026-07-13】v1.2.0ビルド準備完了**
+> - `C:\LocalRAG\src`（frontend/server, fork `57b5d115`）は既に同期済みと確認（diffなし）。
+> - `C:\LocalRAG\windows-native` はJul 10時点で止まっていた（`launcher/`フォルダ自体が存在せず、install.ps1/export-windows.ps1/uninstall.ps1/config/server.env.templateも未反映）。リポジトリと完全一致になるよう同期済み。
+> - localRAGリポジトリのコミット5件（サービス制御UI実装4件＋Round2検証レポート記録1件）をorigin/mainにpush済み。
+> - **次: Codexが`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`の手順でyarn install/build→export-windows.ps1 -Version 1.2.0→実機検証（デスクトップショートカット・ランチャー・サービス制御UIのオンオフが新規確認項目）**。
 
 > **【機能追加 2026-07-13】Web UIからのサービス制御 + デスクトップショートカット（fork `57b5d115`, image 1.0.5, localRAG側もコミット済み）**
 > ユーザー要望「常時各サーバを起動しているとメモリを消費するため画面から自由にオン/オフしたい」への対応。
