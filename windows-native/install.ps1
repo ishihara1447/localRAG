@@ -162,6 +162,35 @@ Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $In
 Render-Template (Join-Path $PkgRoot "config\collector.env.template") (Join-Path $InstallRoot "app\collector\.env")
 
 # =====================================================================
+# Desktop launcher + shortcut
+# =====================================================================
+$launcherSrc = Join-Path $PkgRoot "launcher\LocalRAG.html"
+if (Test-Path $launcherSrc) {
+    Info "[install] Installing desktop launcher + shortcut..."
+    # The launcher page contains Japanese text: render with UTF-8 (not ascii).
+    $launcherHtml = Get-Content $launcherSrc -Raw -Encoding UTF8
+    $launcherHtml = $launcherHtml -replace "\{\{SERVER_PORT\}\}", "$ServerPort"
+    Set-Content -Path (Join-Path $InstallRoot "LocalRAG.html") -Value $launcherHtml -Encoding UTF8
+    Copy-Item (Join-Path $PkgRoot "launcher\LocalRAG.ico") (Join-Path $InstallRoot "LocalRAG.ico") -Force
+
+    # All-users desktop shortcut. Opens the launcher page, which checks the
+    # server and forwards to the app (or shows guidance when it is down).
+    try {
+        $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
+        $shell = New-Object -ComObject WScript.Shell
+        $lnk = $shell.CreateShortcut((Join-Path $desktop "LocalRAG.lnk"))
+        $lnk.TargetPath = Join-Path $InstallRoot "LocalRAG.html"
+        $lnk.IconLocation = (Join-Path $InstallRoot "LocalRAG.ico") + ",0"
+        $lnk.Description = "LocalRAG for M System"
+        $lnk.WorkingDirectory = $InstallRoot
+        $lnk.Save()
+        Info "  Shortcut: $(Join-Path $desktop 'LocalRAG.lnk')"
+    } catch {
+        Write-Host "WARN: failed to create the desktop shortcut ($($_.Exception.Message)). You can open $InstallRoot\LocalRAG.html manually."
+    }
+}
+
+# =====================================================================
 # Prisma migrate (creates the SQLite DB)
 # =====================================================================
 Info "[install] Running prisma migrate deploy..."

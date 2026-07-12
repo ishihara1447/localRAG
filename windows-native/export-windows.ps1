@@ -62,6 +62,7 @@ if (-not ((Test-Path (Join-Path $publicDir "index.html")) -or (Test-Path (Join-P
 }
 Assert-Path (Join-Path $NodeDir "node.exe") "node.exe in NodeDir"
 Assert-Path (Join-Path $OllamaDir "ollama.exe") "ollama.exe in OllamaDir"
+Assert-Path (Join-Path $OllamaDir "lib\ollama\llama-server.exe") "llama-server.exe in OllamaDir (extract the full Ollama Windows zip, not only ollama.exe)"
 Assert-Path $WinSWExe "WinSW executable"
 Assert-Path $ModelsDir "ModelsDir"
 
@@ -148,6 +149,7 @@ foreach ($f in @("install.ps1", "uninstall.ps1", "start.ps1", "stop.ps1", "backu
     Copy-Item $src (Join-Path $Pkg $f)
 }
 robocopy (Join-Path $ScriptDir "config") (Join-Path $Pkg "config") /E /NFL /NDL /NJH /NJS | Out-Null
+robocopy (Join-Path $ScriptDir "launcher") (Join-Path $Pkg "launcher") /E /NFL /NDL /NJH /NJS | Out-Null
 $repoRoot = Split-Path -Parent $ScriptDir
 if (Test-Path (Join-Path $repoRoot "fixtures")) {
     robocopy (Join-Path $repoRoot "fixtures") (Join-Path $Pkg "fixtures") /E /NFL /NDL /NJH /NJS | Out-Null

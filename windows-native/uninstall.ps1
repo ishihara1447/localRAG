@@ -45,7 +45,14 @@ if (-not $RemoveData -and (Test-Path $storage)) {
     Move-Item $storage (Join-Path $keep "storage")
 }
 
-# 3. Remove application files
+# 3. Remove the desktop shortcut (created by install.ps1)
+$shortcut = Join-Path ([Environment]::GetFolderPath("CommonDesktopDirectory")) "LocalRAG.lnk"
+if (Test-Path $shortcut) {
+    Write-Host "Removing desktop shortcut $shortcut ..."
+    Remove-Item $shortcut -Force -ErrorAction SilentlyContinue
+}
+
+# 4. Remove application files
 Write-Host "Removing $InstallRoot ..."
 # This script lives inside InstallRoot, so delete contents except this script,
 # then schedule best-effort self-cleanup.
@@ -53,7 +60,7 @@ Get-ChildItem -Path $InstallRoot -Force | Where-Object { $_.FullName -ne $SelfPa
     Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
 }
 
-# 4. Data root
+# 5. Data root
 if ($RemoveData) {
     Write-Host "Removing $DataRoot (models, logs, backups)..."
     Remove-Item -Recurse -Force $DataRoot -ErrorAction SilentlyContinue

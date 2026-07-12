@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocalRAG for ℳシステム</title>
+<!--
+  LocalRAG デスクトップランチャー。
+  install.ps1 が {{SERVER_PORT}} を実ポートに置換して InstallRoot に配置し、
+  デスクトップショートカットの飛び先になる。
+  サーバーが応答すればアプリへ自動遷移、応答しなければ案内を表示する。
+-->
+<style>
+  :root {
+    --bg: #0a0c0e; --panel: #121517; --text: #f2f5f7; --sub: rgba(242,245,247,.62);
+    --accent: #00e5c0; --warn: #ffb454;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system,'Segoe UI','Hiragino Sans','Yu Gothic UI',Meiryo,sans-serif;
+  }
+  .card {
+    background: var(--panel); border-radius: 16px; padding: 48px 56px;
+    max-width: 620px; width: calc(100% - 40px); text-align: center;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .brand { font-size: 28px; font-weight: 800; letter-spacing: .5px; }
+  .brand .for { font-size: 19px; font-weight: 500; color: var(--accent); margin-left: 8px; }
+  .status { margin: 28px 0 8px; font-size: 17px; color: var(--sub); }
+  .spinner {
+    width: 34px; height: 34px; margin: 22px auto 0; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.15); border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .down { display: none; }
+  .down h2 { color: var(--warn); font-size: 20px; margin: 24px 0 14px; font-weight: 700; }
+  .down p { color: var(--sub); font-size: 14.5px; line-height: 1.9; text-align: left; }
+  .down code {
+    font-family: Consolas, monospace; background: rgba(255,255,255,.08);
+    padding: 1px 7px; border-radius: 5px; font-size: 13px;
+  }
+  .retry {
+    margin-top: 26px; display: inline-block; background: var(--accent); color: #052b23;
+    font-weight: 700; font-size: 15px; padding: 11px 34px; border-radius: 10px;
+    border: none; cursor: pointer; letter-spacing: .02em;
+  }
+  .retry:hover { box-shadow: 0 0 16px rgba(0,229,192,.4); }
+  .tries { margin-top: 14px; font-size: 12px; color: var(--sub); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">LocalRAG<span class="for">for ℳシステム</span></div>
+
+    <div id="checking">
+      <div class="status">サーバーの状態を確認しています…</div>
+      <div class="spinner"></div>
+    </div>
+
+    <div id="down" class="down">
+      <h2>⚠ サーバーが起動していません</h2>
+      <p>
+        LocalRAG のサーバー（Windowsサービス）に接続できませんでした。<br>
+        以下の順にお試しください。<br><br>
+        <b>1.</b> パソコンを起動した直後の場合は、1〜2分待ってから「再接続」を押す<br>
+        <b>2.</b> それでも繋がらない場合は、パソコンを再起動する（サービスは自動で立ち上がります）<br>
+        <b>3.</b> 解決しない場合は、管理者PowerShellで <code>C:\LocalRAG\start.ps1</code> を実行するか、提供元にご連絡ください
+      </p>
+      <button class="retry" onclick="restart()">再接続</button>
+      <div class="tries" id="tries"></div>
+    </div>
+  </div>
+
+<script>
+  var APP_URL = "http://localhost:{{SERVER_PORT}}";
+  var attempts = 0;
+  var MAX_AUTO = 10; // 起動直後を考慮して最大10回(約20秒)自動リトライ
+
+  // file:// からの fetch は CORS の影響を受けうるため、CORS対象外の
+  // 画像ロードで疎通確認する（favicon が返れば server は起動している）
+  function ping() {
+    attempts++;
+    var img = new Image();
+    var settled = false;
+    var timer = setTimeout(function () { fail(); }, 2500);
+    function ok() {
+      if (settled) return; settled = true; clearTimeout(timer);
+      location.replace(APP_URL);
+    }
+    function fail() {
+      if (settled) return; settled = true; clearTimeout(timer);
+      if (attempts < MAX_AUTO) {
+        document.getElementById("tries").textContent = "確認中… (" + attempts + "/" + MAX_AUTO + ")";
+        setTimeout(ping, 2000);
+      } else {
+        document.getElementById("checking").style.display = "none";
+        document.getElementById("down").style.display = "block";
+        document.getElementById("tries").textContent = "";
+      }
+    }
+    img.onload = ok;
+    img.onerror = fail;
+    img.src = APP_URL + "/favicon.png?ts=" + Date.now();
+  }
+  function restart() {
+    attempts = 0;
+    document.getElementById("down").style.display = "none";
+    document.getElementById("checking").style.display = "block";
+    ping();
+  }
+  ping();
+</script>
+</body>
+</html>
