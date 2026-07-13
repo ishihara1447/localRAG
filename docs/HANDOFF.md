@@ -1,6 +1,16 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-13（Claude・**v1.2.0ビルド未実行のズレ発覚。Codex 1回目はv1.1.0を再検証しPASSしたが、v1.2.0新機能は未検証**。ビルドを明示した再依頼書に改訂） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-13（Claude・**製品名を「OTE-RAG」にリブランド＋アイコンを日の丸化（白縁付き）**。あわせてv1.2.0ビルド未実行のズレに対応） / 次セッション開始時にまずこれを読む。
+
+> **【リブランド 2026-07-13】製品名「LocalRAG for ℳシステム」→「OTE-RAG」、アイコンを日の丸化**
+> ユーザー指示。命名意図＝「**お手軽**にローカルでRAG」＋Made in Japan（読みは「おてらぐ」だが表示名には併記しない）。アイコンは先頭Oを**日の丸（赤 #BC002D＋白縁）**に。
+> - **ユーザー可視の表示テキストのみ**をOTE-RAG化（forkフロント/サーバ38ファイル・109箇所、`frontend/index.html`のtitle/meta、`MetaGenerator.js`のtitle/PWA名、サービス制御UIラベル「OTE-RAG Server/Collector/Ollama」）。
+> - **温存した技術識別子**: Windowsサービス名`LocalRAG-Ollama/Collector/Server`、パス`C:\LocalRAG*`、import識別子`LocalRAGIcon`、アセット名`localrag-*.svg`。※perl一括置換で`C:\LocalRAG\storage`のパスコメント1件が誤変換→revert済み。
+> - **ロゴSVG3点**（dark/light/icon）を作り直し: ワードマーク「⭕TE-RAG」（先頭Oが日の丸赤ディスク＋白縁）。iconは日の丸＋RAG文書ライン。デスクトップランチャー`LocalRAG.html`（ファイル名は温存）の表示ブランドもOTE-RAG化。読み「おてらぐ」は表示名に併記しない（2026-07-13ユーザー指示）。
+> - **favicon.png/.ico未更新**: WSLではsharpのlinuxネイティブバイナリが無く生成不可。**Windowsビルド時にsharpで`localrag-icon.svg`から再生成する手順を`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md` Part Aに追記済み**。
+> - **反映にはv1.2.0再ビルドが必須**（src再同期→yarn build）。dev docker（compose）も次回リビルドでimage 1.0.6にする想定。**未コミット**（ユーザー確認待ち）。
+
+> **【要対応 2026-07-13 第2報】v1.2.0ビルド未実行のズレ → 再依頼**
 
 > **【要対応 2026-07-13 第2報】v1.2.0ビルド未実行のズレ → 再依頼**
 > Codex 1回目の実行（`docs/WINDOWS_NATIVE_VERIFY_ROUND2_RESULT_2026-07-13.md`）は、Part A/B（ビルド）を飛ばして

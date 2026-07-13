@@ -43,6 +43,29 @@ Copy-Item -Recurse -Force .\dist\* ..\server\public\
 - `server\node_modules\.prisma\client` に `query_engine-windows*` が生成されていることを確認（export-windows.ps1が事前チェックする）。
 - `server\public\index.html` または `_index.html` が存在することを確認。
 
+> **⚠️ 事前必須: OTE-RAGリブランドをC:\LocalRAG\srcへ再同期してからビルドすること（2026-07-13追加）**
+> WSL側forkに製品名リブランド（「LocalRAG for ℳシステム」→「OTE-RAG（おてらぐ）」）とアイコンの日の丸化を実施済み。
+> **これはyarnビルド前のソース再同期が必須**（フロント広範囲＝`frontend/src`の40ファイル・`frontend/index.html`・
+> `server/utils/boot/MetaGenerator.js`・`server/utils/localServices/index.js`・ロゴSVG3点が変更されている）。
+> 前回のデザイン刷新と同様、差分コピーでなく**ソースツリー再コピー推奨**（node_modules/.git除く）。
+> - 温存すべき技術識別子は変更していない: サービス名`LocalRAG-Ollama/Collector/Server`、パス`C:\LocalRAG*`、
+>   import識別子`LocalRAGIcon`、アセットファイル名`localrag-*.svg`はそのまま（表示テキストのみOTE-RAG化）。
+>
+> **favicon（日の丸アイコン）の再生成**: WSL側ではsharpのネイティブバイナリがlinux非対応で生成できなかったため未実施。
+> ビルドマシン（Windows、sharp動作）で新アイコンSVGから`frontend/public/favicon.png`を再生成すること:
+> ```powershell
+> cd C:\LocalRAG\src\server
+> @"
+> const sharp=require('sharp'),fs=require('fs');
+> const svg=fs.readFileSync('..\\frontend\\src\\media\\logo\\localrag-icon.svg');
+> sharp(svg,{density:384}).resize(256,256,{fit:'contain',background:{r:0,g:0,b:0,alpha:0}}).png()
+>   .toFile('..\\frontend\\public\\favicon.png').then(()=>console.log('favicon.png OK'));
+> "@ | Out-File -Encoding utf8 _gen-favicon.js
+> node _gen-favicon.js; Remove-Item _gen-favicon.js
+> ```
+> `favicon.ico`も更新したい場合は48pxで別途生成（任意。多くのブラウザはpngのicon linkで足りる）。
+> 再生成した`favicon.png`が`yarn build`のコピー対象に含まれるよう、**faviconを作ってから`yarn build`→server\public コピー**の順で実行する。
+
 ### Part B. パッケージ生成
 
 ```powershell
