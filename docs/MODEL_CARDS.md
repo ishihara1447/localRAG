@@ -1,27 +1,29 @@
 # MODEL CARDS — 同梱モデル一覧
 
-最終更新: 2026-07-11（モデル構成確定に伴い作成。構成の根拠: `docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）
+最終更新: 2026-07-14（LLMを非中国系 gemma4:12b に切替。根拠: `docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md` / 旧構成: `docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）
 
 本製品（Local RAG）に同梱・使用するAIモデルの正式な記録。配布パッケージのモデル差し替え時は本ファイルを必ず更新すること。**すべてのモデルは完全ローカルで動作し、顧客文書・質問内容を外部に送信しない。**
 
 ---
 
-## 1. LLM: Qwen3 8B（`qwen3:8b`）
+## 1. LLM: Gemma 4 12B（`gemma4:12b`）
 
 | 項目 | 内容 |
 |---|---|
 | 用途 | RAG回答生成（日本語）。出典必須・文書外は「不明」応答を既定システムプロンプトで強制 |
-| 提供元 | Alibaba Cloud（Qwen Team）、Ollama公式レジストリ配布（`registry.ollama.ai/library/qwen3:8b`） |
-| ライセンス | Apache-2.0（全文: `LICENSES/Apache-2.0_LICENSE.txt`、NOTICE参照） |
-| パラメータ数 | 8.2B |
-| 量子化 | Q4_K_M（GGUF、約5.2GB） |
-| コンテキスト長 | 40,960トークン |
-| 特記 | thinking（推論過程生成）を正式サポート。`trust_remote_code`不要（Ollama公式配布のみ使用する方針に適合） |
-| manifest config digest | `sha256:05a61d37b08453e59290add468e3bb2f688e23a01e967fecb0e2fa41218cea76` |
-| model blob digest | `sha256:a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f`（5,225,374,496 bytes） |
-| 既定パラメータ | temperature 0.6 / top_k 20 / top_p 0.95 / repeat_penalty 1 / stop `<|im_start|>` `<|im_end|>` |
-| 採用根拠 | 実運用規模30問評価で26/30（87%）・ハルシネーションゼロ・文書外質問の不明応答5/5（2026-07-11） |
-| 旧構成からの変更理由 | 旧LLM（llm-jpコミュニティGGUF `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M`）はチャットテンプレート破損＋有害stopトークンにより回答本文が空になる致命的問題（30問評価0/30）。コミュニティGGUFは品質保証がなく、以後Ollama公式配布モデルのみ採用する |
+| 提供元 | Google DeepMind、Ollama公式レジストリ配布（`registry.ollama.ai/library/gemma4:12b`） |
+| ライセンス | **Apache-2.0**（全文: `LICENSES/Apache-2.0_LICENSE.txt`。ollama公式配布の同梱ライセンスblobでも確認済み） |
+| パラメータ数 | 11.9B（dense） |
+| 量子化 | Q4_K_M（約7.38GB。マルチモーダルprojector 175MB込みで約7.56GB） |
+| コンテキスト長 | 262,144トークン（256K） |
+| 必要Ollama | 0.30.5以上（同梱の配布用Ollama v0.31.2で動作。dev v0.30.11でも確認） |
+| 特記 | thinking（推論過程生成）対応。vision/audio/tools対応の基盤だが、本製品ではテキストRAGのみ使用。`trust_remote_code`不要（Ollama公式配布のみ使用する方針に適合） |
+| manifest config digest | `sha256:c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23` |
+| model blob digest | `sha256:1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606`（7,381,382,048 bytes） |
+| projector blob digest | `sha256:675ad6e68101ca9413ec806855c452362f0213f2dfc5800996b086fdb8119842`（175,115,584 bytes、vision用） |
+| 既定パラメータ | temperature 1 / top_k 64 / top_p 0.95 |
+| 採用根拠 | 中国系以外・RAG適性・日本語・商用可・16GB VRAMの要件をすべて満たす（`docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`）。gemma4向け調整プロンプト＋topN=8の30問評価で**25/30・ハルシネーションゼロ（不明応答5/5）**。同条件でqwen3:8bは22/30・捏造4件であり、精度・安全性の両面で上回る |
+| 旧構成からの変更理由 | 旧LLM `qwen3:8b`（Alibaba＝中国系）から、非中国系・Apache-2.0のGoogle Gemma 4に切替。gemma4は「過剰拒否」と「出典捏造」が出やすかったため、既定システムプロンプトを言い換え許容・捏造禁止方向に調整（`server/models/systemSettings.js` saneDefaultSystemPrompt、2026-07-14） |
 
 ## 2. Embedding: BGE-M3（`bge-m3:latest`）
 
@@ -47,6 +49,7 @@
 
 | モデル | 撤回日 | 理由 |
 |---|---|---|
+| `qwen3:8b` | 2026-07-14 | 中国系（Alibaba）のため非中国系方針で置換。現行30問評価でも22/30・捏造4件でgemma4:12b（25/30・捏造0）に劣る |
 | `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` | 2026-07-11 | コミュニティGGUFのテンプレート破損で本文が空になる（30問評価0/30）。過去のe2e PASSは思考テキストへの偶然マッチ |
 | `mxbai-embed-large:latest` | 2026-07-11 | 日本語言い換え検索で正解文書をtop8に入れられない |
 | `llama3.1:8b` | 2026-07-04 | 日本語品質でllm-jp系に切替（その後llm-jp系も撤回）。Llama 3.1 Community License（Apache-2.0でない）点も配布上不利 |
@@ -55,4 +58,5 @@
 
 - Docker/WSL2版: `runtime/ollama-models/` をディレクトリごと同梱（`scripts/export.sh`）
 - Windows native版: `windows-native/export-windows.ps1` の `$BundleModels`（manifest解析で必要blobのみ同梱）
-- 両配布とも上記2モデル（qwen3:8b + bge-m3:latest）のみを同梱する。撤回済みモデルは同梱しない
+- 両配布とも上記2モデル（gemma4:12b + bge-m3:latest）のみを同梱する。撤回済みモデルは同梱しない
+- **ビルドマシン準備**: 再ビルド前に `ollama pull gemma4:12b` でモデルをModelsDirに取得しておくこと（同梱blob解析の対象）

@@ -293,7 +293,19 @@ def main() -> int:
         "--chat-model", type=str, default=None, metavar="MODEL",
         help="ワークスペースのchatModel（LLM比較用。例: qwen3:8b）。省略時は環境既定のまま。",
     )
+    parser.add_argument(
+        "--system-prompt-file", type=str, default=None, metavar="PATH",
+        help="ワークスペースのopenAiPrompt（システムプロンプト）をこのファイル内容で上書きする。プロンプト調整の比較用。省略時は既定プロンプト。",
+    )
     args = parser.parse_args()
+
+    system_prompt = None
+    if args.system_prompt_file is not None:
+        p = Path(args.system_prompt_file)
+        if not p.exists():
+            print(f"エラー: system-prompt-file が見つかりません: {p}")
+            return 2
+        system_prompt = p.read_text(encoding="utf-8")
 
     missing = [f for f in FIXTURE_FILES if not (SCALE_DIR / f).exists()]
     if missing:
@@ -320,6 +332,8 @@ def main() -> int:
                 update_workspace(client, headers, slug, topN=args.top_n)
             if args.chat_model is not None:
                 update_workspace(client, headers, slug, chatProvider="ollama", chatModel=args.chat_model)
+            if system_prompt is not None:
+                update_workspace(client, headers, slug, openAiPrompt=system_prompt)
             for name in FIXTURE_FILES:
                 upload(client, headers, slug, SCALE_DIR / name, "text/plain")
             time.sleep(10)

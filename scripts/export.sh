@@ -43,8 +43,8 @@ RUNTIME_DIR="$PROJECT_ROOT/runtime"
 
 ANYTHINGLLM_IMAGE="localrag-anythingllm:1.0.0"
 OLLAMA_IMAGE="ollama/ollama:latest"
-LLM_MODEL="llama3.1:8b"
-EMBED_MODEL="mxbai-embed-large:latest"
+LLM_MODEL="gemma4:12b"
+EMBED_MODEL="bge-m3:latest"
 VERSION=""
 OUTPUT_DIR=""
 

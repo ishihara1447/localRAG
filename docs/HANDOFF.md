@@ -1,6 +1,13 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-14（Claude・**Codexへv1.2.0ビルド＆検証を一式委任。引き継ぎメモ`docs/CODEX_HANDOFF_V1.2.0_OTERAG_2026-07-14.md`を作成**） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-14（Claude・**LLMを非中国系 gemma4:12b に切替＋既定プロンプト調整（dev評価25/30・捏造ゼロ）**。v1.2.0はOTE-RAGリブランド＋gemma4切替を一括で含む） / 次セッション開始時にまずこれを読む。
+
+> **【モデル切替 2026-07-14】LLM: qwen3:8b（中国系）→ gemma4:12b（Google, Apache 2.0, 非中国系）**
+> ユーザー指示「中国系以外の優秀なモデルを1つ採用」。調査＝`docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`、モデルカード＝`docs/MODEL_CARDS.md`。
+> - dev評価: gemma4:12b＋gemma4向け調整プロンプト＋topN=8で **scale-eval 25/30・ハルシネーションゼロ**（同条件のqwen3:8bは22/30・捏造4件）。topN=15は悪化するため8を維持。
+> - **反映済み（ソース側）**: 既定プロンプト（fork `server/models/systemSettings.js`）、`OLLAMA_MODEL_PREF=gemma4:12b`（compose/env template）、`export-windows.ps1 $BundleModels`・`export.sh`、`MODEL_CARDS.md`。Embeddingは bge-m3 のまま（再embed不要）。
+> - **未反映（Windows/Codex）**: v1.2.0再ビルドで gemma4:12b を同梱（`ollama pull gemma4:12b` 後にexport）。配布zipは約2.3GB増。→ `docs/CODEX_HANDOFF_V1.2.0_OTERAG_2026-07-14.md` STEP3に統合済み。
+> - dev環境メモ: composeネットワークが外部到達不可（tailscale起因）だったため、gemma4:12bはデフォルトブリッジの使い捨てコンテナで共有ボリュームへpullした。配布物には無関係。
 
 > **【Codex一式委任 2026-07-14】OTE-RAG v1.2.0 ビルド＆実機検証（現状と作業を1枚に集約）**
 > `docs/CODEX_HANDOFF_V1.2.0_OTERAG_2026-07-14.md` を参照。要点:

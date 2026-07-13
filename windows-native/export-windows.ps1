@@ -39,11 +39,14 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Models to bundle: model name -> manifest relative path
-# 2026-07-11: switched to qwen3:8b + bge-m3 after the RAG accuracy evaluation
-# (docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md). The previous llm-jp GGUF had a
-# broken chat template (empty answers) and mxbai missed Japanese paraphrases.
+# 2026-07-14: switched LLM to gemma4:12b (non-Chinese, Apache 2.0, official Ollama library)
+# after the model-selection evaluation (docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md).
+# gemma4:12b + the tuned Japanese RAG prompt scored 25/30 with zero hallucination and beat
+# qwen3:8b (22/30, 4 hallucinations) on the current 30-question eval. Embedding stays bge-m3.
+# NOTE: the build machine must have gemma4:12b pulled into ModelsDir before running this
+#   (ollama pull gemma4:12b). Requires an Ollama new enough for gemma4 (bundled v0.31.2 OK).
 $BundleModels = @{
-    "qwen3:8b"        = "manifests\registry.ollama.ai\library\qwen3\8b";
+    "gemma4:12b"      = "manifests\registry.ollama.ai\library\gemma4\12b";
     "bge-m3:latest"   = "manifests\registry.ollama.ai\library\bge-m3\latest";
 }
 
@@ -165,7 +168,7 @@ if (Test-Path (Join-Path $repoRoot "NOTICE")) {
 if (Test-Path (Join-Path $repoRoot "docs\customer-windows")) {
     robocopy (Join-Path $repoRoot "docs\customer-windows") (Join-Path $Pkg "docs") /E /NFL /NDL /NJH /NJS | Out-Null
 } else {
-    Write-Host "WARN: docs\customer-windows not found; package will ship without customer docs."
+    throw "ERROR: docs\customer-windows not found. Sync customer docs into the build tree before exporting."
 }
 if (Test-Path (Join-Path $repoRoot "docs\MODEL_CARDS.md")) {
     New-Item -ItemType Directory -Force -Path (Join-Path $Pkg "docs") | Out-Null
@@ -241,3 +244,4 @@ if (-not $NoZip) {
 Write-Host ""
 Write-Host "Export complete: $Pkg"
 Write-Host "Next: verify on a clean machine/state with install.ps1 (see docs)."
+
