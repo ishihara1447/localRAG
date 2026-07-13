@@ -1,4 +1,4 @@
-# LocalRAG 顧客向け一枚絵
+# OTE-RAG 顧客向け一枚絵
 
 Claude Code の `CODEX_ONEPAGER_BRIEF.md` に基づき、Codex が作成した 16:9 SVG インフォグラフィックです。
 日本語文言・URL・パス・コマンドの崩れを避けるため、生成AIのラスター画像ではなくSVGで作成しています。

@@ -34,7 +34,7 @@
   <rect width="1600" height="104" fill="#fff"/><rect y="102" width="1600" height="2" fill="#dbeafe"/>
   <text class="jp title" x="64" y="59">使う前に知っておくこと</text>
   <text class="jp subtitle" x="66" y="88">制約・変更禁止事項・安全のしくみ</text>
-  <text class="jp small" x="1536" y="58" text-anchor="end">LocalRAG v1.1.0</text>
+  <text class="jp small" x="1536" y="58" text-anchor="end">OTE-RAG v1.1.0</text>
   <text class="jp tiny" x="1536" y="80" text-anchor="end">所内文書AI検索システム</text>
 
   <rect class="shadow softAmber" x="80" y="148" width="440" height="596"/>

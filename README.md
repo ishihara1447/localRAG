@@ -1,39 +1,39 @@
-# LocalRAG
+# OTE-RAG
 
-LocalRAG は、顧客の Windows PC だけで動く日本語 RAG パッケージです。所内文書をアップロードし、文書に基づく回答と出典を確認できます。クラウド AI に文書や質問を送らないことを前提に、AnythingLLM の fork を Windows native 配布向けに整備しています。
+OTE-RAG は、顧客の Windows PC だけで動く日本語 RAG パッケージです。所内文書をアップロードし、文書に基づく回答と出典を確認できます。クラウド AI に文書や質問を送らないことを前提に、AnythingLLM の fork を Windows native 配布向けに整備しています。
 
-現在の顧客配布ターゲット: **LocalRAG Windows native v1.1.0**  
+現在の顧客配布ターゲット: **OTE-RAG Windows native v1.1.0**  
 配布方針: **Windows 11 に直接インストール**。顧客環境に WSL / Docker は不要です。
 
 ## まず絵で見る
 
 ### インストールとアンインストール
 
-<img src="docs/customer-windows/onepagers/01_install-uninstall.svg" alt="LocalRAG のインストールとアンインストール" width="100%">
+<img src="docs/customer-windows/onepagers/01_install-uninstall.svg" alt="OTE-RAG のインストールとアンインストール" width="100%">
 
 ### ふだんの使い方
 
-<img src="docs/customer-windows/onepagers/02_usage-overview.svg" alt="LocalRAG の使い方概要" width="100%">
+<img src="docs/customer-windows/onepagers/02_usage-overview.svg" alt="OTE-RAG の使い方概要" width="100%">
 
 ### 文書を取り込んで質問する
 
-<img src="docs/customer-windows/onepagers/03-1_usage-upload.svg" alt="LocalRAG の文書アップロードと質問の流れ" width="100%">
+<img src="docs/customer-windows/onepagers/03-1_usage-upload.svg" alt="OTE-RAG の文書アップロードと質問の流れ" width="100%">
 
 ### バックアップと復元
 
-<img src="docs/customer-windows/onepagers/03-2_usage-backup.svg" alt="LocalRAG のバックアップと復元" width="100%">
+<img src="docs/customer-windows/onepagers/03-2_usage-backup.svg" alt="OTE-RAG のバックアップと復元" width="100%">
 
 ### 日常の管理と保存場所
 
-<img src="docs/customer-windows/onepagers/03-3_usage-manage.svg" alt="LocalRAG のサービス管理と保存場所" width="100%">
+<img src="docs/customer-windows/onepagers/03-3_usage-manage.svg" alt="OTE-RAG のサービス管理と保存場所" width="100%">
 
 ### 制約と注意事項
 
-<img src="docs/customer-windows/onepagers/04_constraints-notes.svg" alt="LocalRAG の制約と注意事項" width="100%">
+<img src="docs/customer-windows/onepagers/04_constraints-notes.svg" alt="OTE-RAG の制約と注意事項" width="100%">
 
 ## この製品でできること
 
-LocalRAG は、顧客 PC 内の文書を検索対象にして、チャット形式で質問できるようにします。回答には出典を表示し、文書に書かれていない内容は「不明」と答える設計です。
+OTE-RAG は、顧客 PC 内の文書を検索対象にして、チャット形式で質問できるようにします。回答には出典を表示し、文書に書かれていない内容は「不明」と答える設計です。
 
 Windows native 版では、次の 3 つの Windows サービスとして動作します。
 
@@ -60,7 +60,7 @@ http://localhost:3001
 
 ## セキュリティとデータの扱い
 
-LocalRAG はローカル完結を前提にしています。
+OTE-RAG はローカル完結を前提にしています。
 
 - 顧客文書、質問、回答、チャット履歴、検索用データは顧客 PC 内に保存します。
 - OpenAI / Anthropic / Google Gemini などの外部 AI provider は有効化しません。
