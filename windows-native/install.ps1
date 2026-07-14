@@ -159,6 +159,7 @@ function Render-Template([string]$templatePath, [string]$outPath) {
     Set-Content -Path $outPath -Value $content -Encoding ascii
 }
 Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env")
+Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env.production")
 Render-Template (Join-Path $PkgRoot "config\collector.env.template") (Join-Path $InstallRoot "app\collector\.env")
 
 # =====================================================================
@@ -181,7 +182,7 @@ if (Test-Path $launcherSrc) {
         $lnk = $shell.CreateShortcut((Join-Path $desktop "LocalRAG.lnk"))
         $lnk.TargetPath = Join-Path $InstallRoot "LocalRAG.html"
         $lnk.IconLocation = (Join-Path $InstallRoot "LocalRAG.ico") + ",0"
-        $lnk.Description = "LocalRAG for M System"
+        $lnk.Description = "OTE-RAG"
         $lnk.WorkingDirectory = $InstallRoot
         $lnk.Save()
         Info "  Shortcut: $(Join-Path $desktop 'LocalRAG.lnk')"
