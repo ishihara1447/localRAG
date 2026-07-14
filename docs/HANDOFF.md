@@ -1,6 +1,23 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-14（Claude・**LLMを非中国系 gemma4:12b に切替＋既定プロンプト調整（dev評価25/30・捏造ゼロ）**。v1.2.0はOTE-RAGリブランド＋gemma4切替を一括で含む） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-14（Claude・**Codexのv1.2.0完了とgemma4切替を統合。残るは「gemma4同梱の最終v1.2.0再ビルド＋クリーン管理者検証」の1回のみ**） / 次セッション開始時にまずこれを読む。
+
+> **【統合状況 2026-07-14】Codexのv1.2.0成果 ＋ gemma4切替 を1つの最終ビルドに合流させる**
+> Codexとgemma4切替の作業を統合した結果、**出荷可能なv1.2.0まであと「最終再ビルド1回＋クリーン管理者検証」だけ**。
+>
+> **すでに揃っているもの（gitに取り込み済み）**:
+> - Codex完了分: OTE-RAGリブランド＋日の丸favicon込みのv1.2.0ビルド、Round2自動検証**全PASS**（E2E 11/11・GPU・backup・stop/start・uninstall）、サービス制御バグ修正（`install.ps1`が`.env.production`も生成＝Web UIからのOllama/Collector制御が有効化）、export堅牢化。詳細: `docs/WINDOWS_NATIVE_VERIFY_V1.2.0_RESULT_2026-07-14.md`。
+> - Claude完了分: LLMを gemma4:12b に切替（設定・export・MODEL_CARDS・調整プロンプト、下の【モデル切替】ブロック参照）。
+>
+> **未合流の一点**: Codexが検証したv1.2.0.zip（`C:\LocalRAG\dist\LocalRAG-win64-v1.2.0.zip`, 8.25GB）の**同梱LLMは qwen3:8b**（gemma4切替より前のビルド）。gemma4はまだパッケージに入っていない。
+>
+> **残作業（Codex、最終ビルド1回）**:
+> 1. `C:\LocalRAG\src\server\models\systemSettings.js` を最新（gemma4調整プロンプト）に再同期、`windows-native\export-windows.ps1`（gemma4:12b同梱に更新済み）も再同期。
+> 2. ビルドマシンで `ollama pull gemma4:12b`。
+> 3. `export-windows.ps1 -Version 1.2.0` で再ビルド（**配布zipは約10.5GBに増**＝gemma4 7.56GB＋bge-m3）。同梱LLMが gemma4:12b であることをzip内manifestで確認。
+> 4. **クリーン管理者インストール**（Codex保留の旧`C:\LocalRAGProd`をUAC承認でuninstell後）→ Round2＋**サービス制御の手動再確認**（`.env.production`修正の実証：Collector/Ollama controllable=true、Web UIから停止起動、VRAM解放）→ `/api/ps`でgemma4ロード確認。
+> 5. 結果を `docs/WINDOWS_NATIVE_VERIFY_V1.2.0_RESULT_2026-07-14.md` に追記。
+> これで OTE-RAG ＋ gemma4:12b ＋ サービス制御 の全部入りv1.2.0が完成し、顧客配布可能になる。
 
 > **【モデル切替 2026-07-14】LLM: qwen3:8b（中国系）→ gemma4:12b（Google, Apache 2.0, 非中国系）**
 > ユーザー指示「中国系以外の優秀なモデルを1つ採用」。調査＝`docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`、モデルカード＝`docs/MODEL_CARDS.md`。
