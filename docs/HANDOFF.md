@@ -2,6 +2,12 @@
 
 最終更新: 2026-07-14（Claude・**Codexのv1.2.0完了とgemma4切替を統合。残るは「gemma4同梱の最終v1.2.0再ビルド＋クリーン管理者検証」の1回のみ**） / 次セッション開始時にまずこれを読む。
 
+> **【根本改善 2026-07-14】日本語PDFの字間空白を正規化（検索精度の真因を修正）＋ num_parallel修正**
+> 防衛白書546pでの精度評価中に2つの重要問題を発見・修正（`docs/JP_PDF_SPACING_FIX_2026-07-14.md` / `docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`）:
+> 1. **collector(pdfjs)が日本語の字間に空白を挿入**（"43兆円程度"→"43 兆円程度"）→ bge-m3の埋め込みが質問と一致せず検索漏れ。`PDFLoader/index.js`に`normalizeJapaneseSpacing()`追加（英単語間は保持）。実測: 正解事実のdense top8捕捉が **3/7→7/7**。topN調整・チャンク拡大・リランキングはいずれも無効で、真因は抽出テキストの空白だった。
+> 2. **`OLLAMA_NUM_PARALLEL=4`でgemma4:12bが16GB GPUに載らずCPU転落**（26文字生成に134秒）→ 並列1に修正（compose＋`LocalRAG-Ollama.xml`）。1にすると8.1GB・GPU100%。
+> - どちらもv1.2.0再ビルドに含まれる（collectorソース／設定）。**end-to-end再評価はdev image再ビルド後の再取り込みで確認**（9/16からの向上見込み）。fork `5649a7ec`。
+
 > **【統合状況 2026-07-14】Codexのv1.2.0成果 ＋ gemma4切替 を1つの最終ビルドに合流させる**
 > Codexとgemma4切替の作業を統合した結果、**出荷可能なv1.2.0まであと「最終再ビルド1回＋クリーン管理者検証」だけ**。
 >
