@@ -28,8 +28,10 @@ services:
     environment:
       # モデルを一定時間後にVRAMからアンロードしない (デフォルト5分でアンロードされ次リクエストが遅い)
       - OLLAMA_KEEP_ALIVE=24h
-      # 同時リクエスト処理数 (デフォルト1=直列。ユーザー数に合わせて調整)
-      - OLLAMA_NUM_PARALLEL=4
+      # 同時リクエスト処理数=1(直列)。単一ユーザーのデスクトップ製品前提。
+      # 4にするとKVキャッシュを4倍確保し gemma4:12b の実行時VRAMが約15.6GBに膨らみ
+      # 16GB GPUに載らずCPUへ転落する(2026-07-14検証)。上げる場合はVRAMを要確認。
+      - OLLAMA_NUM_PARALLEL=1
       # HuggingFace Hub へのアクセスを禁止 (セキュリティ: モデルコードのリモートDL防止)
       - HF_HUB_OFFLINE=1
     volumes:
@@ -91,8 +93,8 @@ services:
       # llm-jp-4-8b-thinking 用タイムアウト(20分)。2026-07-04: GPU(RTX 5070 Ti)ではウォーム時1〜7秒で応答することを
       # 生Ollama呼び出しで確認したが、RAGコンテキスト付きの長いプロンプトでの余裕を見て有効化しておく。
       - OLLAMA_RESPONSE_TIMEOUT=1200000
-      # Embedding: mxbai-embed-large (多言語対応, F16, 334MB) を Ollama 経由で使用
-      # mxbai-embed-large の最大入力は 512 tokens → チャンクを 500 chars に設定
+      # Embedding: bge-m3 (多言語, 8192token) を Ollama 経由で使用。
+      # チャンク上限500字。1000字やtopN増は防衛白書の検証(2026-07-14)で改善せず、当たる事実が入替わるだけだった。
       - EMBEDDING_ENGINE=ollama
       - EMBEDDING_BASE_PATH=http://ollama:11434
       - EMBEDDING_MODEL_PREF=bge-m3:latest

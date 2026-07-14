@@ -18,7 +18,9 @@
   <env name="OLLAMA_HOST" value="127.0.0.1:11435" />
   <env name="OLLAMA_MODELS" value="C:\ProgramData\LocalRAG\models" />
   <env name="OLLAMA_KEEP_ALIVE" value="24h" />
-  <env name="OLLAMA_NUM_PARALLEL" value="4" />
+  <!-- 単一ユーザーのデスクトップ製品なので並列1。4にするとKVキャッシュを4倍確保し、
+       gemma4:12bの実行時VRAMが約15.6GBに膨らんで16GB GPUに載らずCPUへ転落する(2026-07-14検証)。 -->
+  <env name="OLLAMA_NUM_PARALLEL" value="1" />
 
   <logpath>C:\ProgramData\LocalRAG\logs</logpath>
   <log mode="roll-by-size">
