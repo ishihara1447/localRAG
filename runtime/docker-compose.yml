@@ -71,6 +71,12 @@ services:
     environment:
       - STORAGE_DIR=/app/server/storage
       # === セキュリティ既定値 (顧客配布制約 / OFFLINE_DISTRIBUTION_HARDENING_PLAN §6) ===
+      # サーバーの既定バインド先はコード側で127.0.0.1(LAN越しの到達を遮断、2026-07-15
+      # APIキー漏洩脆弱性の修正)。Dockerはホストへポート公開(3001:3001)するため
+      # コンテナのeth0で listen する必要があり明示的に0.0.0.0にする。
+      # collector(同一コンテナ内, 8888)はserver->collector間もloopback通信のみなので
+      # 未設定のまま127.0.0.1既定を使う。
+      - SERVER_HOST=0.0.0.0
       # Telemetry OFF
       - DISABLE_TELEMETRY=true
       # Swagger API ドキュメント (/api/docs) を無効化 (攻撃面の縮小)
@@ -78,6 +84,10 @@ services:
       # ワークスペース誤削除防止 (顧客文書・ベクターの保護)
       - WORKSPACE_DELETION_PROTECTION=1
       - WORKSPACE_DEFAULT_TOP_N=8
+      # 日本語bi-gram BM25 + dense を RRF融合するハイブリッド検索。
+      # 2026-07-14/15の検証で検索漏れ2件が解消(retrieval 2/2)、E2E 11/11・文書外5/5維持を確認し既定ONに確定。
+      # 残る回答失敗はLLM(gemma4)の抽出問題で検索方式に依らない。詳細: docs/HYBRID_SEARCH_LINUX_VERIFY_RESULT_2026-07-15.md
+      - LANCE_HYBRID_SEARCH=true
       # --- 以下は「意図的に未設定」で無効化される項目 (値を設定しないこと) ---
       # COMMUNITY_HUB_BUNDLE_DOWNLOADS_ENABLED:
       #   未設定 = Community Hub からの bundle/Agent Skill DL を完全拒否 (422)。

@@ -1,6 +1,21 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-14（Claude・**Codexのv1.2.0完了とgemma4切替を統合。残るは「gemma4同梱の最終v1.2.0再ビルド＋クリーン管理者検証」の1回のみ**） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-15（**APIキー漏洩脆弱性を修正**。日本語hybrid検索は既定ON確定。**次はgemma4・hybrid・セキュリティ修正同梱の最終v1.2.0再ビルド＋クリーン管理者検証**） / 次セッション開始時にまずこれを読む。
+
+> **【セキュリティ修正 2026-07-15】APIキー漏洩脆弱性（`/system/api-keys`が認証なしでLAN越しに読める）**
+> Codexが発見。原因は(1)シングルユーザーモードでパスワード未設定なら認証が丸ごとバイパスされる仕様(upstream)、(2)server(3001)・collector(8888)が`app.listen(port)`のhost省略で**暗黙に0.0.0.0(全インターフェース)にバインド**されていたこと。組み合わさると顧客がパスワード未設定の場合、同一LAN上の誰でもAPIキーを盗める。
+> - **修正**: サーバー/collectorの既定バインド先を**127.0.0.1限定**に（内部Ollamaポート11435と同じ設計思想に統一）。`server/utils/boot/index.js`・`collector/index.js`に`SERVER_HOST`/`COLLECTOR_HOST`（既定127.0.0.1）を追加。server→collector間の接続も未定義動作だった`0.0.0.0`から`127.0.0.1`に修正（`collectorApi/index.js`）。Docker配布は`SERVER_HOST=0.0.0.0`を明示（ポート公開に必要、collectorは巻き込まない）。Windows native側は変数未設定のままで両方127.0.0.1になる。
+> - **検証**: 別Dockerコンテナからの到達性テストでcollector(127.0.0.1)への接続が実際に拒否されることを確認（HTTP 000）。RAG E2E **11/11 PASS**（server→collector通信含め回帰なし）。
+> - 詳細: `docs/API_KEY_EXPOSURE_FIX_2026-07-15.md`。残課題（パスワード必須化・secret平文保存の見直し）は別途判断。
+
+> **【Linux検証完了 2026-07-15】日本語ハイブリッド検索（dense + BM25 + RRF）既定ON確定**
+> 稼働中コンテナで修正版を検証。LanceDB query()の既定limit=10問題を修正した版でsidecar全1,748行を構築し、非核三原則・交戦権のBM25 retrievalは**2/2 PASS**。API出典にも正解チャンクが入り、残る回答失敗はgemma4の抽出問題と判定した。30問は生20/30だが、正答「約3万2,000円」を評価正規表現が取りこぼした27問目を内容補正すると**21/30**（baseline維持）、文書外5/5、RAG E2E 11/11 PASS。詳細=`docs/HYBRID_SEARCH_LINUX_VERIFY_RESULT_2026-07-15.md`。**ユーザー判断で既定ON確定**（`LANCE_HYBRID_SEARCH=true`）。私(Claude)が独自に同日実施したA/B（`docs/HYBRID_SEARCH_LINUX_VERIFY_RESULT_2026-07-14.md`）は採点用正規表現の不備で「retrieval 1/2・要退行」と誤判定していたため訂正済み。
+
+> **【Codex実装・Linux検証済み 2026-07-15】日本語ハイブリッド検索（dense + BM25 + RRF）**
+> 防衛白書でdense top30にも入らなかった「非核三原則」「交戦権」の2件を救うため、LanceDB 0.15へ日本語bi-gram BM25 sidecarとRRF融合を実装した。既存ベクトル表は変更せず、文書追加/削除・namespace削除へ追随し、`LANCE_HYBRID_SEARCH=true` のときだけ有効。FTS障害時はdenseへ自動フォールバックする。Linux/Windows nativeの一時DBプローブと防衛白書Linux E2EはPASS。実装記録=`docs/CODEX_HYBRID_SEARCH_IMPLEMENTATION_2026-07-14.md`、依頼=`docs/CLAUDE_CODE_REQUEST_HYBRID_SEARCH_LINUX_VERIFY_2026-07-14.md`。
+
+> **【出荷前ハードニング課題 2026-07-15】APIキーsecretの未認証露出**
+> `GET /api/system/api-keys` が認証なしでもAPIキー一覧とsecretを返すことを確認した。hybrid検索とは無関係の既存課題だが、顧客配布前の重大なセキュリティブロッカー。今回作成した一時キーは対象名を限定して削除済み、既存のHakusho系キーは変更していない。次のセキュリティ修正で認証必須化とsecret非返却を実装・検証する。
 
 > **【根本改善 2026-07-14】日本語PDFの字間空白を正規化（検索精度の真因を修正）＋ num_parallel修正**
 > 防衛白書546pでの精度評価中に2つの重要問題を発見・修正（`docs/JP_PDF_SPACING_FIX_2026-07-14.md` / `docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`）:

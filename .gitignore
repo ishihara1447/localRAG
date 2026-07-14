@@ -58,3 +58,6 @@ logs/
 # 実行時データ（顧客文書・DB・ベクタ・モデルを含むためコミット禁止）
 runtime/anythingllm-storage/
 runtime/ollama-models/
+
+# 大容量・機微な精度評価用データ（実文書等。コミット禁止）
+fixtures/local/
