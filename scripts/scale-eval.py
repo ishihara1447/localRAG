@@ -247,9 +247,15 @@ def strip_think(text: str) -> str:
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
+# 不明応答（＝コンテキストに該当が無いと正しく答えた）を検出するパターン。
+# 内部監査(2026-07-16 RAG_EVAL_INTERNAL_AUDIT)指摘: 否定語を伴わない裸の「含まれて」
+# 「記載されて」は肯定文「〜が記載されています」にもマッチし、ハルシネーションを
+# 「不明応答=正解」と誤判定する。否定形を要求する形に修正。
 UNKNOWN_PATTERNS = re.compile(
-    r"不明|見つかり|ありません|no relevant|don't have|情報がない|含まれて|記載されて"
-    r"|記載がない|わかりません|お答えできません|定めない|定めていない|定められていない|別に定める"
+    r"不明|見つかり|ありません|no relevant|don't have|情報がない"
+    r"|含まれていない|含まれていません|含まれておりません"
+    r"|記載がない|記載されていない|記載されていません"
+    r"|わかりません|お答えできません|定めない|定めていない|定められていない|別に定める"
 )
 
 
@@ -328,6 +334,10 @@ def main() -> int:
             model_desc = f", chatModel={args.chat_model}" if args.chat_model else ""
             print(f"=== 実運用規模評価: 規程10本を同一ワークスペースに投入（{topn_desc}{model_desc}） ===")
             slug = new_workspace(client, headers, "scale-eval")
+            # 決定性の担保。内部監査(2026-07-16)指摘: 既定temperature=0.7のstochastic単発
+            # 実行では同一設定でもスコアが数点ぶれ、施策の効果とノイズを区別できない。
+            # 評価は必ずtemperature=0で行う。
+            update_workspace(client, headers, slug, openAiTemp=0)
             if args.top_n is not None:
                 update_workspace(client, headers, slug, topN=args.top_n)
             if args.chat_model is not None:

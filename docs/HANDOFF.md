@@ -1,6 +1,17 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
 
-最終更新: 2026-07-15（**Phi-4 14BをLLM候補として実測A/B、不採用でgemma4:12b現状維持を確定**。APIキー漏洩脆弱性修正・hybrid検索既定ONと合わせ、**次はgemma4・hybrid・セキュリティ修正同梱の最終v1.2.0再ビルド＋クリーン管理者検証**） / 次セッション開始時にまずこれを読む。
+最終更新: 2026-07-16（**文抽出クッションは有効と確定：baseline 18〜19 → cushion 24〜25（+6〜7、c)定義は2/6→6/6満点）。量子化int8で十分（fp16と同等）。ただし配布image 1.0.5にhybrid/cushionが未搭載＝配布ブロッカー、要image再ビルド**。加えて評価スクリプト全般のtemperature未固定・採点正規表現の脆弱性・統計的検定なしという構造的弱点が判明） / 次セッション開始時にまずこれを読む。
+
+> **【評価方法論の監査＋クッション再検証 2026-07-15】文抽出クッションの目玉結果を撤回、評価プロセス自体に構造的欠陥**
+> ユーザー指示で、これまでの防衛白書30問評価（19/30→22/30→24/30等の推移で語ってきた各種施策の効果）の妥当性をサブエージェント2体で監査・調査した。
+> - **内部監査**（`docs/RAG_EVAL_INTERNAL_AUDIT_2026-07-16.md`）: 評価スクリプトが**temperature=0.7（既定値）のまま単発実行**されており、同一条件の再実行だけで19〜24/30とばらつくことをログから実測。n=30での点差の多くは二項検定で有意でない（p≈0.15〜0.37）。採点用正規表現の空白バグが2回連続発生し「生スコア→手動補正」が常態化。(d)不明応答判定に否定語を伴わない危険なパターンあり。**文抽出クッションのstandalone結果（19/30→29/30）はbaseline側temp=0.7・cushion側temp=0という条件不一致で比較されており、公平なA/Bになっていなかった**。
+> - **外部調査**（`docs/RAG_EVAL_METHODOLOGY_RESEARCH_2026-07-16.md`）: RAGAS/DeepEval/ARES等の業界標準と比較し、キーワード採点の偽陰性・retrieval/generation評価の未分離・信頼区間なしの単発比較という3点で標準から乖離。日本語は表記ゆれで偽陰性リスクが英語以上に高い。オフライン制約下でもローカルLLM-as-judge（Prometheus 2, 7B, 16GB VRAM）等の改善余地あり。
+> - **フェア再検証 → 訂正・確定**（`docs/RAG_SENTENCE_CUSHION_FAIR_REEVAL_2026-07-15.md`）: 当初「temperature固定でも改善なし（baseline 21 vs cushion 20）」と結論したが**これは誤り**だった。真因は**稼働コンテナ（image 1.0.5, 2026-07-12ビルド）のlance/index.jsが6/29の古い版で、hybridもcushionも実装ごと存在せず一度も動いていなかった**こと（`docker compose up -d`のたびイメージの古コードに戻っていた）。最新lance一式＋native(fp16対応)を`docker cp`＋`restart`で反映し（`scratchpad/apply_latest.sh`）、コンテナログでクッション発火を確認した上で3条件×2回を再測定：**baseline(cushion OFF) 18〜19 / cushion+int8 24〜25 / cushion+fp16 25**。→ ①**クッションは有効（+6〜7、c)定義 2/6→6/6満点）**、②**量子化int8で十分（fp16と同等、fp16はサイズ2倍レイテンシ2.4倍で見返りゼロ）**、③以前「効果なし」は環境欠陥による誤り。ユーザー当初の「リランカーをワンクッション挟む」着想が実測で裏付けられた。トレードオフ: d)白書外が5/5→4/5（厚生年金を「65歳」と捏造1件、要プロンプト対策）。
+> - **【配布ブロッカー判明】image 1.0.5にhybrid/cushion未搭載**: docsは「hybrid既定ON確定」としているがビルド成果物には入っていない。顧客配布前に最新`lance/`一式＋`EmbeddingRerankers/native/index.js`を含めて**image再ビルド必須**（WSL2 DNS対策で`docker build --network=host`等）。hybrid・cushion双方のブロッカー。
+> - **cushion実装の反映状況**: fork側ソースに`sentenceCushion.js`（新規）、`lance/index.js`にフック（L698）、`native/index.js`にRERANKER_QUANTIZED対応済み。`runtime/docker-compose.yml`は`LANCE_SENTENCE_CUSHION=true`（防衛白書等の長文向けに採用）。**実際に効かせるにはimage再ビルド必須**。
+> - **【評価基盤改善 実施済み 2026-07-16】**: (a)プロンプト強化=数値の一般知識補完を禁じるルール8を`fixtures/local/prompt-tuned.txt`とfork`systemSettings.js`に追加（防衛白書で他カテゴリ非破壊を確認）。(b)評価ハーネス移設=`scratchpad/hakusho_eval30.py`→`scripts/hakusho-eval.py`（git管理, temperature=0固定・UNKNOWN否定形修正・(c)キーワード空白正規化）。`scale-eval.py`も同修正。(c)設問欠陥修正=(d)厚生年金設問を雇用保険失業給付へ差替（白書に「年金受給開始年齢である65歳」が実在し不明期待が誤りだった）。→ **cushion+int8+ルール8+設問修正で防衛白書26/30を2回完全再現（d)5/5・c)6/6安定）**。
+> - **【士業ドメイン 未解決課題 2026-07-16】**: 士業30問(`scale-eval.py`)でcushion回帰を試みたが、a)が7→3に激変。原因はプロンプトでなく**scale-eval.pyが毎回新規ワークスペース作成+sleep(10)のみで評価に入り、embed/FTS sidecar構築が間に合わずretrieval不安定**なこと（防衛白書は既存WS再利用で安定）。→ ①ルール8の萎縮は明確に観測されず、②**cushionが短い規程集で核心数値を絞り落とすドメイン依存リスクは確定も否定もできず**。ユーザー判断で防衛白書主軸で確定・コミット、士業は課題記録。cushionの効果は当面**長文ドメインに限定して解釈**。
+> - **今後の優先課題**: (1)cushion含めたimage再ビルド（配布ブロッカー解消）、(2)`scale-eval.py`のretrieval安定化（embed/sidecar待ちのポーリング化 or 既存WS再利用）→士業でcushion ON/OFFをフェア再検証、(3)evalセットの50〜200問拡張・retrieval hit-rate/MRRの自動計測・統計的有意性チェック（内部監査の中期課題）。
 
 > **【モデル比較 2026-07-15】Phi-4 14B（Microsoft, MIT）を実測A/B → 不採用、gemma4:12b現状維持**
 > 抽出精度の高さが期待できる非中国系候補として調査・実測（`docs/MODEL_EXTRACTION_ACCURACY_RESEARCH_2026-07-15.md`）。

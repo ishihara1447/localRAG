@@ -88,6 +88,15 @@ services:
       # 2026-07-14/15の検証で検索漏れ2件が解消(retrieval 2/2)、E2E 11/11・文書外5/5維持を確認し既定ONに確定。
       # 残る回答失敗はLLM(gemma4)の抽出問題で検索方式に依らない。詳細: docs/HYBRID_SEARCH_LINUX_VERIFY_RESULT_2026-07-15.md
       - LANCE_HYBRID_SEARCH=true
+      # 文抽出クッション(retrieval後にbge-rerankerv2-m3で質問関連文に絞る)。
+      # 2026-07-16のフェア再検証で有効と確定: baseline 18〜19 → cushion 24〜25(+6〜7)、
+      # c)定義カテゴリ2/6→6/6満点。量子化int8(既定 model_quantized.onnx)で十分で、
+      # fp16との差は無かった(fp16はサイズ2倍レイテンシ2.4倍で見返りゼロ)。
+      # 詳細: docs/RAG_SENTENCE_CUSHION_FAIR_REEVAL_2026-07-15.md
+      # ※重要: この設定を実際に効かせるにはimage再ビルドが必須(1.0.5にはlance/cushion未搭載)。
+      - LANCE_SENTENCE_CUSHION=true
+      # リランカー精度。既定=量子化int8(model_quantized.onnx, 570MB)。上記検証でint8で十分と確定。
+      # RERANKER_QUANTIZED=false にすると非量子化 model.onnx を読むが、同梱していないため既定のまま。
       # --- 以下は「意図的に未設定」で無効化される項目 (値を設定しないこと) ---
       # COMMUNITY_HUB_BUNDLE_DOWNLOADS_ENABLED:
       #   未設定 = Community Hub からの bundle/Agent Skill DL を完全拒否 (422)。
