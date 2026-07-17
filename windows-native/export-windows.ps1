@@ -13,6 +13,7 @@
 #   3. Ollama standalone dir (extracted ollama-windows-amd64.zip).
 #   4. WinSW-x64.exe downloaded.
 #   5. Ollama models present in a models dir (manifests/ + blobs/), e.g. %USERPROFILE%\.ollama\models
+#   6. Quantized ONNX reranker dir prepared for offline use.
 #
 # Usage example:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\export-windows.ps1 `
@@ -22,6 +23,7 @@
 #     -OllamaDir C:\LocalRAG\build-deps\ollama `
 #     -WinSWExe C:\LocalRAG\build-deps\WinSW-x64.exe `
 #     -ModelsDir $env:USERPROFILE\.ollama\models `
+#     -RerankerModelDir C:\LocalRAG\build-deps\reranker\bge-reranker-v2-m3-ONNX `
 #     -OutputDir C:\LocalRAG\dist
 
 param(
@@ -31,6 +33,7 @@ param(
     [Parameter(Mandatory = $true)][string]$OllamaDir,
     [Parameter(Mandatory = $true)][string]$WinSWExe,
     [Parameter(Mandatory = $true)][string]$ModelsDir,
+    [Parameter(Mandatory = $true)][string]$RerankerModelDir,
     [string]$OutputDir = ".\dist",
     [switch]$NoZip
 )
@@ -68,6 +71,16 @@ Assert-Path (Join-Path $OllamaDir "ollama.exe") "ollama.exe in OllamaDir"
 Assert-Path (Join-Path $OllamaDir "lib\ollama\llama-server.exe") "llama-server.exe in OllamaDir (extract the full Ollama Windows zip, not only ollama.exe)"
 Assert-Path $WinSWExe "WinSW executable"
 Assert-Path $ModelsDir "ModelsDir"
+Assert-Path $RerankerModelDir "RerankerModelDir"
+foreach ($rerankerFile in @(
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "onnx\model_quantized.onnx"
+)) {
+    Assert-Path (Join-Path $RerankerModelDir $rerankerFile) "reranker file $rerankerFile"
+}
 
 # Verify prisma windows engine was generated
 $prismaClient = Join-Path $SourceDir "server\node_modules\.prisma\client"
@@ -78,7 +91,7 @@ if (-not $winEngine) {
     exit 1
 }
 
-$PkgName = "LocalRAG-win64-v$Version"
+$PkgName = "OTE-RAG-win64-v$Version"
 $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 $Pkg = Join-Path $OutputDir $PkgName
 if (Test-Path $Pkg) { Write-Host "ERROR: $Pkg already exists. Remove it first."; exit 1 }
@@ -144,9 +157,17 @@ foreach ($model in $BundleModels.Keys) {
     Write-Host "  bundled: $model ($($digests.Count) blobs)"
 }
 
+# NativeEmbeddingReranker loads this exact cache path. Bundle only the default
+# int8 model; the optional fp32 diagnostic model would add about 1.1GB.
+Write-Host "  bundling: bge-reranker-v2-m3 ONNX int8"
+$rerankerOut = Join-Path $Pkg "app\server\storage\models\onnx-community\bge-reranker-v2-m3-ONNX"
+robocopy $RerankerModelDir $rerankerOut /E /NFL /NDL /NJH /NJS | Out-Null
+if ($LASTEXITCODE -ge 8) { Write-Host "ERROR: robocopy reranker failed ($LASTEXITCODE)"; exit 1 }
+$global:LASTEXITCODE = 0
+
 # --- 5. scripts / config / fixtures / docs / licenses ---
 Write-Host "[5/7] Copying install scripts, config templates, fixtures, docs, licenses..."
-foreach ($f in @("install.ps1", "uninstall.ps1", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1", "rag-e2e-test.ps1")) {
+foreach ($f in @("Install-OTE-RAG.cmd", "install.ps1", "uninstall.ps1", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1", "rag-e2e-test.ps1")) {
     $src = Join-Path $ScriptDir $f
     Assert-Path $src $f
     Copy-Item $src (Join-Path $Pkg $f)
@@ -155,7 +176,7 @@ robocopy (Join-Path $ScriptDir "config") (Join-Path $Pkg "config") /E /NFL /NDL 
 robocopy (Join-Path $ScriptDir "launcher") (Join-Path $Pkg "launcher") /E /NFL /NDL /NJH /NJS | Out-Null
 $repoRoot = Split-Path -Parent $ScriptDir
 if (Test-Path (Join-Path $repoRoot "fixtures")) {
-    robocopy (Join-Path $repoRoot "fixtures") (Join-Path $Pkg "fixtures") /E /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $repoRoot "fixtures") (Join-Path $Pkg "fixtures") /E /NFL /NDL /NJH /NJS /XF "*Zone.Identifier*" | Out-Null
 }
 if (Test-Path (Join-Path $repoRoot "LICENSES")) {
     robocopy (Join-Path $repoRoot "LICENSES") (Join-Path $Pkg "LICENSES") /E /NFL /NDL /NJH /NJS | Out-Null
@@ -198,11 +219,18 @@ try {
     "node=$nodeVer",
     "ollama=$ollamaVer",
     "models=$($BundleModels.Keys -join ', ')",
+    "reranker=onnx-community/bge-reranker-v2-m3-ONNX (int8)",
     "source_dir=$SourceDir"
 ) | Set-Content -Path (Join-Path $Pkg "versions.lock")
 
 # --- 7. checksums (package.sha256 over every file) ---
 Write-Host "[7/7] Generating checksums\package.sha256 (this can take a while)..."
+$zoneIdentifierFiles = @(Get-ChildItem -Path $Pkg -Recurse -File | Where-Object { $_.Name -like "*Zone.Identifier*" })
+if ($zoneIdentifierFiles.Count -gt 0) {
+    Write-Host "ERROR: Zone.Identifier sidecar files must not be packaged:"
+    $zoneIdentifierFiles | ForEach-Object { Write-Host "  $($_.FullName)" }
+    exit 1
+}
 New-Item -ItemType Directory -Path (Join-Path $Pkg "checksums") -Force | Out-Null
 $checksumFile = Join-Path $Pkg "checksums\package.sha256"
 $lines = New-Object System.Collections.Generic.List[string]
@@ -238,6 +266,21 @@ if (-not $NoZip) {
     } else {
         Compress-Archive -Path $Pkg -DestinationPath $zipPath -CompressionLevel Optimal
     }
+
+    Write-Host "Generating outer ZIP checksum..."
+    $zipHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLower()
+    $zipShaPath = "$zipPath.sha256"
+    "$zipHash  $([System.IO.Path]::GetFileName($zipPath))" | Set-Content -LiteralPath $zipShaPath -Encoding ascii
+
+    Write-Host "Building double-click Setup.exe..."
+    $setupBuilder = Join-Path $ScriptDir "setup\build-setup.ps1"
+    Assert-Path $setupBuilder "OTE-RAG setup builder"
+    $setupPath = Join-Path $OutputDir "OTE-RAG-Setup.exe"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setupBuilder -OutputPath $setupPath
+    if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Setup.exe build failed ($LASTEXITCODE)"; exit 1 }
+
+    Write-Host "Package sha: $zipShaPath"
+    Write-Host "Installer:     $setupPath"
     Write-Host "Package zip: $zipPath"
 }
 

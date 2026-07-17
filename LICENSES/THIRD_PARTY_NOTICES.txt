@@ -1,33 +1,34 @@
-LocalRAG 第三者コンポーネント ライセンス一覧
+OTE-RAG 第三者コンポーネント ライセンス一覧
 ============================================
 
-このディレクトリには、LocalRAG が組み込む/実行時に利用する主要な
+このディレクトリには、OTE-RAG が組み込む/実行時に利用する主要な
 第三者ソフトウェア・モデルのライセンス全文を同梱している。
 
 | コンポーネント                          | ライセンス                    | ライセンス全文                          | 取得元 |
 |------------------------------------------|--------------------------------|------------------------------------------|--------|
 | AnythingLLM (localrag-anythingllm image) | MIT                             | AnythingLLM_LICENSE.txt                  | https://github.com/Mintplex-Labs/anything-llm |
 | Ollama                                    | MIT                             | Ollama_LICENSE.txt                       | https://github.com/ollama/ollama |
-| Qwen3-8B (LLM, 既定)                      | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/Qwen/Qwen3-8B |
+| Google Gemma 4 12B (LLM, 既定)            | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://ollama.com/library/gemma4 |
 | BAAI bge-m3 (Embedding, 既定)             | MIT                             | BGE-M3_LICENSE.txt                       | https://huggingface.co/BAAI/bge-m3 |
+| BAAI bge-reranker-v2-m3 (Reranker, 既定) | MIT                             | BGE-RERANKER-V2-M3_LICENSE.txt           | https://huggingface.co/BAAI/bge-reranker-v2-m3 |
 | WinSW (Windows Service wrapper)           | MIT                             | WinSW_LICENSE.txt                        | https://github.com/winsw/winsw |
 | Node.js v22 (win-x64 portable runtime)    | MIT + 同梱物の複合ライセンス    | Node.js_LICENSE.txt                      | https://github.com/nodejs/node |
 
 ## 注意事項
 
-- 既定モデルは 2026-07-11 の RAG 精度検証
-  (`docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`) に基づき
-  Qwen3-8B (Apache-2.0) + bge-m3 (MIT) に確定した。
-  過去に検証した llm-jp-4-8b-thinking (Apache-2.0)・
+- 既定モデルは 2026-07-16 の製品採用検証
+  (`docs/JAPANESE_RERANKER_PRODUCT_VALIDATION_2026-07-16.md`) に基づき
+  Gemma 4 12B (Apache-2.0) + bge-m3 (MIT) + bge-reranker-v2-m3 (MIT) に確定した。
+  過去に検証した Qwen3-8B (Apache-2.0)・llm-jp-4-8b-thinking (Apache-2.0)・
   mxbai-embed-large (Apache-2.0)・llama3.1:8b (Llama 3.1
   Community License) は現在は同梱しない。llama3.1 を再同梱する
   場合は Meta 独自ライセンスの利用条件 (MAU 7億超の追加許諾等) を
   必ず確認すること (Llama-3.1-Community-License.txt は参照用に残置)。
 - `trust_remote_code` を要するモデルはコードの事前レビューと
   コミットハッシュ固定が必須（`CLAUDE.md` 「絶対に守るルール」参照）。
-- モデルファイル自体（重み）はこのリポジトリに含まれない。
+- モデルファイル自体（重み）はこのリポジトリに含まれない。Ollamaモデルは
   `scripts/export.sh` が生成する配布パッケージの `ollama-models/`
-  配下に実体が含まれる。
+  配下に実体が含まれる。ONNXリランカーはWindows native配布の`app/server/storage/models/`に同梱される。
 - WinSW / Node.js は Windows native 配布版
   (`windows-native/export-windows.ps1` が生成するパッケージ) にのみ
   同梱される。
@@ -45,8 +46,9 @@ LocalRAG 第三者コンポーネント ライセンス一覧
 | WinSW_LICENSE.txt      | https://raw.githubusercontent.com/winsw/winsw/master/LICENSE.txt | 2026-07-10 |
 | Node.js_LICENSE.txt    | https://raw.githubusercontent.com/nodejs/node/v22.x/LICENSE | 2026-07-10 |
 | BGE-M3_LICENSE.txt     | https://raw.githubusercontent.com/FlagOpen/FlagEmbedding/master/LICENSE (bge-m3のモデルカードLicense=MIT、開発元FlagEmbeddingリポジトリのLICENSE) | 2026-07-11 |
+| BGE-RERANKER-V2-M3_LICENSE.txt | https://raw.githubusercontent.com/FlagOpen/FlagEmbedding/master/LICENSE (bge-reranker-v2-m3のモデルカードLicense=MIT) | 2026-07-16 |
 
 ## 更新方法
 
-使用する LLM / embedding モデルを変更した場合は、本ファイルと
+使用する LLM / embedding / reranker モデルを変更した場合は、本ファイルと
 対応するライセンス全文ファイルを更新すること。

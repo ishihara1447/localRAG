@@ -1,4 +1,20 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
+> **[Codex Windows GUI実機導入 2026-07-17] 修正版ワンクリックインストール＋基本動作確認 PASS**
+> 初回実行はGUIの長い一時展開先（ユーザープロファイル配下）により深いnode_modulesの89ファイルが展開されず、内部checksumで停止した。`windows-native/setup/OTE-RAG-Setup.cs`の展開先を短い`C:/OTR/<timestamp>`へ変更し、ZIP最長232文字の2ファイルを最終フルパス最大255文字で実展開PASS後、Setup.exeを再ビルドした。修正版Setup SHA-256=`61af9b89c2dc0dabbb453021f3d80a3bd20420c2a01f676b565785b63ce90107`。失敗時の専用一時フォルダ（約13.2GB）と空の`C:/LocalRAGProd`だけを削除して再試行した。
+> 再試行は外側SHA、`C:/OTR`展開、内部checksum、`C:/LocalRAGProd`配置、DB migration、3サービス登録・自動起動まで完走（12:39:19）。`LocalRAG-Server/Collector/Ollama`=Running、localhost `3005/8888/11435`=Listen。HTTPはUI=200、`/api/ping`=online true、Collector=`OK`、Ollama=0.31.2。モデルは`gemma4:12b`と`bge-m3:latest`、日本語embed=1024次元、Gemma生成=`動作確認完了`（done_reason=stop）。各サービスerr.log=0 bytes。ログ=`C:/ProgramData/OTE-RAG/InstallerLogs/setup-20260717-123416.log`。残る出荷確認はAuthenticode署名、再起動耐性、完全オフライン、APIキー＋文書投入を伴うRAG E2E。コミット/push未実施。
+> **[Codex one-click installer 2026-07-17] OTE-RAG-Setup.exe distribution is ready**
+> Final distribution is the three files in `C:/LocalRAG/dist`: `OTE-RAG-Setup.exe`, `OTE-RAG-win64-v1.2.0.zip`, and its `.zip.sha256`. Double-click Setup.exe -> UAC -> GUI -> outer SHA verification -> tar extraction -> existing install.ps1 -> browser launch. New ZIP SHA-256=`7f49942ce9387bfc6922a485f43debef6fce0f27c272823c643b36cdbe5911ff`; full extracted internal verification PASS=100,635 FAIL=0; positive verify exit=0; intentional bad SHA rejected with exit=2; packaged `Install-OTE-RAG.cmd --self-test` PASS. Report=`docs/WINDOWS_DOUBLE_CLICK_INSTALLER_V1.2.0_2026-07-17.md`. The real UAC install has since passed; see the block above. Setup.exe is unsigned because no code-signing certificate is installed; signing remains a formal-release task. No commit/push.
+
+
+> **[Codex cleanup 2026-07-17] Removed obsolete models, old packages, and verification environments**
+> Kept `C:/LocalRAG/dist/LocalRAG-win64-v1.2.0.zip`, source, and `build-deps`. Windows/WSL model stores now retain only `gemma4:12b` and `bge-m3`; old llm-jp/llama3.1/mxbai/qwen3, the candidate reranker, JQaRA caches, v1.0/v1.1 packages, extracted package trees, and Round2 temp scripts/logs were removed. Final ZIP SHA-256 was reverified and the running API remains healthy. **The older note below saying `Run-Round2-Verify.cmd` remains is stale: administrator Round2 is still pending, but its temp runner was removed at the user's request and must be regenerated before use.**
+
+
+> **【Codex最終ビルド 2026-07-17】Windows native v1.2.0 zip生成・全件検証PASS**
+> 詳細: docs/WINDOWS_NATIVE_BUILD_V1.2.0_FINAL_2026-07-17.md。成果物=C:/LocalRAG/dist/LocalRAG-win64-v1.2.0.zip、11,019,463,242 bytes、SHA-256=4941ce0d8784dd9f0ab86444db92f390d3eae6c3819603f88d03d85f0ee498d7。Gemma 4 + bge-m3 + 現行reranker int8、hybrid/cushion ON。zip全展開後package.sha256 PASS=100,634 FAIL=0。残作業はユーザー管理者実行のRun-Round2-Verify.cmdのみ。
+
+> **【Codex最終判定 2026-07-16】日本語特化リランカーは製品既定への採用見送り**
+> 詳細: docs/JAPANESE_RERANKER_PRODUCT_VALIDATION_2026-07-16.md。JQaRAと配布形式はPASSしたが、士業30問は21/30・26/30（平均23.5、5点幅）で現行25/30を安定して上回らなかった。Windows v1.2.0は現行onnx-community/bge-reranker-v2-m3-ONNX int8を維持する。評価server:3006とruntime候補モデルは撤去済み、通常server:3001 healthy、コミット/push未実施。
 
 最終更新: 2026-07-16（**文抽出クッションは有効と確定：baseline 18〜19 → cushion 24〜25（+6〜7、c)定義は2/6→6/6満点）。量子化int8で十分（fp16と同等）。ただし配布image 1.0.5にhybrid/cushionが未搭載＝配布ブロッカー、要image再ビルド**。加えて評価スクリプト全般のtemperature未固定・採点正規表現の脆弱性・統計的検定なしという構造的弱点が判明） / 次セッション開始時にまずこれを読む。
 

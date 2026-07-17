@@ -1,8 +1,8 @@
 # MODEL CARDS — 同梱モデル一覧
 
-最終更新: 2026-07-14（LLMを非中国系 gemma4:12b に切替。根拠: `docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md` / 旧構成: `docs/RAG_ACCURACY_IMPROVEMENT_2026-07-11.md`）
+最終更新: 2026-07-16（gemma4:12b + bge-m3 + bge-reranker-v2-m3 int8の配布構成を確定）
 
-本製品（Local RAG）に同梱・使用するAIモデルの正式な記録。配布パッケージのモデル差し替え時は本ファイルを必ず更新すること。**すべてのモデルは完全ローカルで動作し、顧客文書・質問内容を外部に送信しない。**
+本製品（OTE-RAG）に同梱・使用するAIモデルの正式な記録。配布パッケージのモデル差し替え時は本ファイルを必ず更新すること。**すべてのモデルは完全ローカルで動作し、顧客文書・質問内容を外部に送信しない。**
 
 ---
 
@@ -45,6 +45,19 @@
 
 ---
 
+## 3. Reranker: BGE Reranker v2 M3（`onnx-community/bge-reranker-v2-m3-ONNX`）
+
+| 項目 | 内容 |
+|---|---|
+| 用途 | hybrid検索後の文抽出クッション。質問との関連度で文を並べ替え、上位文と隣接文だけをLLMへ渡す |
+| 提供元 | BAAI `BAAI/bge-reranker-v2-m3`を`onnx-community`がONNX変換した配布物 |
+| ライセンス | MIT（全文: `LICENSES/BGE-RERANKER-V2-M3_LICENSE.txt`） |
+| アーキテクチャ | XLM-RoBERTa、568M parameters、sequence classification |
+| 配布形式 | ONNX dynamic int8、570,727,094 bytes。CPU実行、`@xenova/transformers` 2.17.2互換 |
+| ONNX SHA-256 | `912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d` |
+| キャッシュパス | `app/server/storage/models/onnx-community/bge-reranker-v2-m3-ONNX` |
+| 採用根拠 | JQaRA全1,667問でnDCG@10=0.672659。防衛白書30問26/30、士業30問25/30の現行確定構成。日本語特化候補は一般ベンチで上回ったが士業が21〜26/30と不安定なため不採用 |
+
 ## 撤回済みモデル（参考・再採用禁止）
 
 | モデル | 撤回日 | 理由 |
@@ -58,5 +71,5 @@
 
 - Docker/WSL2版: `runtime/ollama-models/` をディレクトリごと同梱（`scripts/export.sh`）
 - Windows native版: `windows-native/export-windows.ps1` の `$BundleModels`（manifest解析で必要blobのみ同梱）
-- 両配布とも上記2モデル（gemma4:12b + bge-m3:latest）のみを同梱する。撤回済みモデルは同梱しない
+- 両配布とも上記3モデル（gemma4:12b + bge-m3:latest + bge-reranker-v2-m3 int8）のみを同梱する。撤回済みモデルは同梱しない
 - **ビルドマシン準備**: 再ビルド前に `ollama pull gemma4:12b` でモデルをModelsDirに取得しておくこと（同梱blob解析の対象）

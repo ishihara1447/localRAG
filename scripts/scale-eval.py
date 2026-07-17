@@ -43,6 +43,8 @@ import httpx
 BASE_URL = os.environ.get("LOCALRAG_BASE_URL", "http://localhost:3001")
 SCALE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "scale"
 TIMEOUT = 180.0
+EMBEDDING_WAIT_TIMEOUT = 900.0
+EMBEDDING_POLL_INTERVAL = 5.0
 
 FIXTURE_FILES = [
     "reg-01-shugyo-kisoku.txt",
@@ -228,6 +230,32 @@ def upload(client: httpx.Client, headers: dict, slug: str, path: Path, mime: str
     return ok
 
 
+def wait_for_embeddings(client: httpx.Client, headers: dict, slug: str) -> None:
+    """全規程のベクトル化と、初回検索時のBM25準備を待つ。"""
+    deadline = time.monotonic() + EMBEDDING_WAIT_TIMEOUT
+    expected = len(FIXTURE_FILES)
+    while time.monotonic() < deadline:
+        response = client.get(f"{BASE_URL}/api/v1/workspace/{slug}", headers=headers)
+        response.raise_for_status()
+        workspaces = response.json().get("workspace", [])
+        documents = workspaces[0].get("documents", []) if workspaces else []
+        if len(documents) >= expected:
+            print(f"  embedding完了: {len(documents)}/{expected} documents")
+            # Hybrid検索のsidecarは初回検索で遅延構築されるため、評価前に一度だけ温める。
+            warmup = client.post(
+                f"{BASE_URL}/api/v1/workspace/{slug}/vector-search",
+                headers=headers,
+                json={"query": "規程の概要", "topN": 1, "scoreThreshold": 0},
+                timeout=TIMEOUT,
+            )
+            warmup.raise_for_status()
+            print("  検索準備完了: BM25 sidecar warm-up finished")
+            return
+        print(f"  embedding待機中: {len(documents)}/{expected} documents")
+        time.sleep(EMBEDDING_POLL_INTERVAL)
+    raise TimeoutError(f"embeddingが{EMBEDDING_WAIT_TIMEOUT:.0f}秒以内に完了しませんでした")
+
+
 def ask(client: httpx.Client, headers: dict, slug: str, question: str) -> tuple[str, list[str]]:
     r = client.post(
         f"{BASE_URL}/api/v1/workspace/{slug}/chat",
@@ -346,7 +374,7 @@ def main() -> int:
                 update_workspace(client, headers, slug, openAiPrompt=system_prompt)
             for name in FIXTURE_FILES:
                 upload(client, headers, slug, SCALE_DIR / name, "text/plain")
-            time.sleep(10)
+            wait_for_embeddings(client, headers, slug)
 
             results = evaluate(client, headers, slug, CASES)
             client.delete(f"{BASE_URL}/api/v1/workspace/{slug}", headers=headers)
