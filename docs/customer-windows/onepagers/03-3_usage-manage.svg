@@ -34,7 +34,7 @@
   <rect width="1600" height="104" fill="#fff"/><rect y="102" width="1600" height="2" fill="#dbeafe"/>
   <text class="jp title" x="64" y="59">日常の管理と保存場所</text>
   <text class="jp subtitle" x="66" y="88">3サービス・4つの保存場所・削除保護を把握する</text>
-  <text class="jp small" x="1536" y="58" text-anchor="end">OTE-RAG v1.1.0</text>
+  <text class="jp small" x="1536" y="58" text-anchor="end">OTE-RAG v1.2.0</text>
   <text class="jp tiny" x="1536" y="80" text-anchor="end">所内文書AI検索システム</text>
 
   <rect class="shadow card" x="92" y="160" width="442" height="560"/>

@@ -34,7 +34,7 @@
   <rect width="1600" height="104" fill="#fff"/><rect y="102" width="1600" height="2" fill="#dbeafe"/>
   <text class="jp title" x="64" y="59">文書を取り込んで質問する</text>
   <text class="jp subtitle" x="66" y="88">アップロード → ワークスペースへ移動 → Save and Embed → 質問</text>
-  <text class="jp small" x="1536" y="58" text-anchor="end">OTE-RAG v1.1.0</text>
+  <text class="jp small" x="1536" y="58" text-anchor="end">OTE-RAG v1.2.0</text>
   <text class="jp tiny" x="1536" y="80" text-anchor="end">所内文書AI検索システム</text>
 
   <g transform="translate(72 174)">
@@ -86,5 +86,5 @@
   <text class="jp body" x="1054" y="722">未取り込み文書は回答対象外</text>
 
   <text class="jp tiny" x="64" y="874">外部AIへ送信しない / 出典付き回答 / 文書外は不明</text>
-  <text class="jp tiny" x="1536" y="874" text-anchor="end">Qwen3-8B + bge-m3 / NVIDIA VRAM 16GB以上</text>
+  <text class="jp tiny" x="1536" y="874" text-anchor="end">Gemma 4 12B + bge-m3 / NVIDIA VRAM 16GB以上</text>
 </svg>
