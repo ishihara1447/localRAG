@@ -1,4 +1,20 @@
 # 引き継ぎメモ（セッション間ハンドオフ）
+> **[Claude 2026-07-18] 画面利用の精度回帰を根本解決、dev image 1.0.6化、hakusho-eval 26/30を製品経路で完全再現**
+> ユーザー報告「画面から使うと何を聞いても『記載なし』、ベンチ精度と不一致」を調査。原因は3層:
+> (1) **稼働devコンテナがimage 1.0.5のままで日本語PDF字間空白fix未搭載** → 画面から取り込んだ白書テキストに空白3,466箇所混入し検索全滅（HANDOFF既記載の「image再ビルド必須」ブロッカーが画面利用で顕在化）。→ **image 1.0.6を現ソースから再ビルドし切替**（cushion/hybrid/調整プロンプト/全修正同梱、`docker cp`パッチ依存を解消）。WSL2 DNS不調でビルド2回失敗→**7ホストのadd-host固定**で成功（composeにコメント記録）。
+> (2) **upstreamのWorkspace.newがchatMode:"automatic"をハードコード** → gemma4+ollama(ネイティブツール対応)で全質問がエージェントループへ吸われRAG注入路を通らない。→ 既定を修正。
+> (3) **ベンチ(hakusho-eval)はmode=query・temperature=0で計測**、製品はchat・temp未固定だった。→ 新規WS既定をquery/temp0/日本語refusalに統一（fork `766304e1`）。プロンプトはprompt-tuned.txt≡既定を検証済み（空行差のみ）。
+> さらに**出典表記を[CONTEXT n]→文書名に修正**（`91d4d255`: fillSourceWindowで本文冒頭に（出典: ファイル名）注入＋ollamaプロバイダでヘッダ昇格。プロンプト指示だけではgemma4が従わないと実測）。履歴に旧[CONTEXT n]回答があると模倣汚染が起きる点に注意（検証時は履歴クリア）。
+> **検証: 防衛白書を製品経路(parse→embed)で再取り込み（空白0箇所）→ hakusho-eval 30問を製品と同一WSで実行し26/30（a7/8 b4/6 c6/6 d5/5 e4/5）＝ベンチ実績と完全一致**。エージェント既定スキルはmemoryのみ（docSummarizer/webScraping除外済み、監査`docs/AGENT_SKILLS_AUDIT_2026-07-18.md`）。全データワイプ実施済みのため**旧イメージで取り込んだ文書は要再アップロード**。本日のfork変更は多数コミット済み（i18n誤訳一掃/ドロップ=RAG埋め込み化/資料管理画面/検索スコープ指定/進捗バー等）、未コミットは先行セッションのcushion系4ファイル（ステージ済み）のみ。
+
+> **[Claude UI改善 2026-07-17] 「お手軽UI」の具体的欠陥2点を修正（fork未コミット・要v1.2.0再ビルド）**
+> ユーザー指摘「お手軽さが売りなのにUIは本当に簡単・分かりやすいか」を受けフロントを点検。主要動線は既に独自ホーム（`frontend/src/pages/Main/Home/index.jsx`）でワークスペースを裏側自動生成する簡易化＋i18n対応済みと確認できた（＝当初懸念の「ワークスペース概念の露出」はハッピーパスでは概ね解消済み）。残る具体的欠陥2点を修正:
+> 1. **ドラッグ&ドロップのオーバーレイ文言が英語ハードコード**（"Add anything" / "Drop a file or image here to attach it to your workspace auto-magically"）。日本語UI製品の一番の見せ場で英語が出ていた。`i18n`化（`dnd.title`/`dnd.description`をen/ja `common.js`に追加、`DnDWrapper/index.jsx`で`useTranslation`使用）→日本語「ここに追加／ファイルや画像をここにドロップすると、資料として取り込みます。」。
+> 2. **設定画面のLLMプロバイダー選択に40種超のクラウドLLM（OpenAI/Anthropic/Gemini等）が残存**。非エンジニアがAPIキー欄に迷い込む余地＋選んでもバックエンドallowlist（`server/utils/helpers/index.js`）で拒否され起動不能になる事故源。`GeneralSettings/LLMPreference/index.jsx`に`DISTRIBUTABLE_LLM_PROVIDERS`（バックエンドallowlistと一致するローカル系のみ）を追加し表示一覧をこれに限定。
+> - **検証**: `eslint`（変更4ファイルclean）＋`vite build`成功（exit 0）。※実UIでの目視は要dev/再ビルド。
+> - **未了**: 4ファイルは**fork（`product/customer-rag-base`）のワーキングツリーに未コミット**。配布へ反映するには image再ビルド→v1.2.0再ビルドが必要（既存の「cushion/hybrid未コミット＋要image再ビルド」ブロッカーと同じ扱い）。コミットはユーザー確認待ち。
+> - **未対応（別判断）**: 「士業向け定型プロンプトテンプレート」はアイデアファイルの差別化点だが未実装。ただしユーザーより「ターゲットは士業に限定しない」旨の指示があったため今回スコープ外。
+
 > **[Codex Windows GUI実機導入 2026-07-17] 修正版ワンクリックインストール＋基本動作確認 PASS**
 > 初回実行はGUIの長い一時展開先（ユーザープロファイル配下）により深いnode_modulesの89ファイルが展開されず、内部checksumで停止した。`windows-native/setup/OTE-RAG-Setup.cs`の展開先を短い`C:/OTR/<timestamp>`へ変更し、ZIP最長232文字の2ファイルを最終フルパス最大255文字で実展開PASS後、Setup.exeを再ビルドした。修正版Setup SHA-256=`61af9b89c2dc0dabbb453021f3d80a3bd20420c2a01f676b565785b63ce90107`。失敗時の専用一時フォルダ（約13.2GB）と空の`C:/LocalRAGProd`だけを削除して再試行した。
 > 再試行は外側SHA、`C:/OTR`展開、内部checksum、`C:/LocalRAGProd`配置、DB migration、3サービス登録・自動起動まで完走（12:39:19）。`LocalRAG-Server/Collector/Ollama`=Running、localhost `3005/8888/11435`=Listen。HTTPはUI=200、`/api/ping`=online true、Collector=`OK`、Ollama=0.31.2。モデルは`gemma4:12b`と`bge-m3:latest`、日本語embed=1024次元、Gemma生成=`動作確認完了`（done_reason=stop）。各サービスerr.log=0 bytes。ログ=`C:/ProgramData/OTE-RAG/InstallerLogs/setup-20260717-123416.log`。残る出荷確認はAuthenticode署名、再起動耐性、完全オフライン、APIキー＋文書投入を伴うRAG E2E。コミット/push未実施。
