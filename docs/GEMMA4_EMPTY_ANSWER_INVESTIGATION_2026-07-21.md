@@ -48,6 +48,28 @@ RAGコンテキスト無しの直接 Ollama 呼び出し（`gemma4:12b`, temp=0,
 3. 結果次第で製品既定を決める。thinking が精度に寄与していない/わずかなら、**既定 OFF**（安定・高速・
    決定的）にするのが有力。寄与が大きい問があれば、num_predict で thinking をバウンドする案も検討。
 
+## A/B 検証結果（2026-07-21・採用確定）
+
+`OLLAMA_DISABLE_THINKING` env ゲートを `ollama/index.js` の getChatCompletion/
+streamGetChatCompletion に実装し（`think:false` を条件付き付与）、dev(image 1.0.6, temp=0,
+hybrid+cushion+P1)で A/B した。P1(QUERY_REFORMULATION)は全条件で有効。
+
+| 構成 | ambiguous 明確版 | ambiguous 曖昧版 | 空回答NG | 決定性 | hakusho |
+|------|:---:|:---:|:---:|:---:|:---:|
+| think ON + P1 | 14/15 | 12/15 | 3件(Q06/07/30) | 揺らぐ | 26/30(既知) |
+| think OFF・P1無し | 15/15 | 14/15(Q4のみNG) | 0件 | 一致 | 28/30 |
+| **think OFF + P1（採用）** | **15/15** | **15/15** | **0件** | **2回完全一致** | **27/30** |
+
+- **think OFF が空回答を根絶**し、ambiguous を決定的にした（2回完全一致）。
+- **think OFF + P1 で ambiguous 満点(15/15+15/15)**。Q4曖昧版はP1が日付チャンクを持ち込み、
+  think OFF でも gemma4 が正答（think ONで効いていた推論をP1の retrieval 改善が代替）。
+- hakusho は think OFF で 27〜28/30（think ON基準 26/30 を上回る）。P1無し28・P1有り27の
+  1問差は、**P1が発火していない (a)三文書(明確版・強い検索)** の generation 揺らぎで、
+  hakusho-eval が sessionId 分離しない共有履歴ノイズ（同じ質問が sessionId 分離の
+  ambiguous-eval では2回とも正答）。my変更の回帰ではない。
+- **結論: `OLLAMA_DISABLE_THINKING=true` を製品既定に採用**（`runtime/docker-compose.yml`）。
+  コードは env 未設定なら従来どおり thinking 有効（upstream挙動を非破壊で温存）。
+
 ## 注意・限界
 
 - 上の think ON/OFF 実測は**RAGコンテキスト無しの単純プロンプト**で、回答の正誤自体は評価対象外

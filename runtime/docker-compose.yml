@@ -117,6 +117,11 @@ services:
       - OLLAMA_BASE_PATH=http://ollama:11434
       - OLLAMA_MODEL_PREF=gemma4:12b
       - OLLAMA_MODEL_TOKEN_LIMIT=8192
+      # gemma4のthinkingを無効化(think:false)。temp=0でthinkingが反復暴走し最終回答(content)が
+      # 空になる「空回答」対策＋約40倍高速化(実測20.8s→0.5s)。2026-07-21のA/Bで採用確定:
+      # think OFF+P1で ambiguous 15/15+15/15(満点・2回完全一致で決定的)・空回答ゼロ、hakusho 27〜28/30
+      # (think ON基準26/30を上回る)。詳細: docs/GEMMA4_EMPTY_ANSWER_INVESTIGATION_2026-07-21.md
+      - OLLAMA_DISABLE_THINKING=true
       # llm-jp-4-8b-thinking 用タイムアウト(20分)。2026-07-04: GPU(RTX 5070 Ti)ではウォーム時1〜7秒で応答することを
       # 生Ollama呼び出しで確認したが、RAGコンテキスト付きの長いプロンプトでの余裕を見て有効化しておく。
       - OLLAMA_RESPONSE_TIMEOUT=1200000
