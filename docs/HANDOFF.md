@@ -17,11 +17,11 @@
 > - gate: `QUERY_REFORMULATION=true`（`runtime/docker-compose.yml`に追加, 既定OFF）。閾値: `QUERY_REFORMULATION_MIN_SCORE`（既定0.45）。**実測で閾値決定**: 曖昧版Q4最高score0.401(日付取得できず) / 言い換え拡張クエリで日付チャンクをscore0.672取得 / 明確版0.645(素通し)。gemma4の言い換えは「三文書 …国家安全保障戦略… 閣議決定 いつ」と公式語彙を補えることを実測確認。
 >
 > **検証（ambiguous-eval, P1有効）**: 明確版14/15・曖昧版12/15。**Q4曖昧版=回復(OK)**。P1発火は全30問中2問のみ(Q4・Q14の曖昧版、他28問は検索が十分強く素通し)、エラーゼロ、Q14はOK維持＝**選択的・非破壊で回帰なし**。
-> - **新たに判明した支配的リスク（P1と無関係・要調査）**: 残NG(Q06/Q07/Q30の曖昧版・Q30明確版)は全て**空回答**。gemma4:12bがtemp=0で巨大な英語`<think>`ループを暴走生成し(Q30明確版で18,904文字)、最終回答が空になる**モデルの非決定的揺らぎ**。空NG問は**実行間で移動**する(Q06明確版・Q09曖昧版は1回目空→2回目OK)ため、retrievalでもP1でもない。07-18が15/15だったのは行儀の良かった1回にすぎない。**この空回答揺らぎが今や曖昧セットの最大の精度リスクで、語彙ギャップ(P1が解決)より影響が大きい。P2の前にこれを調査すべき**（temp>0での安定化 / think抑制プロンプト / num_ctx / gemma4のchat template等）。
+> - **支配的リスク＝gemma4空回答/think暴走【2026-07-21 根本原因特定済み】** — `docs/GEMMA4_EMPTY_ANSWER_INVESTIGATION_2026-07-21.md`。残NG(Q06/Q07/Q30の曖昧版等)は全て**空回答**で、retrievalでもP1でもない。**原因**: gemma4はOllamaで`thinking`と`content`を分離返却し、プロバイダが`<think>${thinking}</think>${content}`で結合(`server/utils/AiProviders/ollama/index.js`)。temp=0で`thinking`が反復暴走(実測~18,000字)し**`content`(最終回答)が空**→評価が`<think>`除去で空文字→NG。空NG問が実行間で移動するのはこの非決定性。**検証**: `think:false`で無効化でき直接回答・**約40倍高速**(20.8s→0.5s)。→ 次はenvゲート`think:false`実装＋RAG込みeval A/B(空回答が消えるか/thinkが効く難問が落ちないか)。P2はその後。
 >
-> **現在のfork作業ツリー**: 先行cushion系4ファイル(既存ステージ)に加え、**新規 `queryReformulation.js`(A)・`stream.js`(M)・`apiChatHandler.js`(M)**。localRAGルートは `runtime/docker-compose.yml`(M, QUERY_REFORMULATION追加)。**すべて未コミット**（ユーザー確認待ち）。devコンテナ(image 1.0.6)へは env再作成＋`docker cp`3ファイル＋restartで反映済み・稼働確認済み。評価後のチャット履歴(65)・APIキー(5)はクリーンアップ済み。
+> **コミット済み【2026-07-21】**: fork(local-only) `3bdacb2e`(P1の3ファイル: queryReformulation.js/stream.js/apiChatHandler.js) / localRAGルート `f86944f`(runtime/docker-compose.yml QUERY_REFORMULATION追加＋本HANDOFF)。**先行cushion系4ファイルのステージ(M/M/M/A)とCodexのアイコン変更は巻き込まず温存**。push無し(fork=origin無し, ルート=要ユーザー確認)。devコンテナ(image 1.0.6)へP1はenv再作成＋docker cp＋restartで反映済み。評価後のチャット履歴・APIキーはクリーンアップ済み。
 >
-> **次の一手**: (1)コミット可否をユーザー判断 → (2)gemma4空回答/think暴走の調査（上記）→ (3)P2プロンプト1ルール追加。
+> **次の一手**: gemma4 `think:false` のenvゲート実装 → eval A/B(ambiguous＋hakusho, 各2回) → 製品既定を決定 → その後P2プロンプト1ルール追加。
 >
 > **【2026-07-18続き】精度向上の原因分析2件が完了、P1〜P4の改善計画を合意（P1は上記で完了）**
 > 直前エントリ（本ファイル次項）で画面精度回帰を解決しhakusho-eval 26/30を再現した後、ユーザー要望「精度を下げている要因の分析」「曖昧な質問への耐性評価」「曖昧質問を具体化する問い返し機能」に対応してサブエージェント2体で分析を実施。**コード変更はまだ一切していない（分析のみ）**。次にやるべきことは下記P1から。
