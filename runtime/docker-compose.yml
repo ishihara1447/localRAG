@@ -97,6 +97,12 @@ services:
       # 詳細: docs/RAG_SENTENCE_CUSHION_FAIR_REEVAL_2026-07-15.md
       # ※重要: この設定を実際に効かせるにはimage再ビルドが必須(1.0.5にはlance/cushion未搭載)。
       - LANCE_SENTENCE_CUSHION=true
+      # P1: 拒否前の自動言い換え再検索(query reformulation)。検索が弱いとき(0件/dense実スコア無し/
+      # 最高スコアが閾値未満)だけ、質問を公式語彙へ1回言い換えて再検索し結果を統合する。口語・省略・
+      # 通称の質問が本文の公式語彙に届かない語彙ギャップを補う(実測:曖昧版Q4「三文書っていつ決まった？」
+      # 最高score0.401→言い換えで日付チャンクをscore0.672で取得)。非破壊(元の検索結果は減らさない)。
+      # 閾値は QUERY_REFORMULATION_MIN_SCORE で調整可(既定0.45)。詳細: docs/HANDOFF.md P1。
+      - QUERY_REFORMULATION=true
       # リランカー精度。既定=量子化int8(model_quantized.onnx, 570MB)。上記検証でint8で十分と確定。
       # RERANKER_QUANTIZED=false にすると非量子化 model.onnx を読むが、同梱していないため既定のまま。
       # --- 以下は「意図的に未設定」で無効化される項目 (値を設定しないこと) ---
