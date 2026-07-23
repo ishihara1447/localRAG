@@ -8,7 +8,16 @@
 > - 既存の `runtime/docker-compose.yml` の変更には触れていない。コミット・pushは未実施。
 >
 # 引き継ぎメモ（セッション間ハンドオフ）
-> **【次セッションはここから 2026-07-21 Claude】P1（拒否前の自動言い換え再検索）実装・検証完了。次はgemma4空回答揺らぎの調査 → P2**
+> **【次セッションはここから 2026-07-22 Claude】出典ページ番号機能を実装。次はv1.2.0再ビルド→Windows実機で「文書投入＋出典p.表示」E2E確認**
+> ユーザー要望「回答のエビデンス(引用元)を簡単に確認したい。最低限、引用元の文書名とページ番号」に対応。文書名は既存表示、**ページ番号を新規実装**。
+> - **仕組み**: PDFLoaderが持つ`loc.pageNumber`を活用。collector(`asPDF/index.js`)がページ連結時に各ページ先頭へ境界マーカー`\f<page>\f`(フォームフィード=PDF本文に非出現)を挿入 → server(`lance/index.js` addDocumentToNamespace)がチャンク毎に**多数決(チャンク内で最も文字数が多いページ)**でページを判定し`metadata.pageNumber`付与＋マーカー除去(埋め込み・表示は汚さない) → frontend(`Citation/index.jsx`)が引用詳細モーダルの各チャンクに「p.232」表示。
+> - **検証済み**: 単体テストで境界跨ぎ・単一ページ複数チャンクとも正しくページ付与、既存retrieval非破壊(dev cp+restartでスモークOK)。**未実施=実PDFでのE2E**(元PDFは解析後trashされるため、白書PDFの再投入が必要)。
+> - **コミット/作業ツリー**: fork `0e0829dc`(collector+Citationの2ファイル)。**server `lance/index.js`のマーカー→pageNumber判定は先行cushion系ステージと同居のため未コミット・作業ツリー保持**(ビルドには反映される)。devコンテナへcollector+lanceをcp+restart済み。
+> - **重要な前提**: ページ番号は**再embed(文書の再投入)して初めて付く**。既存の白書embeddingは旧パース(マーカー無し)なのでpageNumber無し。→ 次のビルド後に白書PDFを投入し直して確認する。
+> - **次の一手(ユーザー合意)**: (1)**v1.2.0再ビルド**(P1・think:false・出典ページ番号・cushion/hybrid全部入り。frontendはyarn buildでCitation変更を反映) → (2)**Windows実機で動作確認**(文書投入→回答→引用モーダルにp.表示、既存のRound2回帰も)。ビルド手順は`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`系＋image再ビルド。
+>
+> --- 以下は前セッション(2026-07-21)の記録 ---
+> **【2026-07-21 Claude】P1（拒否前の自動言い換え再検索）実装・検証完了。gemma4空回答→think:false採用。P2→不採用**
 > 下の【2026-07-18続き】で合意したP1を実装し、`scripts/ambiguous-eval.py`で検証まで完了した。**Q4曖昧版「三文書っていつ決まった？」がOKに回復**（最終回答「令和4年12月16日」）。
 >
 > **実装（共有モジュール化, fork未コミット）**:
