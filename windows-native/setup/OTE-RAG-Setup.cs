@@ -369,16 +369,11 @@ namespace OteRagSetup
 
         private async void InstallClicked(object sender, EventArgs e)
         {
-            string workRoot = null;
-            busy = true;
-            installButton.Enabled = false;
-            browseButton.Enabled = false;
-            installRoot.Enabled = false;
-            serverPort.Enabled = false;
-
+            // --- \u5165\u529b\u691c\u8a3c\u306f\u5148\u306b\u884c\u3046(\u3053\u306e\u6bb5\u968e\u3067\u306f\u30dc\u30bf\u30f3\u6709\u52b9\u306e\u307e\u307e\u3002\u8aa4\u308a\u306f\u305d\u306e\u5834\u3067\u76f4\u305b\u308b) ---
+            string rawTarget = installRoot.Text.Trim();
+            string target;
             try
             {
-                string rawTarget = installRoot.Text.Trim();
                 if (string.IsNullOrWhiteSpace(rawTarget))
                 {
                     throw new InvalidOperationException(
@@ -386,7 +381,7 @@ namespace OteRagSetup
                     );
                 }
 
-                string target = Path.GetFullPath(rawTarget).TrimEnd(
+                target = Path.GetFullPath(rawTarget).TrimEnd(
                     Path.DirectorySeparatorChar,
                     Path.AltDirectorySeparatorChar
                 );
@@ -406,9 +401,29 @@ namespace OteRagSetup
                         "\u30c9\u30e9\u30a4\u30d6\u76f4\u4e0b\u306f\u6307\u5b9a\u3067\u304d\u307e\u305b\u3093\u3002"
                     );
                 }
+            }
+            catch (Exception vex)
+            {
+                MessageBox.Show(
+                    vex.Message,
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return;
+            }
 
+            int port = Decimal.ToInt32(serverPort.Value);
 
-                int port = Decimal.ToInt32(serverPort.Value);
+            string workRoot = null;
+            busy = true;
+            installButton.Enabled = false;
+            browseButton.Enabled = false;
+            installRoot.Enabled = false;
+            serverPort.Enabled = false;
+
+            try
+            {
                 PackageInfo package = PackageLocator.Find();
 
                 AppendLog("Verifying SHA-256...");
@@ -531,11 +546,11 @@ namespace OteRagSetup
             }
             finally
             {
+                // インストールを開始した後(成功・失敗どちらでも)は入力欄と実行ボタンを
+                // 再有効化しない。失敗時に安易な再試行(既存インストール残存などで再び失敗)を
+                // 防ぐため、ユーザーには一旦ウィンドウを閉じてもらう(閉じるボタン=×のみ有効)。
+                // 入力ミスは上の事前検証で弾いており、ここに来る失敗は再試行では解決しない。
                 busy = false;
-                installButton.Enabled = true;
-                browseButton.Enabled = true;
-                installRoot.Enabled = true;
-                serverPort.Enabled = true;
             }
         }
 

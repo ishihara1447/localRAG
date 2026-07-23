@@ -167,7 +167,7 @@ $global:LASTEXITCODE = 0
 
 # --- 5. scripts / config / fixtures / docs / licenses ---
 Write-Host "[5/7] Copying install scripts, config templates, fixtures, docs, licenses..."
-foreach ($f in @("Install-OTE-RAG.cmd", "install.ps1", "uninstall.ps1", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1", "rag-e2e-test.ps1")) {
+foreach ($f in @("Install-OTE-RAG.cmd", "install.ps1", "uninstall.ps1", "Uninstall-OTE-RAG.cmd", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1", "rag-e2e-test.ps1")) {
     $src = Join-Path $ScriptDir $f
     Assert-Path $src $f
     Copy-Item $src (Join-Path $Pkg $f)

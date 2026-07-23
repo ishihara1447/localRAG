@@ -45,11 +45,14 @@ if (-not $RemoveData -and (Test-Path $storage)) {
     Move-Item $storage (Join-Path $keep "storage")
 }
 
-# 3. Remove the desktop shortcut (created by install.ps1)
-$shortcut = Join-Path ([Environment]::GetFolderPath("CommonDesktopDirectory")) "LocalRAG.lnk"
-if (Test-Path $shortcut) {
-    Write-Host "Removing desktop shortcut $shortcut ..."
-    Remove-Item $shortcut -Force -ErrorAction SilentlyContinue
+# 3. Remove the desktop shortcuts (created by install.ps1)
+$desktopDir = [Environment]::GetFolderPath("CommonDesktopDirectory")
+foreach ($lnkName in @("LocalRAG.lnk", "OTE-RAG アンインストール.lnk")) {
+    $shortcut = Join-Path $desktopDir $lnkName
+    if (Test-Path $shortcut) {
+        Write-Host "Removing desktop shortcut $shortcut ..."
+        Remove-Item $shortcut -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # 4. Remove application files

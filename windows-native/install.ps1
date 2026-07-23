@@ -124,7 +124,7 @@ Copy-Item (Join-Path $PkgRoot "rag-e2e-test.ps1") $InstallRoot -Force
 if (Test-Path (Join-Path $PkgRoot "fixtures")) {
     robocopy (Join-Path $PkgRoot "fixtures") (Join-Path $InstallRoot "fixtures") /E /NFL /NDL /NJH /NJS | Out-Null
 }
-foreach ($f in @("uninstall.ps1", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1")) {
+foreach ($f in @("uninstall.ps1", "Uninstall-OTE-RAG.cmd", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1")) {
     Copy-Item (Join-Path $PkgRoot $f) $InstallRoot -Force
 }
 if (Test-Path (Join-Path $PkgRoot "LICENSES")) {
@@ -188,6 +188,22 @@ if (Test-Path $launcherSrc) {
         Info "  Shortcut: $(Join-Path $desktop 'LocalRAG.lnk')"
     } catch {
         Write-Host "WARN: failed to create the desktop shortcut ($($_.Exception.Message)). You can open $InstallRoot\LocalRAG.html manually."
+    }
+
+    # All-users desktop shortcut for the double-click uninstaller.
+    # Points at Uninstall-OTE-RAG.cmd which self-elevates (UAC) and runs uninstall.ps1.
+    try {
+        $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
+        $shell = New-Object -ComObject WScript.Shell
+        $ulnk = $shell.CreateShortcut((Join-Path $desktop "OTE-RAG アンインストール.lnk"))
+        $ulnk.TargetPath = Join-Path $InstallRoot "Uninstall-OTE-RAG.cmd"
+        $ulnk.IconLocation = (Join-Path $InstallRoot "LocalRAG.ico") + ",0"
+        $ulnk.Description = "OTE-RAG をアンインストールします"
+        $ulnk.WorkingDirectory = $InstallRoot
+        $ulnk.Save()
+        Info "  Uninstall shortcut: $(Join-Path $desktop 'OTE-RAG アンインストール.lnk')"
+    } catch {
+        Write-Host "WARN: failed to create the uninstall shortcut ($($_.Exception.Message)). You can run $InstallRoot\Uninstall-OTE-RAG.cmd manually."
     }
 }
 
