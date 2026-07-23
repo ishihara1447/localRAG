@@ -75,13 +75,22 @@ if ($residual) {
     Write-Host "WARN: services still present after 30s: $($residual.Name -join ', '). A reboot may be required to finish removal."
 }
 
+# The steps below are wrapped in individual try/catch so that one locked file
+# (e.g. storage held open by a straggler process) does not abort the rest of
+# the uninstall. Uninstall is idempotent, so it is better to run to the end and
+# warn about what could not be removed than to stop at the first failure.
+
 # 2. Preserve or remove data
 $storage = Join-Path $InstallRoot "app\server\storage"
 if (-not $RemoveData -and (Test-Path $storage)) {
-    $keep = Join-Path $DataRoot "uninstalled-$(Get-Date -Format yyyyMMdd-HHmmss)"
-    Write-Host "Preserving data to $keep (use -RemoveData to delete instead)..."
-    New-Item -ItemType Directory -Path $keep -Force | Out-Null
-    Move-Item $storage (Join-Path $keep "storage")
+    try {
+        $keep = Join-Path $DataRoot "uninstalled-$(Get-Date -Format yyyyMMdd-HHmmss)"
+        Write-Host "Preserving data to $keep (use -RemoveData to delete instead)..."
+        New-Item -ItemType Directory -Path $keep -Force | Out-Null
+        Move-Item $storage (Join-Path $keep "storage")
+    } catch {
+        Write-Host "WARN: could not preserve $storage ($($_.Exception.Message)). It may be in use; the files were left in place."
+    }
 }
 
 # 3. Remove the desktop shortcuts (created by install.ps1)
@@ -90,12 +99,18 @@ foreach ($lnkName in @("LocalRAG.lnk", "OTE-RAG アンインストール.lnk")) 
     $shortcut = Join-Path $desktopDir $lnkName
     if (Test-Path $shortcut) {
         Write-Host "Removing desktop shortcut $shortcut ..."
-        Remove-Item $shortcut -Force -ErrorAction SilentlyContinue
+        try { Remove-Item $shortcut -Force -ErrorAction Stop } catch {
+            Write-Host "WARN: could not remove shortcut $shortcut ($($_.Exception.Message))."
+        }
     }
 }
 
 # 4. Remove the Programs and Features (ARP) registry entry.
-Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG" -Recurse -Force -ErrorAction SilentlyContinue
+try {
+    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG" -Recurse -Force -ErrorAction Stop
+} catch {
+    Write-Host "WARN: could not remove the Programs and Features entry ($($_.Exception.Message))."
+}
 
 # 5. Remove application files.
 Write-Host "Removing $InstallRoot ..."
@@ -104,13 +119,18 @@ Write-Host "Removing $InstallRoot ..."
 # uninstall.ps1 (and the empty InstallRoot folder) must be removed manually,
 # as noted in the final message below.
 Get-ChildItem -Path $InstallRoot -Force | Where-Object { $_.FullName -ne $SelfPath } | ForEach-Object {
-    Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
+    $entryPath = $_.FullName
+    try { Remove-Item -Recurse -Force $entryPath -ErrorAction Stop } catch {
+        Write-Host "WARN: could not remove $entryPath ($($_.Exception.Message)). It may be in use; a reboot may be required."
+    }
 }
 
 # 6. Data root
 if ($RemoveData) {
     Write-Host "Removing $DataRoot (models, logs, backups)..."
-    Remove-Item -Recurse -Force $DataRoot -ErrorAction SilentlyContinue
+    try { Remove-Item -Recurse -Force $DataRoot -ErrorAction Stop } catch {
+        Write-Host "WARN: could not fully remove $DataRoot ($($_.Exception.Message)). It may be in use; a reboot may be required."
+    }
 } else {
     Write-Host "Kept: $DataRoot (models/logs/backups and preserved storage)."
 }

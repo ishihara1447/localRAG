@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Reflection;
@@ -109,6 +110,12 @@ namespace OteRagSetup
 
     internal static class Program
     {
+        // Held for the whole process lifetime so a second Setup.exe cannot run
+        // concurrently (two installers would fight over the same services and
+        // InstallRoot, including each other's rollback). Kept in a static field
+        // so the GC never releases it early.
+        private static Mutex _singleInstanceMutex;
+
         [STAThread]
         private static int Main(string[] args)
         {
@@ -144,9 +151,27 @@ namespace OteRagSetup
                 }
             }
 
+            // Single-instance guard. Acquired here (only the elevated instance
+            // that actually shows the form reaches this point), NOT before the
+            // self-elevation above, so the short-lived non-elevated launcher
+            // never holds the mutex the elevated instance needs.
+            bool createdNew;
+            _singleInstanceMutex = new Mutex(true, "Global\\OTE-RAG-Setup", out createdNew);
+            if (!createdNew)
+            {
+                MessageBox.Show(
+                    "\u30bb\u30c3\u30c8\u30a2\u30c3\u30d7\u306f\u65e2\u306b\u8d77\u52d5\u3057\u3066\u3044\u307e\u3059\u3002",
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+                return 0;
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new SetupForm());
+            GC.KeepAlive(_singleInstanceMutex);
             return 0;
         }
 
@@ -524,7 +549,29 @@ namespace OteRagSetup
                 }
 
                 string url = "http://localhost:" + port.ToString(CultureInfo.InvariantCulture);
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                if (startupTimedOut)
+                {
+                    // exit 3 = the server is not answering yet. Opening the raw
+                    // URL would show a connection-error page that contradicts the
+                    // dialog. Open the local launcher page instead: it checks the
+                    // server and shows Japanese guidance while it is still down.
+                    // If the launcher is missing for any reason, open nothing.
+                    try
+                    {
+                        string launcher = Path.Combine(target, "LocalRAG.html");
+                        if (File.Exists(launcher))
+                        {
+                            Process.Start(new ProcessStartInfo(launcher) { UseShellExecute = true });
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+                else
+                {
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                }
                 MessageBox.Show(
                     (startupTimedOut
                         ? "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306f\u5b8c\u4e86\u3057\u307e\u3057\u305f\u3002\u521d\u56de\u306f\u30e2\u30c7\u30eb\u8aad\u307f\u8fbc\u307f\u306b\u6570\u5206\u304b\u304b\u308b\u3053\u3068\u304c\u3042\u308a\u307e\u3059\u3002\u6570\u5206\u5f8c\u306b\u30c7\u30b9\u30af\u30c8\u30c3\u30d7\u306e\u30a2\u30a4\u30b3\u30f3\u304b\u3089\u958b\u3044\u3066\u304f\u3060\u3055\u3044\u3002"

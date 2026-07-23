@@ -30,12 +30,41 @@ $DataRoot = "C:\ProgramData\LocalRAG"
 # Invoke-Rollback and clean up this run's artifacts.
 $script:rollbackActive = $false
 $script:servicesTouched = $false
+# Set in preflight when -Force is used over an existing install. When true,
+# Invoke-Rollback must NOT delete InstallRoot / move storage, so a failed
+# -Force run never destroys the already-working installation it overwrote.
+$script:preExisting = $false
+# Where Invoke-Rollback moved the customer's documents (if it had to). Shown in
+# the final failure message so they know the data was preserved, not lost.
+$script:storageRescuePath = $null
 
 function Fail([string]$msg) {
     if ($script:rollbackActive) { throw $msg }
     Write-Host "ERROR: $msg"; exit 1
 }
 function Info([string]$msg) { Write-Host $msg }
+
+# Stop any ollama.exe / node.exe launched by THIS install, matched by
+# executable path (under InstallRoot or DataRoot) so a customer's own
+# Node/Ollama elsewhere is never touched. Mirrors uninstall.ps1's
+# Stop-LocalRagProcesses (the two scripts cannot share a function).
+function Stop-LocalRagProcesses {
+    $roots = @($InstallRoot, $DataRoot) | Where-Object { $_ }
+    foreach ($procName in @("ollama", "node")) {
+        Get-Process -Name $procName -ErrorAction SilentlyContinue | ForEach-Object {
+            $procPath = $null
+            try { $procPath = $_.Path } catch {}
+            if ($procPath) {
+                foreach ($root in $roots) {
+                    if ($procPath.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+                        try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {}
+                        break
+                    }
+                }
+            }
+        }
+    }
+}
 
 # Undo everything this run created (services, InstallRoot, shortcuts, ARP key).
 # Existing customer documents under app\server\storage are preserved first.
@@ -54,6 +83,19 @@ function Invoke-Rollback {
                 & sc.exe delete $svc 2>$null | Out-Null
             }
         }
+
+        # 1b. Kill any ollama.exe/node.exe this run started (they hold file
+        # locks under InstallRoot) and wait for the services to actually
+        # disappear. sc.exe delete only marks a service for deletion while a
+        # process still holds a handle; deleting InstallRoot before the locks
+        # release leaves a partial tree that trips the next install's preflight.
+        Stop-LocalRagProcesses
+        $deadline = (Get-Date).AddSeconds(30)
+        foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) {
+            while ((Get-Service -Name $svc -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $deadline)) {
+                Start-Sleep -Milliseconds 500
+            }
+        }
     }
 
     # 2. Remove desktop shortcuts created by this run.
@@ -69,7 +111,13 @@ function Invoke-Rollback {
     Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG" -Recurse -Force -ErrorAction SilentlyContinue
 
     # 4. Preserve existing documents, then remove InstallRoot (created by this run).
-    if (Test-Path $InstallRoot) {
+    # When -Force overwrote an already-working install ($preExisting), we must
+    # NOT touch InstallRoot or move its storage: doing so would destroy the
+    # customer's existing, functioning installation. Leave it in place and tell
+    # them how to clean up manually if they want to.
+    if ($script:preExisting) {
+        Write-Host "[rollback] 既存のインストールが残っている可能性があります。必要なら『OTE-RAG アンインストール』を実行してください。"
+    } elseif (Test-Path $InstallRoot) {
         $storagePath = Join-Path $InstallRoot "app\server\storage"
         if (Test-Path $storagePath) {
             try {
@@ -77,6 +125,7 @@ function Invoke-Rollback {
                     $keep = Join-Path $DataRoot "uninstalled-$(Get-Date -Format yyyyMMdd-HHmmss)"
                     New-Item -ItemType Directory -Path $keep -Force | Out-Null
                     Move-Item $storagePath (Join-Path $keep "storage") -Force
+                    $script:storageRescuePath = $keep
                     Write-Host "[rollback] 既存の文書データを $keep\storage へ退避しました。"
                 }
             } catch {}
@@ -116,7 +165,7 @@ try {
 } catch { Fail "GPU 情報の取得に失敗しました(nvidia-smi 実行エラー)。NVIDIA ドライバーの状態を確認してください。" }
 Info "  GPU VRAM: $vramMiB MiB"
 if ($vramMiB -lt 15000) {
-    Write-Host "WARN: less than 16GB VRAM detected. LocalRAG is validated on RTX 5070 Ti (16GB) class GPUs."
+    Write-Host "注意: GPU メモリが 16GB 未満です。OTE-RAG は RTX 5070 Ti(16GB)相当の GPU で動作確認しています。動作が不安定になる場合があります。"
     if (-not $Force) { Fail "GPU メモリが 16GB 未満です(推奨環境外)。それでも続行する場合は -Force を付けて再実行してください。" }
 }
 
@@ -125,6 +174,16 @@ $drive = (Split-Path -Qualifier ([System.IO.Path]::GetFullPath($InstallRoot))).T
 $freeGB = [math]::Round((Get-PSDrive $drive).Free / 1GB, 1)
 Info "  Free space on drive ${drive}: $freeGB GB"
 if ($freeGB -lt 20) { Fail "ドライブ $drive の空き容量が不足しています。20GB 以上の空き容量が必要です。" }
+
+# The ~9GB of models always land on C:\ProgramData\LocalRAG and the package is
+# expanded to C:\OTR, so C: needs headroom even when InstallRoot is elsewhere.
+# Skip when InstallRoot is already on C: (the check above already covered it).
+$sysDrive = (Split-Path -Qualifier $env:SystemRoot).TrimEnd(":")
+if ($drive -ne $sysDrive) {
+    $sysFreeGB = [math]::Round((Get-PSDrive $sysDrive).Free / 1GB, 1)
+    Info "  Free space on drive ${sysDrive}: $sysFreeGB GB"
+    if ($sysFreeGB -lt 12) { Fail "システムドライブ $sysDrive の空き容量が不足しています。モデルと作業ファイル用に 12GB 以上の空き容量が必要です。" }
+}
 
 # Ports (server / collector / dedicated ollama)
 foreach ($port in @($ServerPort, 8888, 11435)) {
@@ -141,8 +200,13 @@ foreach ($port in @($ServerPort, 8888, 11435)) {
 Info "  Ports $ServerPort/8888/11435: free"
 
 # Existing installation
-if ((Test-Path (Join-Path $InstallRoot "app")) -and -not $Force) {
-    Fail "$InstallRoot\app が既に存在します。先にアンインストール(デスクトップの「OTE-RAG アンインストール」または uninstall.ps1)を実行してください。上書きする場合は -Force を付けて再実行します(app\server\storage 内のデータは backup.ps1 でのみ保護されます。先にバックアップしてください)。"
+if (Test-Path (Join-Path $InstallRoot "app")) {
+    if (-not $Force) {
+        Fail "$InstallRoot\app が既に存在します。先にアンインストール(デスクトップの「OTE-RAG アンインストール」または uninstall.ps1)を実行してください。上書きする場合は -Force を付けて再実行します(app\server\storage 内のデータは backup.ps1 でのみ保護されます。先にバックアップしてください)。"
+    }
+    # -Force over an existing install: if this run fails, Invoke-Rollback must
+    # not delete/relocate the existing installation we are overwriting.
+    $script:preExisting = $true
 }
 $existingSvc = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
 if ($existingSvc -and -not $Force) {
@@ -254,7 +318,7 @@ if (Test-Path $launcherSrc) {
         $lnk.Save()
         Info "  Shortcut: $(Join-Path $desktop 'LocalRAG.lnk')"
     } catch {
-        Write-Host "WARN: failed to create the desktop shortcut ($($_.Exception.Message)). You can open $InstallRoot\LocalRAG.html manually."
+        Write-Host "注意: デスクトップのショートカット作成に失敗しました。$InstallRoot\LocalRAG.html を直接開いてご利用ください。(詳細: $($_.Exception.Message))"
     }
 
     # All-users desktop shortcut for the double-click uninstaller.
@@ -270,7 +334,7 @@ if (Test-Path $launcherSrc) {
         $ulnk.Save()
         Info "  Uninstall shortcut: $(Join-Path $desktop 'OTE-RAG アンインストール.lnk')"
     } catch {
-        Write-Host "WARN: failed to create the uninstall shortcut ($($_.Exception.Message)). You can run $InstallRoot\Uninstall-OTE-RAG.cmd manually."
+        Write-Host "注意: アンインストール用ショートカットの作成に失敗しました。削除するときは $InstallRoot\Uninstall-OTE-RAG.cmd を直接実行してください。(詳細: $($_.Exception.Message))"
     }
 }
 
@@ -320,12 +384,19 @@ try {
     New-ItemProperty -Path $arpKey -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $arpKey -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
     try {
-        $sizeKB = [int]((Get-ChildItem -Path $InstallRoot -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1KB)
+        $sizeBytes = (Get-ChildItem -Path $InstallRoot -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        # Include the ~9GB of models under $DataRoot\models so Programs and
+        # Features reports the real on-disk footprint, not just InstallRoot.
+        $modelsPath = Join-Path $DataRoot "models"
+        if (Test-Path $modelsPath) {
+            $sizeBytes += (Get-ChildItem -Path $modelsPath -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        }
+        $sizeKB = [int]($sizeBytes / 1KB)
         if ($sizeKB -gt 0) { New-ItemProperty -Path $arpKey -Name "EstimatedSize" -Value $sizeKB -PropertyType DWord -Force | Out-Null }
     } catch {}
     Info "  Registered in Programs and Features (OTE-RAG, v$displayVersion)."
 } catch {
-    Write-Host "WARN: failed to register in Programs and Features ($($_.Exception.Message)). Use the desktop uninstall shortcut instead."
+    Write-Host "注意: 「プログラムと機能」への登録に失敗しました。アンインストールするときはデスクトップの「OTE-RAG アンインストール」をお使いください。(詳細: $($_.Exception.Message))"
 }
 
 # =====================================================================
@@ -363,5 +434,8 @@ catch {
     # customer can simply run the installer again from a clean state.
     Invoke-Rollback
     Write-Host "ERROR: インストールに失敗しました($($_.Exception.Message))。環境を元に戻しました。もう一度インストールを実行できます。"
+    if ($script:storageRescuePath) {
+        Write-Host "お客様の文書データは $script:storageRescuePath\storage に保管しました(消えていません)。"
+    }
     exit 1
 }
