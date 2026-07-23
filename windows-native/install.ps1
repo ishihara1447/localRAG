@@ -24,8 +24,66 @@ $ErrorActionPreference = "Stop"
 $PkgRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataRoot = "C:\ProgramData\LocalRAG"
 
-function Fail([string]$msg) { Write-Host "ERROR: $msg"; exit 1 }
+# Rollback state. Stays $false through preflight/checksum (nothing has been
+# created yet), and is set to $true immediately before the first file copy.
+# While $true, Fail throws instead of exiting so the body try/catch can run
+# Invoke-Rollback and clean up this run's artifacts.
+$script:rollbackActive = $false
+$script:servicesTouched = $false
+
+function Fail([string]$msg) {
+    if ($script:rollbackActive) { throw $msg }
+    Write-Host "ERROR: $msg"; exit 1
+}
 function Info([string]$msg) { Write-Host $msg }
+
+# Undo everything this run created (services, InstallRoot, shortcuts, ARP key).
+# Existing customer documents under app\server\storage are preserved first.
+# $DataRoot\models (copied models) is intentionally kept to speed up a retry.
+function Invoke-Rollback {
+    Write-Host "[rollback] インストールに失敗したため、この操作で作成したファイルとサービスを片付けています..."
+
+    # 1. Remove the three services if this run reached the registration step.
+    if ($script:servicesTouched) {
+        $unregister = Join-Path $InstallRoot "winsw\unregister-services.ps1"
+        if (Test-Path $unregister) {
+            try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $unregister } catch {}
+        } else {
+            foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) {
+                Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+                & sc.exe delete $svc 2>$null | Out-Null
+            }
+        }
+    }
+
+    # 2. Remove desktop shortcuts created by this run.
+    try {
+        $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
+        foreach ($lnkName in @("LocalRAG.lnk", "OTE-RAG アンインストール.lnk")) {
+            $lnkPath = Join-Path $desktop $lnkName
+            if (Test-Path $lnkPath) { Remove-Item $lnkPath -Force -ErrorAction SilentlyContinue }
+        }
+    } catch {}
+
+    # 3. Remove the ARP (Programs and Features) key if it was written.
+    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG" -Recurse -Force -ErrorAction SilentlyContinue
+
+    # 4. Preserve existing documents, then remove InstallRoot (created by this run).
+    if (Test-Path $InstallRoot) {
+        $storagePath = Join-Path $InstallRoot "app\server\storage"
+        if (Test-Path $storagePath) {
+            try {
+                if (Get-ChildItem -Path $storagePath -Force -ErrorAction SilentlyContinue) {
+                    $keep = Join-Path $DataRoot "uninstalled-$(Get-Date -Format yyyyMMdd-HHmmss)"
+                    New-Item -ItemType Directory -Path $keep -Force | Out-Null
+                    Move-Item $storagePath (Join-Path $keep "storage") -Force
+                    Write-Host "[rollback] 既存の文書データを $keep\storage へ退避しました。"
+                }
+            } catch {}
+        }
+        Remove-Item -Recurse -Force $InstallRoot -ErrorAction SilentlyContinue
+    }
+}
 
 Write-Host "=== LocalRAG Windows native installer ==="
 
@@ -38,35 +96,35 @@ Info "[preflight] Checking environment..."
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Fail "run this script from an elevated (Administrator) PowerShell."
+    Fail "管理者として実行してください(管理者権限の PowerShell から起動が必要です)。"
 }
 
 # OS version (Windows 10 21H2+ / 11)
 $build = [System.Environment]::OSVersion.Version.Build
-if ($build -lt 19044) { Fail "Windows build $build is too old. Windows 11 (or Windows 10 21H2+) is required." }
+if ($build -lt 19044) { Fail "この Windows は古すぎます(ビルド $build)。Windows 11(または Windows 10 21H2 以降)が必要です。" }
 
 # GPU via nvidia-smi
 $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
 if (-not $nvidiaSmi) {
     $default = "$env:SystemRoot\System32\nvidia-smi.exe"
     if (Test-Path $default) { $nvidiaSmi = $default } else {
-        Fail "nvidia-smi not found. An NVIDIA GPU with a recent driver is required."
+        Fail "NVIDIA GPU が見つかりません(nvidia-smi が無い)。対応する NVIDIA GPU と最新ドライバーが必要です。"
     }
 } else { $nvidiaSmi = $nvidiaSmi.Source }
 try {
     $vramMiB = [int]((& $nvidiaSmi --query-gpu=memory.total --format=csv,noheader,nounits | Select-Object -First 1).Trim())
-} catch { Fail "nvidia-smi failed. Check the NVIDIA driver installation." }
+} catch { Fail "GPU 情報の取得に失敗しました(nvidia-smi 実行エラー)。NVIDIA ドライバーの状態を確認してください。" }
 Info "  GPU VRAM: $vramMiB MiB"
 if ($vramMiB -lt 15000) {
     Write-Host "WARN: less than 16GB VRAM detected. LocalRAG is validated on RTX 5070 Ti (16GB) class GPUs."
-    if (-not $Force) { Fail "re-run with -Force to install anyway (unsupported configuration)." }
+    if (-not $Force) { Fail "GPU メモリが 16GB 未満です(推奨環境外)。それでも続行する場合は -Force を付けて再実行してください。" }
 }
 
 # Disk space (>= 20GB free on the InstallRoot drive)
 $drive = (Split-Path -Qualifier ([System.IO.Path]::GetFullPath($InstallRoot))).TrimEnd(":")
 $freeGB = [math]::Round((Get-PSDrive $drive).Free / 1GB, 1)
 Info "  Free space on drive ${drive}: $freeGB GB"
-if ($freeGB -lt 20) { Fail "at least 20GB free disk space is required on drive $drive." }
+if ($freeGB -lt 20) { Fail "ドライブ $drive の空き容量が不足しています。20GB 以上の空き容量が必要です。" }
 
 # Ports (server / collector / dedicated ollama)
 foreach ($port in @($ServerPort, 8888, 11435)) {
@@ -75,20 +133,20 @@ foreach ($port in @($ServerPort, 8888, 11435)) {
         $owner = "unknown"
         try { $owner = (Get-Process -Id $conn[0].OwningProcess -ErrorAction SilentlyContinue).ProcessName } catch {}
         if ($owner -eq "wslrelay") {
-            Fail "port $port is held by wslrelay.exe (a WSL2 service is forwarding it). Stop the WSL-side service (e.g. 'wsl --shutdown') or choose another port with -ServerPort."
+            Fail "ポート $port が WSL2 の転送サービス(wslrelay.exe)に使われています。WSL 側のサービスを止める(例: 'wsl --shutdown')か、-ServerPort で別のポートを指定してください。"
         }
-        Fail "port $port is already in use by process '$owner'. Stop it or choose another port with -ServerPort."
+        Fail "ポート $port は既に別のプログラム('$owner')が使用中です。そのプログラムを止めるか、-ServerPort で別のポートを指定してください。"
     }
 }
 Info "  Ports $ServerPort/8888/11435: free"
 
 # Existing installation
 if ((Test-Path (Join-Path $InstallRoot "app")) -and -not $Force) {
-    Fail "$InstallRoot\app already exists. Uninstall first (uninstall.ps1) or re-run with -Force to overwrite the app (data under app\server\storage is preserved only by backup.ps1 - take a backup first)."
+    Fail "$InstallRoot\app が既に存在します。先にアンインストール(デスクトップの「OTE-RAG アンインストール」または uninstall.ps1)を実行してください。上書きする場合は -Force を付けて再実行します(app\server\storage 内のデータは backup.ps1 でのみ保護されます。先にバックアップしてください)。"
 }
 $existingSvc = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
 if ($existingSvc -and -not $Force) {
-    Fail "LocalRAG services already exist. Run uninstall.ps1 first."
+    Fail "OTE-RAG のサービスが既に登録されています。先にアンインストールを実行してください。"
 }
 
 # =====================================================================
@@ -96,7 +154,7 @@ if ($existingSvc -and -not $Force) {
 # =====================================================================
 if (-not $SkipChecksum) {
     $checksumFile = Join-Path $PkgRoot "checksums\package.sha256"
-    if (-not (Test-Path $checksumFile)) { Fail "checksums\package.sha256 missing. The package is incomplete (use -SkipChecksum only for development)." }
+    if (-not (Test-Path $checksumFile)) { Fail "checksums\package.sha256 が見つかりません。配布パッケージが不完全です(-SkipChecksum は開発用途のみ)。" }
     Info "[checksum] Verifying package integrity (this can take a while)..."
     $bad = 0; $count = 0
     foreach ($line in Get-Content $checksumFile) {
@@ -108,9 +166,16 @@ if (-not $SkipChecksum) {
         if ($actual -ne $expected) { Write-Host "  MISMATCH: $rel"; $bad++ }
         $count++
     }
-    if ($bad -gt 0) { Fail "$bad file(s) failed checksum verification. The package is corrupted." }
+    if ($bad -gt 0) { Fail "$bad 個のファイルが整合性チェックに失敗しました。配布パッケージが破損しています。ダウンロード/コピーし直してください。" }
     Info "  $count files verified."
 }
+
+# =====================================================================
+# Installation body (transactional: any failure below triggers Invoke-Rollback)
+# From here on we start creating artifacts, so arm rollback and wrap the rest.
+# =====================================================================
+$script:rollbackActive = $true
+try {
 
 # =====================================================================
 # Copy files
@@ -118,7 +183,7 @@ if (-not $SkipChecksum) {
 Info "[install] Copying application files to $InstallRoot ..."
 foreach ($d in @("app", "runtime", "winsw")) {
     robocopy (Join-Path $PkgRoot $d) (Join-Path $InstallRoot $d) /E /NFL /NDL /NJH /NJS | Out-Null
-    if ($LASTEXITCODE -ge 8) { Fail "robocopy $d failed ($LASTEXITCODE)" }
+    if ($LASTEXITCODE -ge 8) { Fail "ファイルのコピーに失敗しました($d, robocopy 終了コード $LASTEXITCODE)。" }
 }
 Copy-Item (Join-Path $PkgRoot "rag-e2e-test.ps1") $InstallRoot -Force
 if (Test-Path (Join-Path $PkgRoot "fixtures")) {
@@ -141,7 +206,7 @@ Info "[install] Copying models to $DataRoot\models ..."
 New-Item -ItemType Directory -Path "$DataRoot\models" -Force | Out-Null
 New-Item -ItemType Directory -Path "$DataRoot\logs" -Force | Out-Null
 robocopy (Join-Path $PkgRoot "models") "$DataRoot\models" /E /NFL /NDL /NJH /NJS | Out-Null
-if ($LASTEXITCODE -ge 8) { Fail "robocopy models failed" }
+if ($LASTEXITCODE -ge 8) { Fail "モデルファイルのコピーに失敗しました(robocopy models)。" }
 $global:LASTEXITCODE = 0
 
 # Runtime data dirs
@@ -156,7 +221,9 @@ function Render-Template([string]$templatePath, [string]$outPath) {
     $content = Get-Content $templatePath -Raw
     $content = $content -replace "\{\{INSTALL_ROOT\}\}", $InstallRoot
     $content = $content -replace "\{\{SERVER_PORT\}\}", "$ServerPort"
-    Set-Content -Path $outPath -Value $content -Encoding ascii
+    # UTF-8 without BOM: keeps non-ASCII / Japanese InstallRoot paths intact and
+    # avoids a BOM that Node/dotenv can mis-parse.
+    [System.IO.File]::WriteAllText($outPath, $content, (New-Object System.Text.UTF8Encoding($false)))
 }
 Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env")
 Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env.production")
@@ -214,19 +281,52 @@ Info "[install] Running prisma migrate deploy..."
 $node = Join-Path $InstallRoot "runtime\node\node.exe"
 $serverDir = Join-Path $InstallRoot "app\server"
 $prismaCli = Join-Path $serverDir "node_modules\prisma\build\index.js"
-if (-not (Test-Path $prismaCli)) { Fail "prisma CLI not found at $prismaCli" }
+if (-not (Test-Path $prismaCli)) { Fail "データベース初期化ツールが見つかりません($prismaCli)。" }
 Push-Location $serverDir
 try {
     & $node $prismaCli migrate deploy --schema=.\prisma\schema.prisma
-    if ($LASTEXITCODE -ne 0) { Fail "prisma migrate deploy failed ($LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { Fail "データベースの初期化に失敗しました(prisma migrate deploy, 終了コード $LASTEXITCODE)。" }
 } finally { Pop-Location }
 
 # =====================================================================
 # Register + start services
 # =====================================================================
 Info "[install] Registering Windows services..."
+$script:servicesTouched = $true
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallRoot "winsw\register-services.ps1")
-if ($LASTEXITCODE -ne 0) { Fail "service registration failed" }
+if ($LASTEXITCODE -ne 0) { Fail "Windows サービスの登録・起動に失敗しました。" }
+
+# =====================================================================
+# Register in Programs and Features (ARP). Installer runs elevated, so HKLM
+# is writable. A failure here does NOT trigger rollback (the product is already
+# installed); we only warn so the desktop uninstall shortcut can still be used.
+# =====================================================================
+$displayVersion = "1.2.2"
+$versionsLock = Join-Path $InstallRoot "versions.lock"
+if (Test-Path $versionsLock) {
+    $vLine = Get-Content $versionsLock | Where-Object { $_ -match "^package_version=" } | Select-Object -First 1
+    if ($vLine) { $displayVersion = ($vLine -replace "^package_version=", "").Trim() }
+}
+try {
+    $arpKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG"
+    New-Item -Path $arpKey -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "DisplayName" -Value "OTE-RAG" -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "DisplayVersion" -Value $displayVersion -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "Publisher" -Value "OTE-RAG" -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "InstallLocation" -Value $InstallRoot -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "DisplayIcon" -Value (Join-Path $InstallRoot "LocalRAG.ico") -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "UninstallString" -Value ('"' + (Join-Path $InstallRoot "Uninstall-OTE-RAG.cmd") + '"') -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "QuietUninstallString" -Value ('powershell -NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $InstallRoot "uninstall.ps1") + '"') -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $arpKey -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
+    try {
+        $sizeKB = [int]((Get-ChildItem -Path $InstallRoot -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1KB)
+        if ($sizeKB -gt 0) { New-ItemProperty -Path $arpKey -Name "EstimatedSize" -Value $sizeKB -PropertyType DWord -Force | Out-Null }
+    } catch {}
+    Info "  Registered in Programs and Features (OTE-RAG, v$displayVersion)."
+} catch {
+    Write-Host "WARN: failed to register in Programs and Features ($($_.Exception.Message)). Use the desktop uninstall shortcut instead."
+}
 
 # =====================================================================
 # Ping check
@@ -241,9 +341,12 @@ for ($i = 0; $i -lt 24; $i++) {
     } catch {}
 }
 if (-not $ok) {
-    Write-Host "WARN: server did not respond on http://localhost:$ServerPort/api/ping within 120s."
-    Write-Host "      Check service state (Get-Service LocalRAG-*) and logs under $DataRoot\logs"
-    exit 1
+    # The product IS installed (services registered, ARP written). The server
+    # just did not answer within 120s, usually because the first model load
+    # takes a few minutes. This is NOT a failure: exit 3 and do NOT roll back.
+    Write-Host "インストールは完了しました。サービスの起動確認がタイムアウトしました(初回はモデル読み込みに数分かかることがあります)。数分後にデスクトップのアイコンから開いてください。"
+    Write-Host "      (詳細: http://localhost:$ServerPort/api/ping が120秒以内に応答しませんでした。ログ: $DataRoot\logs)"
+    exit 3
 }
 
 Write-Host ""
@@ -253,3 +356,12 @@ Write-Host "Services:      LocalRAG-Server / LocalRAG-Collector / LocalRAG-Ollam
 Write-Host "Data:          $InstallRoot\app\server\storage"
 Write-Host "Logs:          $DataRoot\logs"
 Write-Host "E2E test:      set LOCALRAG_API_KEY and run rag-e2e-test.ps1 (see docs)"
+
+}
+catch {
+    # Any failure in the installation body: undo this run's artifacts so the
+    # customer can simply run the installer again from a clean state.
+    Invoke-Rollback
+    Write-Host "ERROR: インストールに失敗しました($($_.Exception.Message))。環境を元に戻しました。もう一度インストールを実行できます。"
+    exit 1
+}

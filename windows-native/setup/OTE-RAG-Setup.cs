@@ -41,7 +41,7 @@ namespace OteRagSetup
             if (zips.Length != 1)
             {
                 throw new InvalidOperationException(
-                    "Setup.exe no yokoni OTE-RAG-win64-v*.zip o hitotsu dake oite kudasai."
+                    "Setup.exe \u3068\u540c\u3058\u5834\u6240\u306b OTE-RAG-win64-v*.zip \u30921\u3064\u3060\u3051\u7f6e\u3044\u3066\u304f\u3060\u3055\u3044\u3002"
                 );
             }
 
@@ -50,7 +50,7 @@ namespace OteRagSetup
             if (!File.Exists(shaPath))
             {
                 throw new FileNotFoundException(
-                    "SHA-256 file ga arimasen: " + Path.GetFileName(shaPath)
+                    "SHA-256 \u306e\u7167\u5408\u30d5\u30a1\u30a4\u30eb\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093: " + Path.GetFileName(shaPath)
                 );
             }
 
@@ -59,7 +59,7 @@ namespace OteRagSetup
             if (!match.Success)
             {
                 throw new InvalidDataException(
-                    "SHA-256 file no keishiki ga fusei desu: " + Path.GetFileName(shaPath)
+                    "SHA-256 \u306e\u7167\u5408\u30d5\u30a1\u30a4\u30eb\u306e\u5f62\u5f0f\u304c\u6b63\u3057\u304f\u3042\u308a\u307e\u305b\u3093: " + Path.GetFileName(shaPath)
                 );
             }
 
@@ -135,7 +135,7 @@ namespace OteRagSetup
                 catch (Exception ex)
                 {
                     MessageBox.Show(
-                        "Administrator privileges are required.\r\n\r\n" + ex.Message,
+                        "\u7ba1\u7406\u8005\u6a29\u9650\u304c\u5fc5\u8981\u3067\u3059\u3002\r\n\r\n" + ex.Message,
                         "OTE-RAG Setup",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
@@ -441,7 +441,7 @@ namespace OteRagSetup
                     StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException(
-                        "SHA-256 mismatch. The package is incomplete or corrupted."
+                        "SHA-256 \u304c\u4e00\u81f4\u3057\u307e\u305b\u3093\u3002\u914d\u5e03\u30d1\u30c3\u30b1\u30fc\u30b8\u304c\u4e0d\u5b8c\u5168\u304b\u7834\u640d\u3057\u3066\u3044\u307e\u3059\u3002"
                     );
                 }
                 AppendLog("SHA-256: PASS");
@@ -460,7 +460,7 @@ namespace OteRagSetup
                 );
                 if (!File.Exists(tarPath))
                 {
-                    throw new FileNotFoundException("Windows tar.exe was not found.", tarPath);
+                    throw new FileNotFoundException("Windows \u306e tar.exe \u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002", tarPath);
                 }
 
                 AppendLog("Extracting package to: " + workRoot);
@@ -472,7 +472,7 @@ namespace OteRagSetup
                 if (extractExit != 0)
                 {
                     throw new InvalidOperationException(
-                        "Package extraction failed (exit " + extractExit + ")."
+                        "\u30d1\u30c3\u30b1\u30fc\u30b8\u306e\u5c55\u958b\u306b\u5931\u6557\u3057\u307e\u3057\u305f(\u7d42\u4e86\u30b3\u30fc\u30c9 " + extractExit + ")\u3002"
                     );
                 }
 
@@ -484,7 +484,7 @@ namespace OteRagSetup
                 if (!File.Exists(installer))
                 {
                     throw new FileNotFoundException(
-                        "install.ps1 was not found after extraction.",
+                        "\u5c55\u958b\u5f8c\u306b install.ps1 \u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
                         installer
                     );
                 }
@@ -496,16 +496,21 @@ namespace OteRagSetup
                     " -InstallRoot " + Quote(target) +
                     " -ServerPort " + port.ToString(CultureInfo.InvariantCulture)
                 );
-                if (installExit != 0)
+                // exit 3 = installed OK but the server startup ping timed out
+                // (usually the first model load). Treat it as success, not failure.
+                if (installExit != 0 && installExit != 3)
                 {
                     throw new InvalidOperationException(
-                        "OTE-RAG installation failed (exit " + installExit + ")."
+                        "OTE-RAG \u306e\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f(\u7d42\u4e86\u30b3\u30fc\u30c9 " + installExit + ")\u3002"
                     );
                 }
+                bool startupTimedOut = (installExit == 3);
 
                 progress.Style = ProgressBarStyle.Blocks;
                 progress.Value = 100;
-                AppendLog("Installation completed successfully.");
+                AppendLog(startupTimedOut
+                    ? "Installation completed (server startup confirmation timed out)."
+                    : "Installation completed successfully.");
 
                 try
                 {
@@ -521,7 +526,9 @@ namespace OteRagSetup
                 string url = "http://localhost:" + port.ToString(CultureInfo.InvariantCulture);
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 MessageBox.Show(
-                    "OTE-RAG \u306e\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u304c\u5b8c\u4e86\u3057\u307e\u3057\u305f\u3002\r\n\r\n" + url,
+                    (startupTimedOut
+                        ? "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306f\u5b8c\u4e86\u3057\u307e\u3057\u305f\u3002\u521d\u56de\u306f\u30e2\u30c7\u30eb\u8aad\u307f\u8fbc\u307f\u306b\u6570\u5206\u304b\u304b\u308b\u3053\u3068\u304c\u3042\u308a\u307e\u3059\u3002\u6570\u5206\u5f8c\u306b\u30c7\u30b9\u30af\u30c8\u30c3\u30d7\u306e\u30a2\u30a4\u30b3\u30f3\u304b\u3089\u958b\u3044\u3066\u304f\u3060\u3055\u3044\u3002"
+                        : "OTE-RAG \u306e\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u304c\u5b8c\u4e86\u3057\u307e\u3057\u305f\u3002") + "\r\n\r\n" + url,
                     "OTE-RAG Setup",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
@@ -535,7 +542,7 @@ namespace OteRagSetup
                     ? ""
                     : "\r\n\r\n\u8abf\u67fb\u7528\u306e\u5c55\u958b\u5148:\r\n" + workRoot;
                 MessageBox.Show(
-                    "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\r\n\r\n" +
+                    "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u74b0\u5883\u306f\u81ea\u52d5\u3067\u5143\u306b\u623b\u3057\u307e\u3057\u305f\u3002\u3053\u306e\u753b\u9762\u3092\u9589\u3058\u3066\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002\r\n\r\n" +
                     ex.Message +
                     "\r\n\r\n\u30ed\u30b0:\r\n" + logPath +
                     detail,

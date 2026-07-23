@@ -10,7 +10,7 @@
 <service>
   <id>LocalRAG-Ollama</id>
   <name>LocalRAG Ollama</name>
-  <description>LocalRAG dedicated local LLM runtime (Ollama). Serves llm-jp / mxbai-embed-large on 127.0.0.1:11435. No data leaves this machine.</description>
+  <description>LocalRAG dedicated local LLM runtime (Ollama). Serves gemma4:12b / bge-m3 on 127.0.0.1:11435. No data leaves this machine.</description>
 
   <executable>%BASE%\..\runtime\ollama\ollama.exe</executable>
   <arguments>serve</arguments>

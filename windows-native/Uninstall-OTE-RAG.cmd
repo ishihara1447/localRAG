@@ -37,18 +37,32 @@ echo.
 choice /C YN /N /M "完全に削除しますか? [Y/N]: "
 if errorlevel 2 goto keepdata
 
+:: --- 完全削除は破壊的なので二段確認する ---
 echo.
-echo [完全削除] データ・モデルも含めて削除します...
+echo [警告] 文書・ベクトル・モデルをすべて削除します。この操作は元に戻せません。
+choice /C YN /N /M "本当に文書・ベクトル・モデルまで削除しますか? [Y/N]: "
+if errorlevel 2 goto keepdata
+
+echo.
+echo [完全削除] データ・モデルも含めて削除しています...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%" -RemoveData
-goto done
+set "RC=%errorlevel%"
+goto check
 
 :keepdata
 echo.
 echo [データ保持] 文書/ベクトルは C:\ProgramData\LocalRAG\uninstalled-^<日付^> に退避します...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"
-goto done
+set "RC=%errorlevel%"
+goto check
 
-:done
+:check
 echo.
-echo アンインストールが完了しました。このウィンドウを閉じてください。
+if not "%RC%"=="0" (
+    echo [エラー] アンインストール中に問題が発生しました^(終了コード %RC%^)。
+    echo         ログ: C:\ProgramData\LocalRAG\logs
+    echo         お手数ですが、もう一度実行するか、サポートにお問い合わせください。
+) else (
+    echo アンインストールが完了しました。このウィンドウを閉じてください。
+)
 pause
