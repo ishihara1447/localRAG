@@ -53,11 +53,11 @@ services:
 
   anythingllm:
     # localRAG 改修版 (外部LLM provider allowlist 等) をソースからビルドしたカスタム image。
-    # ビルド: cd anything-llm && docker build --network=host -t localrag-anythingllm:1.0.6 -f docker/Dockerfile .
+    # ビルド: cd anything-llm && docker build --network=host -t localrag-anythingllm:1.0.7 -f docker/Dockerfile .
     # (WSL2のDNS不調時は --add-host=github.com:<IP> 等を追加。docs/HANDOFF.md [B3]参照。
     #  2026-07-18は github.com/api.github.com/objects.githubusercontent.com/registry.npmjs.org 等
     #  計7ホストの固定が必要だった)
-    image: localrag-anythingllm:1.0.6
+    image: localrag-anythingllm:1.0.7
     pull_policy: never
     container_name: anythingllm
     networks:
