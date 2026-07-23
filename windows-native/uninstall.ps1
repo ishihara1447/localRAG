@@ -1,4 +1,4 @@
-# uninstall.ps1 - Remove LocalRAG from this machine.
+﻿# uninstall.ps1 - Remove LocalRAG from this machine.
 #
 # Default: removes services and application files, KEEPS data
 # (app\server\storage is moved to C:\ProgramData\LocalRAG\uninstalled-<date>\storage).

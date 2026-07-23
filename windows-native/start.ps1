@@ -1,4 +1,4 @@
-# start.ps1 - Start the LocalRAG services (dependencies first).
+﻿# start.ps1 - Start the LocalRAG services (dependencies first).
 $ErrorActionPreference = "Stop"
 foreach ($svc in @("LocalRAG-Ollama", "LocalRAG-Collector", "LocalRAG-Server")) {
     $s = Get-Service -Name $svc -ErrorAction SilentlyContinue

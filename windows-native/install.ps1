@@ -1,4 +1,4 @@
-# install.ps1 - Install LocalRAG (Windows native, fully offline) from this package.
+﻿# install.ps1 - Install LocalRAG (Windows native, fully offline) from this package.
 #
 # Run from the extracted package root, in an elevated (Administrator) PowerShell:
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
@@ -427,6 +427,11 @@ Write-Host "Services:      LocalRAG-Server / LocalRAG-Collector / LocalRAG-Ollam
 Write-Host "Data:          $InstallRoot\app\server\storage"
 Write-Host "Logs:          $DataRoot\logs"
 Write-Host "E2E test:      set LOCALRAG_API_KEY and run rag-e2e-test.ps1 (see docs)"
+Write-Host ""
+Write-Host "アンインストール方法(いつでも削除できます):"
+Write-Host "  ・デスクトップの「OTE-RAG アンインストール」アイコンをダブルクリック、または"
+Write-Host "  ・Windows の「設定 → アプリ → インストールされているアプリ」で「OTE-RAG」を選んでアンインストール"
+Write-Host "  ・「プログラムと機能」(コントロールパネル)からも削除できます。"
 
 }
 catch {

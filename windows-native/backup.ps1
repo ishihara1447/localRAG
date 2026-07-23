@@ -1,4 +1,4 @@
-# backup.ps1 - Back up LocalRAG data (storage + hotdir + .env files).
+﻿# backup.ps1 - Back up LocalRAG data (storage + hotdir + .env files).
 #
 # Stops the services during the backup for a consistent SQLite/LanceDB snapshot,
 # then restarts them. Models and application binaries are NOT backed up (they

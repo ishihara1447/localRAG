@@ -1,4 +1,4 @@
-# install-demo.ps1 - Hands-on install for manual动作确认 (NOT the Round2 verifier).
+﻿# install-demo.ps1 - Hands-on install for manual动作确认 (NOT the Round2 verifier).
 # Unlike round2-admin-verify.ps1, this leaves the app INSTALLED and RUNNING so a
 # human can open the UI and click around. It only extracts + installs; it never
 # uninstalls. Run elevated (use Install-LocalRAG-Demo.cmd for one-click UAC).

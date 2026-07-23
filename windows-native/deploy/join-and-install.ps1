@@ -1,4 +1,4 @@
-# join-and-install.ps1 - Company-PC side: reassemble the split distribution,
+﻿# join-and-install.ps1 - Company-PC side: reassemble the split distribution,
 # verify it, then install LocalRAG and leave it running for a hands-on demo.
 #
 # The 8.3GB v1.1.0 zip is split into <2GB parts and attached to a GitHub Release

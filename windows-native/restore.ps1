@@ -1,4 +1,4 @@
-# restore.ps1 - Restore LocalRAG data from a backup zip created by backup.ps1.
+﻿# restore.ps1 - Restore LocalRAG data from a backup zip created by backup.ps1.
 #
 # Overwrites app\server\storage and app\collector\hotdir with the backup content.
 # .env files are restored only with -RestoreEnv (ports/paths may differ between machines).

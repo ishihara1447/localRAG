@@ -1,4 +1,4 @@
-# build-setup.ps1 - Build the OTE-RAG GUI bootstrapper without external tools.
+﻿# build-setup.ps1 - Build the OTE-RAG GUI bootstrapper without external tools.
 
 param(
     [string]$OutputPath = ""

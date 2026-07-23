@@ -1,4 +1,4 @@
-# export-windows.ps1 - Build the LocalRAG Windows-native distribution package.
+﻿# export-windows.ps1 - Build the LocalRAG Windows-native distribution package.
 #
 # Runs on the BUILD machine (Windows, online). The produced package installs
 # fully OFFLINE on the customer machine.

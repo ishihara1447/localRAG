@@ -1,4 +1,4 @@
-# register-services.ps1 - Install and start the three LocalRAG Windows services via WinSW.
+﻿# register-services.ps1 - Install and start the three LocalRAG Windows services via WinSW.
 #
 # Comments and messages are ASCII-only on purpose (PowerShell 5.1 compatibility,
 # same convention as scripts/*.ps1).

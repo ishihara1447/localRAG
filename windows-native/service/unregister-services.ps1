@@ -1,4 +1,4 @@
-# unregister-services.ps1 - Stop and remove the three LocalRAG Windows services.
+﻿# unregister-services.ps1 - Stop and remove the three LocalRAG Windows services.
 #
 # Does NOT delete any data (C:\ProgramData\LocalRAG is left untouched).
 # Data removal is handled by the uninstaller, not here.

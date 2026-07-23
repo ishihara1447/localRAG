@@ -1,4 +1,4 @@
-# round2-admin-verify.ps1 - Round 2 admin verification runner (docs/CODEX_WINDOWS_NATIVE_VERIFY_ROUND2_2026-07-10.md).
+﻿# round2-admin-verify.ps1 - Round 2 admin verification runner (docs/CODEX_WINDOWS_NATIVE_VERIFY_ROUND2_2026-07-10.md).
 # Authored by Codex (2026-07-10), reviewed and version-controlled by Claude Code.
 # MUST run elevated. Use Run-Round2-Verify.cmd for one-click UAC elevation.
 # Does the whole B2 flow end to end: tar extract -> install -> ping/logs ->
