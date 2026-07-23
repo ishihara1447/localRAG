@@ -23,3 +23,8 @@ Mutex/exit3ランチャー/C:容量チェックも妥当でリグレッション
 ## 総括
 Round2主要4点は解消。P1-α(データ安全性)をRound3で修正し、uninstaller/回復動線はスコープ外項目(署名・-Force /MIRアップグレード・QuietUninstall昇格)を除き収束見込み。
 （追加ハードニング: Stop-LocalRagProcessesのStartsWithを末尾区切り付きに厳密化=install.ps1/uninstall.ps1両方。）
+
+---
+## Round4 最終確認(2026-07-24)
+P1-α修正を確認: 退避成否フラグ($storagePreserved)＋keep-data退避失敗時のappスキップ＋StartsWith厳密化、いずれも正しく実装・新規リグレッションなし。
+**結論: uninstaller/回復は収束(スコープ外項目を除く)。** installer(Round3)と合わせ、fix→reviewループは収束。
