@@ -56,7 +56,7 @@ function Stop-LocalRagProcesses {
             try { $procPath = $_.Path } catch {}
             if ($procPath) {
                 foreach ($root in $roots) {
-                    if ($procPath.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    if ($procPath.StartsWith(($root.TrimEnd('\') + '\'), [System.StringComparison]::OrdinalIgnoreCase)) {
                         try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {}
                         break
                     }

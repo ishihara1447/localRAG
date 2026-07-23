@@ -36,7 +36,7 @@ function Stop-LocalRagProcesses {
             try { $procPath = $_.Path } catch {}
             if ($procPath) {
                 foreach ($root in $roots) {
-                    if ($procPath.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    if ($procPath.StartsWith(($root.TrimEnd('\') + '\'), [System.StringComparison]::OrdinalIgnoreCase)) {
                         Write-Host "Stopping process $($_.ProcessName) (PID $($_.Id)) from $procPath ..."
                         try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {}
                         break
@@ -81,15 +81,20 @@ if ($residual) {
 # warn about what could not be removed than to stop at the first failure.
 
 # 2. Preserve or remove data
+# $storagePreserved は「顧客文書(storage)を app の外へ安全に退避できたか」を表す。
+# keep-data モードで退避に失敗した場合、後続の app 一括削除で文書を消さないよう
+# 手順5で app フォルダをスキップするために使う。
+$storagePreserved = $false
 $storage = Join-Path $InstallRoot "app\server\storage"
 if (-not $RemoveData -and (Test-Path $storage)) {
     try {
         $keep = Join-Path $DataRoot "uninstalled-$(Get-Date -Format yyyyMMdd-HHmmss)"
         Write-Host "Preserving data to $keep (use -RemoveData to delete instead)..."
-        New-Item -ItemType Directory -Path $keep -Force | Out-Null
-        Move-Item $storage (Join-Path $keep "storage")
+        New-Item -ItemType Directory -Path $keep -Force -ErrorAction Stop | Out-Null
+        Move-Item $storage (Join-Path $keep "storage") -ErrorAction Stop
+        $storagePreserved = $true
     } catch {
-        Write-Host "WARN: could not preserve $storage ($($_.Exception.Message)). It may be in use; the files were left in place."
+        Write-Host "WARN: 文書データ($storage)を退避できませんでした($($_.Exception.Message))。ロックしているアプリ(エクスプローラ/ウイルス対策等)がある可能性があります。文書を保護するため、この後 $InstallRoot\app は削除せずに残します。"
     }
 }
 
@@ -120,6 +125,12 @@ Write-Host "Removing $InstallRoot ..."
 # as noted in the final message below.
 Get-ChildItem -Path $InstallRoot -Force | Where-Object { $_.FullName -ne $SelfPath } | ForEach-Object {
     $entryPath = $_.FullName
+    # keep-data モードで storage を退避できなかった場合、顧客文書を含む app フォルダは
+    # 削除しない(サイレントな文書消失を防ぐ)。ユーザーには手動削除を案内する。
+    if ((-not $RemoveData) -and (-not $storagePreserved) -and ($_.Name -eq "app")) {
+        Write-Host "文書保護のため $entryPath は削除せず残しました。ロックを解除してから手動で削除してください。"
+        return
+    }
     try { Remove-Item -Recurse -Force $entryPath -ErrorAction Stop } catch {
         Write-Host "WARN: could not remove $entryPath ($($_.Exception.Message)). It may be in use; a reboot may be required."
     }
