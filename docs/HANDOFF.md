@@ -14,7 +14,8 @@
 > - **検証済み**: 単体テストで境界跨ぎ・単一ページ複数チャンクとも正しくページ付与、既存retrieval非破壊(dev cp+restartでスモークOK)。**未実施=実PDFでのE2E**(元PDFは解析後trashされるため、白書PDFの再投入が必要)。
 > - **コミット/作業ツリー**: fork `0e0829dc`(collector+Citationの2ファイル)。**server `lance/index.js`のマーカー→pageNumber判定は先行cushion系ステージと同居のため未コミット・作業ツリー保持**(ビルドには反映される)。devコンテナへcollector+lanceをcp+restart済み。
 > - **重要な前提**: ページ番号は**再embed(文書の再投入)して初めて付く**。既存の白書embeddingは旧パース(マーカー無し)なのでpageNumber無し。→ 次のビルド後に白書PDFを投入し直して確認する。
-> - **次の一手(ユーザー合意)**: (1)**v1.2.0再ビルド**(P1・think:false・出典ページ番号・cushion/hybrid全部入り。frontendはyarn buildでCitation変更を反映) → (2)**Windows実機で動作確認**(文書投入→回答→引用モーダルにp.表示、既存のRound2回帰も)。ビルド手順は`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`系＋image再ビルド。
+> - **【2026-07-22 完了】dev image再ビルド＋実PDF E2E**: 現ソースから **`localrag-anythingllm:1.0.7`** を再ビルド(P1・think:false・出典ページ番号・cushion/hybrid全部入り、frontendも`yarn build`でCitationのp.表示を同梱)。compose切替・コンテナ再作成済み(`docker cp`パッチ依存を解消)。**実白書を再embedしフルE2E成功**: チャット回答の出典に正しいページ番号(統合作戦司令部→p.242/244、歳出額84,748→p.228)。本番WS(5ec7ec63)は新パース(マーカー付き)で再embed済み。ブラウザ`localhost:3001`で引用モーダルにp.表示を目視可能。
+> - **残り=Windows native v1.2.0パッケージング**(WSL devは完成)。`C:\LocalRAG\src`へfork同期(collector/server/frontend広範囲→ソースツリー再コピー+yarn install/build推奨)→favicon再生成→`export-windows.ps1 -Version 1.2.0`→管理者インストール→**文書投入E2Eで出典p.表示を実機確認**＋Round2回帰。手順は`docs/CODEX_WINDOWS_NATIVE_BUILD_V1.2.0_2026-07-13.md`系。**注意: Windows側srcは今セッションの全変更(P1/think:false/ページ番号)が未同期**。
 >
 > --- 以下は前セッション(2026-07-21)の記録 ---
 > **【2026-07-21 Claude】P1（拒否前の自動言い換え再検索）実装・検証完了。gemma4空回答→think:false採用。P2→不採用**
