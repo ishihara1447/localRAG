@@ -85,6 +85,11 @@ if ($residual) {
 # keep-data モードで退避に失敗した場合、後続の app 一括削除で文書を消さないよう
 # 手順5で app フォルダをスキップするために使う。
 $storagePreserved = $false
+# keep-data で storage をロック等で退避できず、app を残した(=完全には削除できなかった)ことを表す。
+# この場合、末尾で専用 exit 3 を返し、呼び出し側(Setup.exe)が「文書がロックされている」旨を
+# 具体的に案内して中止できるようにする(自動アンインストール成功と誤認して再インストールへ進むと、
+# install.ps1 の preflight が app 残存で失敗し堂々巡りになるのを防ぐ)。
+$storageLocked = $false
 $storage = Join-Path $InstallRoot "app\server\storage"
 if (-not $RemoveData -and (Test-Path $storage)) {
     try {
@@ -94,6 +99,7 @@ if (-not $RemoveData -and (Test-Path $storage)) {
         Move-Item $storage (Join-Path $keep "storage") -ErrorAction Stop
         $storagePreserved = $true
     } catch {
+        $storageLocked = $true
         Write-Host "WARN: 文書データ($storage)を退避できませんでした($($_.Exception.Message))。ロックしているアプリ(エクスプローラ/ウイルス対策等)がある可能性があります。文書を保護するため、この後 $InstallRoot\app は削除せずに残します。"
     }
 }
@@ -147,4 +153,9 @@ if ($RemoveData) {
 }
 
 Write-Host ""
+if ($storageLocked) {
+    # 文書がロックされていて app を消せなかった。呼び出し側が区別できるよう専用コードで終了する。
+    Write-Host "アンインストールは完了しましたが、文書ファイルがロックされていたため $InstallRoot\app を削除できませんでした。ロックしているアプリ(エクスプローラ/ウイルス対策等)を閉じてから、もう一度お試しください。"
+    exit 3
+}
 Write-Host "Uninstall complete. You can delete the remaining uninstall.ps1 manually."

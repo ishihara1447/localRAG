@@ -686,6 +686,18 @@ namespace OteRagSetup
 
             if (!priorFound) return true;
 
+            // uninstall.ps1 が見つからない旧版は自動削除できないので、同意を求める前に案内して中止する。
+            if (uninstallerPath == null)
+            {
+                MessageBox.Show(
+                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u304c\u898b\u3064\u304b\u308a\u307e\u3057\u305f\u304c\u3001\u81ea\u52d5\u3067\u306f\u524a\u9664\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u300c\u8a2d\u5b9a\u300d\u2192\u300c\u30a2\u30d7\u30ea\u300d\u306e\u300cOTE-RAG\u300d\u304b\u3089\u3001\u307e\u305f\u306f\u65e7\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u5148\u306e Uninstall-OTE-RAG.cmd \u3092\u76f4\u63a5\u5b9f\u884c\u3057\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return false;
+            }
+
             DialogResult confirm = MessageBox.Show(
                 "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e " + "OTE-RAG" + " \u304c\u898b\u3064\u304b\u308a\u307e\u3057\u305f\u3002" +
                     "\r\n" +
@@ -701,22 +713,27 @@ namespace OteRagSetup
             );
             if (confirm != DialogResult.OK) return false;
 
-            if (uninstallerPath == null)
-            {
-                MessageBox.Show(
-                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u304c\u898b\u3064\u304b\u308a\u307e\u3057\u305f\u304c\u3001\u81ea\u52d5\u3067\u306f\u524a\u9664\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u300c\u8a2d\u5b9a\u300d\u2192\u300c\u30a2\u30d7\u30ea\u300d\u306e\u300cOTE-RAG\u300d\u304b\u3089\u3001\u307e\u305f\u306f\u65e7\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u5148\u306e Uninstall-OTE-RAG.cmd \u3092\u76f4\u63a5\u5b9f\u884c\u3057\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-                    "OTE-RAG Setup",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                );
-                return false;
-            }
-
             AppendLog("\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u3092\u524a\u9664\u3057\u3066\u3044\u307e\u3059...");
+            progress.Style = ProgressBarStyle.Marquee;
             int uninstallExit = await RunProcessAsync(
                 "powershell.exe",
                 "-NoProfile -ExecutionPolicy Bypass -File " + Quote(uninstallerPath)
             );
+            progress.Style = ProgressBarStyle.Blocks;
+            progress.Value = 0;
+            // exit 3 = 文書ファイルがロックされていて app を削除できなかった(uninstall.ps1)。
+            // 成功扱いで進むと install.ps1 の preflight が app 残存で失敗し堂々巡りになるため、
+            // ここで具体的な原因を案内して中止する。
+            if (uninstallExit == 3)
+            {
+                MessageBox.Show(
+                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e\u6587\u66f8\u30d5\u30a1\u30a4\u30eb\u304c\u30ed\u30c3\u30af\u3055\u308c\u3066\u3044\u308b\u305f\u3081\u3001\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u3092\u5b8c\u5168\u306b\u524a\u9664\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u30a8\u30af\u30b9\u30d7\u30ed\u30fc\u30e9\u3084\u30a6\u30a4\u30eb\u30b9\u5bfe\u7b56\u30bd\u30d5\u30c8\u306a\u3069\u3001\u30d5\u30a9\u30eb\u30c0\u3092\u958b\u3044\u3066\u3044\u308b\u3082\u306e\u3092\u9589\u3058\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return false;
+            }
             if (uninstallExit != 0)
             {
                 MessageBox.Show(
