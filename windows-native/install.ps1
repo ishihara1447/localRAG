@@ -98,13 +98,12 @@ function Invoke-Rollback {
         }
     }
 
-    # 2. Remove desktop shortcuts created by this run.
+    # 2. Remove the desktop shortcut created by this run.
+    # (アンインストーラはデスクトップにショートカットを作らないため、対象は起動用の1つだけ。)
     try {
         $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
-        foreach ($lnkName in @("LocalRAG.lnk", "OTE-RAG アンインストール.lnk")) {
-            $lnkPath = Join-Path $desktop $lnkName
-            if (Test-Path $lnkPath) { Remove-Item $lnkPath -Force -ErrorAction SilentlyContinue }
-        }
+        $lnkPath = Join-Path $desktop "LocalRAG.lnk"
+        if (Test-Path $lnkPath) { Remove-Item $lnkPath -Force -ErrorAction SilentlyContinue }
     } catch {}
 
     # 3. Remove the ARP (Programs and Features) key if it was written.
@@ -116,7 +115,7 @@ function Invoke-Rollback {
     # customer's existing, functioning installation. Leave it in place and tell
     # them how to clean up manually if they want to.
     if ($script:preExisting) {
-        Write-Host "[rollback] 既存のインストールが残っている可能性があります。必要なら『OTE-RAG アンインストール』を実行してください。"
+        Write-Host "[rollback] 既存のインストールが残っている可能性があります。必要なら『設定 → アプリ』の「OTE-RAG」から、または $InstallRoot\Uninstall-OTE-RAG.cmd を実行してアンインストールしてください。"
     } elseif (Test-Path $InstallRoot) {
         $storagePath = Join-Path $InstallRoot "app\server\storage"
         if (Test-Path $storagePath) {
@@ -202,7 +201,7 @@ Info "  Ports $ServerPort/8888/11435: free"
 # Existing installation
 if (Test-Path (Join-Path $InstallRoot "app")) {
     if (-not $Force) {
-        Fail "$InstallRoot\app が既に存在します。先にアンインストール(デスクトップの「OTE-RAG アンインストール」または uninstall.ps1)を実行してください。上書きする場合は -Force を付けて再実行します(app\server\storage 内のデータは backup.ps1 でのみ保護されます。先にバックアップしてください)。"
+        Fail "$InstallRoot\app が既に存在します。先にアンインストール(『設定 → アプリ』の「OTE-RAG」、または $InstallRoot\Uninstall-OTE-RAG.cmd)を実行してください。上書きする場合は -Force を付けて再実行します(app\server\storage 内のデータは backup.ps1 でのみ保護されます。先にバックアップしてください)。"
     }
     # -Force over an existing install: if this run fails, Invoke-Rollback must
     # not delete/relocate the existing installation we are overwriting.
@@ -321,21 +320,9 @@ if (Test-Path $launcherSrc) {
         Write-Host "注意: デスクトップのショートカット作成に失敗しました。$InstallRoot\LocalRAG.html を直接開いてご利用ください。(詳細: $($_.Exception.Message))"
     }
 
-    # All-users desktop shortcut for the double-click uninstaller.
-    # Points at Uninstall-OTE-RAG.cmd which self-elevates (UAC) and runs uninstall.ps1.
-    try {
-        $desktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
-        $shell = New-Object -ComObject WScript.Shell
-        $ulnk = $shell.CreateShortcut((Join-Path $desktop "OTE-RAG アンインストール.lnk"))
-        $ulnk.TargetPath = Join-Path $InstallRoot "Uninstall-OTE-RAG.cmd"
-        $ulnk.IconLocation = (Join-Path $InstallRoot "LocalRAG.ico") + ",0"
-        $ulnk.Description = "OTE-RAG をアンインストールします"
-        $ulnk.WorkingDirectory = $InstallRoot
-        $ulnk.Save()
-        Info "  Uninstall shortcut: $(Join-Path $desktop 'OTE-RAG アンインストール.lnk')"
-    } catch {
-        Write-Host "注意: アンインストール用ショートカットの作成に失敗しました。削除するときは $InstallRoot\Uninstall-OTE-RAG.cmd を直接実行してください。(詳細: $($_.Exception.Message))"
-    }
+    # アンインストーラ(Uninstall-OTE-RAG.cmd)はデスクトップにショートカットを置かない。
+    # インストール先フォルダ($InstallRoot\Uninstall-OTE-RAG.cmd、上でコピー済み)から直接実行するか、
+    # 「設定→アプリ」/「プログラムと機能」(ARP登録、後述)から起動する。
 }
 
 # =====================================================================
@@ -396,7 +383,7 @@ try {
     } catch {}
     Info "  Registered in Programs and Features (OTE-RAG, v$displayVersion)."
 } catch {
-    Write-Host "注意: 「プログラムと機能」への登録に失敗しました。アンインストールするときはデスクトップの「OTE-RAG アンインストール」をお使いください。(詳細: $($_.Exception.Message))"
+    Write-Host "注意: 「プログラムと機能」への登録に失敗しました。アンインストールするときは $InstallRoot\Uninstall-OTE-RAG.cmd を直接実行してください。(詳細: $($_.Exception.Message))"
 }
 
 # =====================================================================
@@ -429,9 +416,9 @@ Write-Host "Logs:          $DataRoot\logs"
 Write-Host "E2E test:      set LOCALRAG_API_KEY and run rag-e2e-test.ps1 (see docs)"
 Write-Host ""
 Write-Host "アンインストール方法(いつでも削除できます):"
-Write-Host "  ・デスクトップの「OTE-RAG アンインストール」アイコンをダブルクリック、または"
 Write-Host "  ・Windows の「設定 → アプリ → インストールされているアプリ」で「OTE-RAG」を選んでアンインストール"
-Write-Host "  ・「プログラムと機能」(コントロールパネル)からも削除できます。"
+Write-Host "    (「プログラムと機能」(コントロールパネル)からも同様に削除できます)"
+Write-Host "  ・または $InstallRoot\Uninstall-OTE-RAG.cmd を直接ダブルクリックしても削除できます。"
 
 }
 catch {

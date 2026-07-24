@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Reflection;
+using Microsoft.Win32;
 
 [assembly: AssemblyTitle("OTE-RAG Setup")]
 [assembly: AssemblyProduct("OTE-RAG")]
@@ -440,6 +441,37 @@ namespace OteRagSetup
 
             int port = Decimal.ToInt32(serverPort.Value);
 
+            // --- 旧バージョンの検出・削除確認。busy(恒久ロック)を立てる前に行うので、
+            // ここでキャンセルしても画面はそのまま操作可能に戻る(閉じるしかない状態にはしない)。
+            installButton.Enabled = false;
+            browseButton.Enabled = false;
+            installRoot.Enabled = false;
+            serverPort.Enabled = false;
+            bool priorHandled;
+            try
+            {
+                priorHandled = await HandlePriorInstallAsync(target);
+            }
+            catch (Exception priorEx)
+            {
+                MessageBox.Show(
+                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e\u78ba\u8a8d\u4e2d\u306b\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002" +
+                    "\r\n\r\n" + priorEx.Message,
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                priorHandled = false;
+            }
+            if (!priorHandled)
+            {
+                installButton.Enabled = true;
+                browseButton.Enabled = true;
+                installRoot.Enabled = true;
+                serverPort.Enabled = true;
+                return;
+            }
+
             string workRoot = null;
             busy = true;
             installButton.Enabled = false;
@@ -589,7 +621,7 @@ namespace OteRagSetup
                     ? ""
                     : "\r\n\r\n\u8abf\u67fb\u7528\u306e\u5c55\u958b\u5148:\r\n" + workRoot;
                 MessageBox.Show(
-                    "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u74b0\u5883\u306f\u81ea\u52d5\u3067\u5143\u306b\u623b\u3057\u307e\u3057\u305f\u3002\u3053\u306e\u753b\u9762\u3092\u9589\u3058\u3066\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002\r\n\r\n" +
+                    "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u3053\u306e\u753b\u9762\u3092\u9589\u3058\u3066\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044(\u51e6\u7406\u306e\u9014\u4e2d\u307e\u3067\u9032\u3093\u3067\u3044\u305f\u5834\u5408\u306f\u3001\u4f5c\u6210\u3057\u305f\u30d5\u30a1\u30a4\u30eb\u3084\u30b5\u30fc\u30d3\u30b9\u306f\u81ea\u52d5\u3067\u7247\u4ed8\u3051\u3089\u308c\u3066\u3044\u307e\u3059)\u3002\r\n\r\n" +
                     ex.Message +
                     "\r\n\r\n\u30ed\u30b0:\r\n" + logPath +
                     detail,
@@ -606,6 +638,97 @@ namespace OteRagSetup
                 // 入力ミスは上の事前検証で弾いており、ここに来る失敗は再試行では解決しない。
                 busy = false;
             }
+        }
+
+        // 旧インストールを検出し、見つかれば同意を得たうえで自動的にアンインストールする。
+        // 戻り値: true=処理続行してよい(旧版なし、またはアンインストール成功)。
+        //         false=中止(ユーザーがキャンセル、または自動削除できなかった)。
+        // 文書データは uninstall.ps1 の既定どおり保持される(削除ではなく退避)。
+        private async Task<bool> HandlePriorInstallAsync(string target)
+        {
+            string uninstallerPath = null;
+
+            // 1) ARP(プログラムと機能)に登録された旧バージョンを探す。
+            try
+            {
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OTE-RAG"))
+                {
+                    if (key != null)
+                    {
+                        object loc = key.GetValue("InstallLocation");
+                        if (loc != null)
+                        {
+                            string candidate = Path.Combine(loc.ToString(), "uninstall.ps1");
+                            if (File.Exists(candidate)) uninstallerPath = candidate;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // レジストリが読めなくても、以下のフォルダ検出にフォールバックする。
+            }
+
+            bool priorFound = uninstallerPath != null;
+
+            // 2) ARPに無くても、インストール先に旧 app フォルダが残っていれば検出する。
+            if (!priorFound)
+            {
+                string appDir = Path.Combine(target, "app");
+                if (Directory.Exists(appDir))
+                {
+                    priorFound = true;
+                    string candidate = Path.Combine(target, "uninstall.ps1");
+                    if (File.Exists(candidate)) uninstallerPath = candidate;
+                }
+            }
+
+            if (!priorFound) return true;
+
+            DialogResult confirm = MessageBox.Show(
+                "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e " + "OTE-RAG" + " \u304c\u898b\u3064\u304b\u308a\u307e\u3057\u305f\u3002" +
+                    "\r\n" +
+                    "\u524a\u9664\u3057\u3066\u304b\u3089\u65b0\u3057\u3044\u30d0\u30fc\u30b8\u30e7\u30f3\u3092\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u3057\u307e\u3059\u3002" +
+                    "\r\n" +
+                    "\u304a\u5ba2\u69d8\u306e\u6587\u66f8\u30c7\u30fc\u30bf\u306f\u524a\u9664\u3055\u308c\u305a\u3001" +
+                    "C:\\ProgramData\\LocalRAG\\uninstalled-<" + "\u65e5\u4ed8" + ">" + " \u306b\u4fdd\u6301\u3055\u308c\u307e\u3059\u3002" +
+                    "\r\n\r\n" +
+                    "\u7d9a\u884c\u3057\u307e\u3059\u304b\u3002",
+                "OTE-RAG Setup",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Warning
+            );
+            if (confirm != DialogResult.OK) return false;
+
+            if (uninstallerPath == null)
+            {
+                MessageBox.Show(
+                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u304c\u898b\u3064\u304b\u308a\u307e\u3057\u305f\u304c\u3001\u81ea\u52d5\u3067\u306f\u524a\u9664\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u300c\u8a2d\u5b9a\u300d\u2192\u300c\u30a2\u30d7\u30ea\u300d\u306e\u300cOTE-RAG\u300d\u304b\u3089\u3001\u307e\u305f\u306f\u65e7\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u5148\u306e Uninstall-OTE-RAG.cmd \u3092\u76f4\u63a5\u5b9f\u884c\u3057\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return false;
+            }
+
+            AppendLog("\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u3092\u524a\u9664\u3057\u3066\u3044\u307e\u3059...");
+            int uninstallExit = await RunProcessAsync(
+                "powershell.exe",
+                "-NoProfile -ExecutionPolicy Bypass -File " + Quote(uninstallerPath)
+            );
+            if (uninstallExit != 0)
+            {
+                MessageBox.Show(
+                    "\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e\u30a2\u30f3\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u624b\u52d5\u3067\u30a2\u30f3\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u3057\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+                    "OTE-RAG Setup",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return false;
+            }
+            AppendLog("\u65e7\u30d0\u30fc\u30b8\u30e7\u30f3\u306e\u524a\u9664\u304c\u5b8c\u4e86\u3057\u307e\u3057\u305f\u3002");
+            return true;
         }
 
         private async Task<int> RunProcessAsync(string fileName, string arguments)
