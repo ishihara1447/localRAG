@@ -26,6 +26,14 @@ precision-eval.py が小型文書4つでの基礎精度を見るのに対し、�
 
 このスクリプト自体がAPIキーを発行・削除するため、事前のキー発行は不要。
 回答に <think>...</think> ブロックが含まれる場合は判定前に除去する。
+
+★2026-07-26 (評価ハーネス修正) 2点:
+  1. 設問ごとに一意な `sessionId` を振るようにした。従来は sessionId を指定しておらず
+     30問が同一セッションに積み上がり、直前の設問の質疑がコンテキストに混入していた。
+  2. 実行後のワークスペース削除の**戻り値を検査する**ようにした。
+     dev環境は `WORKSPACE_DELETION_PROTECTION` により DELETE が 403 で拒否されるが、
+     従来は戻り値を見ていなかったため失敗が沈黙し、規程10本入りのワークスペースが
+     残り続けていた（詳細: docs/EVAL_HARNESS_FIXES_2026-07-26.md）。
 """
 
 from __future__ import annotations
@@ -35,10 +43,15 @@ import os
 import re
 import sys
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# S02: 正規化は scripts/_eval_common.py に集約（挙動は従来と同一）
+from _eval_common import strip_think
 
 BASE_URL = os.environ.get("LOCALRAG_BASE_URL", "http://localhost:3001")
 SCALE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "scale"
@@ -256,11 +269,50 @@ def wait_for_embeddings(client: httpx.Client, headers: dict, slug: str) -> None:
     raise TimeoutError(f"embeddingが{EMBEDDING_WAIT_TIMEOUT:.0f}秒以内に完了しませんでした")
 
 
-def ask(client: httpx.Client, headers: dict, slug: str, question: str) -> tuple[str, list[str]]:
+def delete_workspace(client: httpx.Client, headers: dict, slug: str) -> bool:
+    """評価用ワークスペースを削除する。**失敗を握りつぶさない。**
+
+    `WORKSPACE_DELETION_PROTECTION` が設定された環境では DELETE が 403 で拒否される。
+    従来は戻り値を見ていなかったため、失敗しても沈黙して規程10本入りのワークスペースが
+    残り続けていた。失敗したら何が残ったかと後始末の手順を明示する。
+    """
+    try:
+        r = client.delete(f"{BASE_URL}/api/v1/workspace/{slug}", headers=headers,
+                          timeout=TIMEOUT)
+    except Exception as e:  # noqa: BLE001
+        print(f"\n!! ワークスペース削除の呼び出しに失敗しました: {e}")
+        r = None
+    if r is not None and r.status_code == 200:
+        print(f"  ワークスペース削除: OK (slug={slug})")
+        return True
+
+    code = "例外" if r is None else r.status_code
+    body = "" if r is None else r.text[:200]
+    print("\n" + "!" * 72)
+    print(f"!! ワークスペースの削除に失敗しました (HTTP {code}) slug={slug}")
+    if body:
+        print(f"!!   応答: {body}")
+    if r is not None and r.status_code == 403:
+        print("!!   原因: サーバに WORKSPACE_DELETION_PROTECTION が設定されており、")
+        print("!!         DELETE /api/v1/workspace/:slug は常に403で拒否される")
+        print("!!         （UI からの削除経路 DELETE /workspace/:slug も同じ保護下）。")
+    print(f"!! 残留物: 規程{len(FIXTURE_FILES)}本入りのワークスペース `{slug}` と")
+    print("!!         そのLanceDBテーブル（storage/lancedb/<slug>.lance ほか）。")
+    print("!! 後始末: runtime/docker-compose.yml の WORKSPACE_DELETION_PROTECTION を")
+    print("!!         一時的に外してコンテナを作り直し、UIから削除してから元に戻すこと。")
+    print("!! 放置すると実行のたびに `scale-eval-<乱数>` が増え続ける。")
+    print("!" * 72)
+    return False
+
+
+def ask(client: httpx.Client, headers: dict, slug: str, question: str,
+        session: str) -> tuple[str, list[str]]:
     r = client.post(
         f"{BASE_URL}/api/v1/workspace/{slug}/chat",
         headers=headers,
-        json={"message": question, "mode": "query"},
+        # sessionId を必ず渡す。省略すると30問が同一セッションに積まれ、
+        # 直前の設問の質疑が履歴としてコンテキストに入って交絡する。
+        json={"message": question, "mode": "query", "sessionId": session},
         timeout=TIMEOUT,
     )
     r.raise_for_status()
@@ -268,11 +320,6 @@ def ask(client: httpx.Client, headers: dict, slug: str, question: str) -> tuple[
     answer = d.get("textResponse", "") or ""
     sources = [s.get("title", "") for s in d.get("sources", [])]
     return answer, sources
-
-
-def strip_think(text: str) -> str:
-    """推論モデルの <think>...</think> ブロックを判定対象から除去する。"""
-    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 # 不明応答（＝コンテキストに該当が無いと正しく答えた）を検出するパターン。
@@ -289,8 +336,11 @@ UNKNOWN_PATTERNS = re.compile(
 
 def evaluate(client: httpx.Client, headers: dict, slug: str, cases: list[Case]) -> dict[str, tuple[int, int]]:
     results: dict[str, tuple[int, int]] = {k: (0, 0) for k in CATEGORY_LABELS}
-    for c in cases:
-        raw_answer, sources = ask(client, headers, slug, c.question)
+    run = uuid.uuid4().hex[:8]
+    print(f"(sessionId per question, run={run})")
+    for i, c in enumerate(cases, 1):
+        raw_answer, sources = ask(client, headers, slug, c.question,
+                                  f"scale-eval-{run}-{i:02d}")
         answer = strip_think(raw_answer)
         ok = True
         reason = []
@@ -377,7 +427,7 @@ def main() -> int:
             wait_for_embeddings(client, headers, slug)
 
             results = evaluate(client, headers, slug, CASES)
-            client.delete(f"{BASE_URL}/api/v1/workspace/{slug}", headers=headers)
+            deleted = delete_workspace(client, headers, slug)
 
             print()
             print("=== カテゴリ別内訳 ===")
@@ -388,6 +438,8 @@ def main() -> int:
                 total_all += total
                 print(f"  {label}: {hits}/{total}")
             print(f"=== 合計: {total_hits}/{total_all}（{topn_desc}） ===")
+            if not deleted:
+                print(f"※ 評価用ワークスペース `{slug}` は削除できずに残っている（上の警告参照）。")
             return 0 if total_hits == total_all else 1
         finally:
             api_key_delete_all(client, headers)

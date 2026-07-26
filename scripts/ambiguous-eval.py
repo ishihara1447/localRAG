@@ -26,7 +26,11 @@ hakusho-eval.py の30問から15問を選び、正解キーワード（採点基
   HAKUSHO_SLUG=<slug> AMB_OUT=/tmp/amb.json \
     ~/.local/bin/uv run --with httpx python3 scripts/ambiguous-eval.py
 """
-import os, re, json, time, uuid, httpx
+import os, re, sys, json, time, uuid, httpx
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# S02: 正規化は scripts/_eval_common.py に集約（挙動は従来と同一）
+from _eval_common import strip_think, squash_ws
 
 BASE = os.environ.get("LOCALRAG_BASE_URL", "http://localhost:3001")
 SLUG = os.environ.get("HAKUSHO_SLUG", "hakusho-eval")
@@ -113,10 +117,6 @@ def newkey(c):
                   json={"name": "amb-eval"}).json()["apiKey"]["secret"]
 
 
-def strip_think(t):
-    return re.sub(r"<think>.*?</think>", "", t, flags=re.DOTALL).strip()
-
-
 def ask(c, h, q, session):
     r = c.post(f"{BASE}/api/v1/workspace/{SLUG}/chat", headers=h,
                json={"message": q, "mode": "query", "sessionId": session},
@@ -128,8 +128,8 @@ def ask(c, h, q, session):
 
 def grade(ans, spec):
     if isinstance(spec, tuple):
-        a = re.sub(r"\s+", "", ans)  # PDF由来の字間空白を吸収（hakusho-eval同様）
-        return all(re.sub(r"\s+", "", k) in a for k in spec[1])
+        a = squash_ws(ans)  # PDF由来の字間空白を吸収（hakusho-eval同様）
+        return all(squash_ws(k) in a for k in spec[1])
     return bool(re.search(spec, ans))
 
 
@@ -139,8 +139,8 @@ def failure_mode(ans, spec):
     if UNKNOWN.search(ans):
         return "refusal"
     if isinstance(spec, tuple):
-        a = re.sub(r"\s+", "", ans)
-        hit = sum(1 for k in spec[1] if re.sub(r"\s+", "", k) in a)
+        a = squash_ws(ans)
+        hit = sum(1 for k in spec[1] if squash_ws(k) in a)
         if 0 < hit < len(spec[1]):
             return f"partial({hit}/{len(spec[1])})"
     return "wrong"

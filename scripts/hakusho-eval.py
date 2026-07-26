@@ -17,12 +17,30 @@
     モデルの「65歳」回答は白書に忠実で捏造ではなかった（＝不明期待が不適切）。
     白書と完全に無縁な「雇用保険の失業給付」(雇用保険/失業給付ともに白書0回、grep確認済み)へ差替。
 
-環境変数: HAKUSHO_SLUG(必須), TOPN, PROMPT_FILE, CHAT_MODEL, LOCALRAG_BASE_URL。
+2026-07-26 (S01 / 品質ロードマップ Phase A): これまで `ans,_=ask(...)` と捨てていた
+chat APIの `sources`（＝検索側の観測データ）を実行ログJSONに保存するようにした。
+**採点ロジックは一切変更していない**（合計スコアは変更前と一致することを確認済み）。
+HAKUSHO_OUT を指定したときだけJSONを書き出す。未指定なら従来と完全に同じ挙動。
+
+★2026-07-26 (評価ハーネス修正): **設問ごとに一意な `sessionId` を振るようにした**。
+それまで sessionId を一切指定していなかったため、30問すべてが既定セッションに積み上がり、
+`openAiHistory` 件数ぶんの直前の質疑がコンテキストに混入していた（しかも履歴の中身は
+run ごと・過去の手動テストの有無で変わる）。complex-eval / ambiguous-eval と同じ方式に揃えた。
+**これはベースラインの定義変更である**。旧ベースライン「28〜29/30」とは連続しないので、
+比較する場合は必ず新旧を併記すること（詳細: docs/EVAL_HARNESS_FIXES_2026-07-26.md）。
+
+環境変数: HAKUSHO_SLUG(必須), TOPN, PROMPT_FILE, CHAT_MODEL, LOCALRAG_BASE_URL,
+          HAKUSHO_OUT(実行ログJSON出力先。sources を含む),
+          HAKUSHO_RUN(sessionId に埋め込む run 識別子。省略時はランダム)。
 注意: n=30・単発は依然ノイズを含む。施策比較は最低2回実行しレンジを併記すること。
 """
-import os, re, httpx
+import os, re, sys, json, time, uuid, httpx
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+# S02: 正規化は scripts/_eval_common.py に集約（挙動は従来と同一）
+from _eval_common import strip_think, squash_ws
 BASE=os.environ.get("LOCALRAG_BASE_URL","http://localhost:3001")
 SLUG=os.environ.get("HAKUSHO_SLUG","hakusho-eval")
+OUT=os.environ.get("HAKUSHO_OUT","")
 TIMEOUT=300.0
 # 不明応答検出。否定語を伴わない裸の「含まれて」「記載されて」「該当する」は
 # 肯定文にもマッチしハルシネーションを見逃すため、否定形を要求する。
@@ -66,17 +84,22 @@ CASES=[
  ("e","陸・海・空自の主要部隊を平常時からひとまとめに指揮するトップの役職名は何ですか。", r"統合作戦司令官"),
 ]
 def newkey(c): return c.post(f"{BASE}/api/system/generate-api-key",json={"name":"e30"}).json()["apiKey"]["secret"]
-def strip_think(t): return re.sub(r"<think>.*?</think>","",t,flags=re.DOTALL).strip()
-def ask(c,h,q):
-    r=c.post(f"{BASE}/api/v1/workspace/{SLUG}/chat",headers=h,json={"message":q,"mode":"query"},timeout=TIMEOUT)
+def ask(c,h,q,session):
+    # sessionId を必ず渡す。省略すると全問が既定セッションに積まれ、直前の
+    # 質疑（＝他設問の回答や過去の手動テスト）が履歴としてコンテキストに入り、
+    # run 間で条件が変わってしまう。設問ごとに独立させる。
+    r=c.post(f"{BASE}/api/v1/workspace/{SLUG}/chat",headers=h,
+             json={"message":q,"mode":"query","sessionId":session},timeout=TIMEOUT)
     r.raise_for_status(); d=r.json()
-    return strip_think(d.get("textResponse","") or ""),[s.get("title","") for s in d.get("sources",[])]
+    # S01: sources は title だけに潰さず生のまま返す。title は全問 R07zenpen.pdf で
+    # 情報量ゼロであり、観測データとして意味があるのは text / pageNumber / score のため。
+    return strip_think(d.get("textResponse","") or ""),(d.get("sources",[]) or [])
 def grade(ans,spec):
     if spec is None: return bool(UNKNOWN.search(ans))
     if isinstance(spec,tuple):
         # PDF由来の字間空白を吸収してからキーワード全含有を判定
-        a=re.sub(r"\s+","",ans)
-        return all(re.sub(r"\s+","",k) in a for k in spec[1])
+        a=squash_ws(ans)
+        return all(squash_ws(k) in a for k in spec[1])
     return bool(re.search(spec,ans))
 def main():
     with httpx.Client() as c:
@@ -89,11 +112,18 @@ def main():
         if cm: c.post(f"{BASE}/api/v1/workspace/{SLUG}/update",headers=h,json={"chatProvider":"ollama","chatModel":cm}); print(f"(chatModel={cm})")
         pf=os.environ.get("PROMPT_FILE")
         if pf: c.post(f"{BASE}/api/v1/workspace/{SLUG}/update",headers=h,json={"openAiPrompt":open(pf,encoding='utf-8').read()}); print("(prompt overridden)")
-        cats={}
-        for cat,q,spec in CASES:
-            ans,_=ask(c,h,q)
+        run=os.environ.get("HAKUSHO_RUN") or uuid.uuid4().hex[:8]
+        print(f"(sessionId per question, run={run})")
+        cats={}; log=[]
+        for i,(cat,q,spec) in enumerate(CASES,1):
+            t0=time.time()
+            sid=f"hakusho-{run}-{i:02d}"
+            ans,srcs=ask(c,h,q,sid)
             ok=grade(ans,spec)
             cats.setdefault(cat,[0,0]); cats[cat][1]+=1; cats[cat][0]+=ok
+            log.append({"no":i,"cat":cat,"question":q,"ok":bool(ok),
+                        "answer":ans,"sec":round(time.time()-t0,1),
+                        "session":sid,"sources":srcs})
             print(f"[{'OK' if ok else 'NG'}] ({cat}) {q[:34]}…")
             if not ok: print(f"      → {ans[:130]}")
         print("\n=== カテゴリ別 ===")
@@ -102,4 +132,12 @@ def main():
         for cat in "abcde":
             if cat in cats: o,n=cats[cat]; to+=o; tn2+=n; print(f"  {cat}) {L[cat]}: {o}/{n}")
         print(f"=== 合計: {to}/{tn2} ===")
+        if OUT:
+            with open(OUT,"w",encoding="utf-8") as f:
+                json.dump({"slug":SLUG,"run":run,"topN":os.environ.get("TOPN"),
+                           "chat_model":os.environ.get("CHAT_MODEL"),
+                           "total":[to,tn2],
+                           "by_cat":{k:v for k,v in cats.items()},
+                           "cases":log},f,ensure_ascii=False,indent=1)
+            print(f"(実行ログJSON → {OUT})")
 main()

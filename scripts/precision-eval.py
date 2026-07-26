@@ -133,11 +133,51 @@ def upload(client: httpx.Client, headers: dict, slug: str, path: Path, mime: str
     return ok
 
 
-def ask(client: httpx.Client, headers: dict, slug: str, question: str) -> tuple[str, list[str]]:
+def delete_workspace(client: httpx.Client, headers: dict, slug: str) -> bool:
+    """評価用ワークスペースを削除する。**失敗を握りつぶさない。**
+
+    2026-07-26 追加。従来は戻り値を検査していなかったため、`WORKSPACE_DELETION_PROTECTION`
+    が有効な環境では DELETE が 403 で拒否されても沈黙し、**1回の実行で2件のワークスペースが
+    残り続けていた**（`scale-eval.py` と同じ欠陥。`docs/EVAL_HARNESS_FIXES_2026-07-26.md`）。
+    """
+    try:
+        r = client.delete(f"{BASE_URL}/api/v1/workspace/{slug}", headers=headers,
+                          timeout=TIMEOUT)
+    except Exception as e:  # noqa: BLE001
+        print(f"\n!! ワークスペース削除の呼び出しに失敗しました: {e}")
+        r = None
+    if r is not None and r.status_code == 200:
+        print(f"  ワークスペース削除: OK (slug={slug})")
+        return True
+
+    code = "例外" if r is None else r.status_code
+    body = "" if r is None else r.text[:200]
+    print("\n" + "!" * 72)
+    print(f"!! ワークスペースの削除に失敗しました (HTTP {code}) slug={slug}")
+    if body:
+        print(f"!!   応答: {body}")
+    if r is not None and r.status_code == 403:
+        print("!!   原因: サーバに WORKSPACE_DELETION_PROTECTION が設定されており、")
+        print("!!         API・UI・admin のいずれの経路からも削除できない。")
+        print("!!   後始末: runtime/docker-compose.yml から同環境変数を一時的に外して")
+        print("!!           コンテナを再作成し、UI から削除してから元に戻す。")
+    print(f"!! 残留物: ワークスペース `{slug}` とそのLanceDBテーブル。")
+    print("!" * 72 + "\n")
+    return False
+
+
+def ask(client: httpx.Client, headers: dict, slug: str, question: str,
+        session: str | None = None) -> tuple[str, list[str]]:
+    # sessionId を必ず渡す。省略すると設問が同一セッションに積まれ、直前の回答が
+    # 履歴としてプロンプトに載って結果が交絡する（2026-07-26 に hakusho-eval で実証。
+    # 検索結果が同一でも回答が 23〜24/30 の設問で変わった）。
+    body = {"message": question, "mode": "query"}
+    if session:
+        body["sessionId"] = session
     r = client.post(
         f"{BASE_URL}/api/v1/workspace/{slug}/chat",
         headers=headers,
-        json={"message": question, "mode": "query"},
+        json=body,
         timeout=TIMEOUT,
     )
     r.raise_for_status()
@@ -147,15 +187,23 @@ def ask(client: httpx.Client, headers: dict, slug: str, question: str) -> tuple[
     return answer, sources
 
 
+# 2026-07-26 修正: 裸の「含まれて」「記載されて」は**肯定文にも一致する**ため、
+# ハルシネーションを「不明応答＝正解」と誤判定していた（内部監査 §1-1 が指摘し
+# hakusho-eval.py では修正済みだった既知バグの取り残し）。否定形を要求する形に直す。
 UNKNOWN_PATTERNS = re.compile(
-    r"不明|見つかり|ありません|no relevant|don't have|情報がない|含まれて|記載されて|記載がない|わかりません|お答えできません|定めない|定めていない"
+    r"不明|見つかり|ありません|情報がない|no relevant|don't have"
+    r"|含まれていない|含まれていません|含まれておりません"
+    r"|記載がない|記載されていない|記載されていません"
+    r"|わかりません|お答えでき|存在しません|定めない|定めていない"
 )
 
 
 def evaluate(client: httpx.Client, headers: dict, slug: str, cases: list[Case]) -> tuple[int, int]:
     hits, total = 0, len(cases)
-    for c in cases:
-        answer, sources = ask(client, headers, slug, c.question)
+    for i, c in enumerate(cases, 1):
+        # 設問ごとに一意な sessionId（履歴の交絡を避ける。2026-07-26）
+        answer, sources = ask(client, headers, slug, c.question,
+                              session=f"precision-{slug}-{i}")
         ok = True
         reason = []
         if c.expect_unknown:
@@ -198,7 +246,7 @@ def main() -> int:
             upload(client, headers, slug1, FIXTURES_DIR / "test-hr-manual.txt", "text/plain")
             time.sleep(5)
             hits1, total1 = evaluate(client, headers, slug1, SINGLE_DOC_CASES)
-            client.delete(f"{BASE_URL}/api/v1/workspace/{slug1}", headers=headers)
+            delete_workspace(client, headers, slug1)
 
             print()
             print("=== 2. 複数文書混在時の出典判別精度（4文書を同一ワークスペースに投入、topN=8） ===")
@@ -213,7 +261,7 @@ def main() -> int:
             upload(client, headers, slug2, FIXTURES_DIR / "test-hr-manual.txt", "text/plain")
             time.sleep(5)
             hits2, total2 = evaluate(client, headers, slug2, MULTI_DOC_CASES)
-            client.delete(f"{BASE_URL}/api/v1/workspace/{slug2}", headers=headers)
+            delete_workspace(client, headers, slug2)
 
             print()
             total_hits, total_all = hits1 + hits2, total1 + total2
