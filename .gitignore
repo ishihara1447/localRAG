@@ -61,3 +61,6 @@ runtime/ollama-models/
 
 # 大容量・機微な精度評価用データ（実文書等。コミット禁止）
 fixtures/local/
+
+# エージェントが作業用に作るディレクトリ（本来は /tmp を使う。コミットしない）
+/scratchpad/

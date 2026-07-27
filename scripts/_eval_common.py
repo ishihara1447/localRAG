@@ -233,8 +233,8 @@ def _continues_right(marked: str, e: int) -> bool:
     return False
 
 
-def find_bounded(marked_haystack: str, needle_normalized: str) -> int:
-    """番兵入り haystack から needle を探す。**桁境界を跨いだ一致は採らない**。
+def iter_bounded(marked_haystack: str, needle_normalized: str):
+    """番兵入り haystack 中の needle の出現位置を、**桁境界つきで**先頭から順に返す。
 
     採らない条件（needle 側が数字で終始する端についてのみ判定する）:
 
@@ -246,10 +246,14 @@ def find_bounded(marked_haystack: str, needle_normalized: str) -> int:
       `約1710000円` に対する `17100`   → 直後が `0` なので不一致（桁の途中）
       `1,707 1,422` に対する `1,422`   → 直前は空白（番兵）なので**一致**（別の数値）
 
-    戻り値は番兵を除いた文字列上のインデックス（見つからなければ -1）。
+    yield するのは番兵を除いた文字列上のインデックス。
+    2026-07-27 追加: 排他語（`match.not_part_of`）の判定で「1つ目の一致が排他語の内側
+    だったとき、2つ目以降の一致を見に行く」必要が出たため、`find_bounded()` の
+    ループ本体をここに切り出した。`find_bounded()` は本関数の最初の1件を返すだけであり、
+    **戻り値は切り出し前と1件も変わらない**。
     """
     if not needle_normalized:
-        return -1
+        return
     clean, idx = _clean_and_map(marked_haystack)
     n = len(needle_normalized)
     i = clean.find(needle_normalized)
@@ -258,9 +262,17 @@ def find_bounded(marked_haystack: str, needle_normalized: str) -> int:
         left_bad = needle_normalized[0] in _DIGITS and _continues_left(marked_haystack, s)
         right_bad = needle_normalized[-1] in _DIGITS and _continues_right(marked_haystack, e)
         if not (left_bad or right_bad):
-            return i
+            yield i
         i = clean.find(needle_normalized, i + 1)
-    return -1
+
+
+def find_bounded(marked_haystack: str, needle_normalized: str) -> int:
+    """番兵入り haystack から needle を探す。**桁境界を跨いだ一致は採らない**。
+
+    詳細は `iter_bounded()`。戻り値は番兵を除いた文字列上のインデックス
+    （見つからなければ -1）。
+    """
+    return next(iter_bounded(marked_haystack, needle_normalized), -1)
 
 
 def contains_marked(marked_haystack: str, needle: str) -> bool:

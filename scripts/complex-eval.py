@@ -24,6 +24,8 @@
                         Cohen's κ を測る（人手ラベル無しの擬似正解キャリブレーション）。
                         `--human-labels` を渡すと人手ラベルとの κ も出す。
     --phase report      複数runの集計・クラスタブートストラップCI・Wilson CI・McNemar。
+    --phase failmode    保存済み retrieval JSON（＋任意で judge JSON）から失敗モードを分類。
+                        **anchor_coverage@8 が主・page_coverage は参考値**（A1, 2026-07-27）。
 
 実行例
 ------
@@ -68,6 +70,7 @@ import httpx  # noqa: E402
 
 from _eval_common import (  # noqa: E402
     contains_marked,
+    iter_bounded,
     normalize,
     normalize_marked,
     strip_think,
@@ -233,15 +236,33 @@ def report_retrieval(out: dict) -> None:
         print(f"  {cat} {CAT_LABEL[cat]:<14}: @8={_mean([c['k']['8']['coverage'] for c in sub]):.3f}"
               f"  @32={_mean([c['k']['32']['coverage'] for c in sub]):.3f}  (n={len(sub)})")
 
+    print("\n=== カテゴリ別 anchor_coverage@8 / @32（★アンカー方式・主指標） ===")
+    for cat in CATS:
+        sub = [c for c in aa if c["category"] == cat]
+        if not sub:
+            print(f"  {cat} {CAT_LABEL[cat]:<14}: (anchor無し)")
+            continue
+        print(f"  {cat} {CAT_LABEL[cat]:<14}: "
+              f"@8={_mean([c['k']['8']['anchor_coverage'] for c in sub]):.3f}"
+              f"  @32={_mean([c['k']['32']['anchor_coverage'] for c in sub]):.3f}  (n={len(sub)})")
+
     # ★ k を増やせば取れるのか / 増やしても取れないのか の切り分け
-    print("\n=== 設問別: k を増やしたときの Coverage の伸び（★投資判断の根拠） ===")
-    print(f"{'ID':<5}{'cat':<4}{'@4':>6}{'@8':>6}{'@16':>6}{'@32':>6}  判定")
+    #
+    # 【2026-07-27 A1】判定の主軸を page_coverage → **anchor_coverage** に切り替えた。
+    #   ページ方式は「その gold ページのチャンクが1つでも取れたか」しか見ないため、
+    #   **必要な数値を1つも含まない隣接チャンクでも 1.00 を返す**。
+    #   実際にこの指標に2度誤誘導されている（クッションの k 非単調性の解釈 /
+    #   Q12・Q15 を「生成失敗」と誤分類）。ページ方式の値は参考として併記するが、
+    #   **分類の根拠には使わない**（docs/HANDOFF.md §2）。
+    print("\n=== 設問別: k を増やしたときの anchor_coverage の伸び（★投資判断の根拠／アンカー方式） ===")
+    print(f"{'ID':<5}{'cat':<4}{'a@4':>6}{'a@8':>6}{'a@16':>6}{'a@32':>6}"
+          f" |{'p@8':>6}{'p@32':>7} | 判定")
     rank_bound, index_bound, solved, partial = [], [], [], []
-    for c in ans:
-        v = [c["k"][str(k)]["coverage"] for k in out["ks"]]
+    for c in aa:
+        v = [c["k"][str(k)]["anchor_coverage"] for k in out["ks"]]
         c4, c8, c16, c32 = v
         if c8 == 1.0:
-            verdict, bucket = "既に全gold取得済み(@8)", solved
+            verdict, bucket = "既に全anchor取得済み(@8)", solved
         elif c32 > c8:
             verdict, bucket = "★kを増やせば取れる＝ランキングの問題", rank_bound
         elif c32 < 1.0:
@@ -249,21 +270,152 @@ def report_retrieval(out: dict) -> None:
         else:
             verdict, bucket = "その他", partial
         bucket.append(c["id"])
-        print(f"{c['id']:<5}{c['category']:<4}{c4:>6.2f}{c8:>6.2f}{c16:>6.2f}{c32:>6.2f}  {verdict}")
-    print(f"\n  @8で全gold取得済み            : {len(solved)}問 {solved}")
+        p8 = c["k"]["8"]["coverage"]
+        p32 = c["k"]["32"]["coverage"]
+        ps8 = " n/a" if p8 is None else f"{p8:.2f}"
+        ps32 = " n/a" if p32 is None else f"{p32:.2f}"
+        print(f"{c['id']:<5}{c['category']:<4}{c4:>6.2f}{c8:>6.2f}{c16:>6.2f}{c32:>6.2f}"
+              f" |{ps8:>6}{ps32:>7} | {verdict}")
+    print(f"\n  @8で全anchor取得済み          : {len(solved)}問 {solved}")
     print(f"  kを増やせば取れる(ランキング) : {len(rank_bound)}問 {rank_bound}")
     print(f"  kを増やしても取れない(索引)   : {len(index_bound)}問 {index_bound}"
           f"  ← この件数が Phase E（チャンク構造化）の投資判断の根拠")
     if partial:
         print(f"  その他                        : {len(partial)}問 {partial}")
+    print("  ※ p@8 / p@32 はページ方式の参考値。分類には使っていない（A1）")
 
-    print("\n=== 取り切れていない gold ページ（@32時点）===")
-    for c in ans:
+    print("\n=== 取り切れていない anchor（@32時点）===")
+    for c in aa:
         m = c["k"]["32"]
-        if m["coverage"] is not None and m["coverage"] < 1.0:
-            print(f"  {c['id']}: covered={m['page_covered']} / gold {c['n_gold']}件中"
-                  f" {len(m['page_covered'])}件, anchor未取得="
-                  f"{c['n_anchor'] - len(m['anchor_covered'])}件")
+        if m["anchor_coverage"] is not None and m["anchor_coverage"] < 1.0:
+            miss = [a for a in _case_anchors(c) if a not in set(m["anchor_covered"])] \
+                if _case_anchors(c) else []
+            print(f"  {c['id']}: anchor {len(m['anchor_covered'])}/{c['n_anchor']}件取得"
+                  f"（未取得 {c['n_anchor'] - len(m['anchor_covered'])}件"
+                  f"{'' if not miss else ': ' + ', '.join(miss)}）"
+                  f" / 参考: page {len(m['page_covered'])}/{c['n_gold']}件")
+
+    classify_and_report(out, None)
+
+
+def _case_anchors(row: dict) -> list[str]:
+    """fixture 側のアンカー一覧（retrieval JSON には未取得アンカー名が残らないため補う）。"""
+    try:
+        data = load_set()
+    except Exception:
+        return []
+    for c in data["cases"]:
+        if c["id"] == row["id"]:
+            return list(c.get("anchors") or [])
+    return []
+
+
+# ==========================================================================
+# 失敗モード分類（A1: アンカー方式を主・ページ方式を従）
+# ==========================================================================
+#
+# 【なぜアンカー方式が主なのか】
+#   page_coverage は「gold ページ由来のチャンクが1つでも取れたか」だけを見る。
+#   本製品は文抽出クッションでチャンク本文を非連続な文の集合に置き換えるため、
+#   **必要な数値・固有名詞を1つも含まないチャンクでも page_coverage=1.00 になる**。
+#   実測で Q12・Q15・Q18 は page_coverage@8=1.00 / anchor_coverage@8=0.00 であり、
+#   ページ方式だけを見て「生成失敗」と分類したのは誤りだった（docs/HANDOFF.md §2）。
+#
+# 分類則（すべて @8 = 製品既定 topN。しきい値はコードに固定して事後変更しない）
+#   ret 側: anchor_coverage@8   （anchors を持たない設問のみ page_coverage@8 に退避）
+#   gen 側: det_coverage        （[N]/[E] 必須要素。judge 出力がある場合のみ）
+#
+#   anchor@8 == 0.0                      → (A) 検索失敗（必要な事実が1つも届いていない）
+#   0 < anchor@8 < 1.0 かつ gen 未達      → (A') 検索の部分失敗
+#   0 < anchor@8 < 1.0 かつ gen 達成      → (B) 出典なき正答の疑い
+#   anchor@8 == 1.0 かつ gen 未達         → (C) 生成失敗
+#   anchor@8 == 1.0 かつ gen 達成         → OK
+#   （gen 情報が無い場合は ret 側だけで (A)/(A')/検索OK を出す）
+
+RET_METRIC_K = "8"
+
+
+def _ret_signal(row: dict) -> tuple[float | None, str]:
+    """(主指標の値, 使った指標名)。アンカーが定義されていれば必ずアンカーを使う。"""
+    m = row["k"][RET_METRIC_K]
+    if row.get("n_anchor", 0) > 0 and m.get("anchor_coverage") is not None:
+        return m["anchor_coverage"], "anchor_coverage@8"
+    if row.get("n_gold", 0) > 0 and m.get("coverage") is not None:
+        return m["coverage"], "page_coverage@8(退避)"
+    return None, "n/a"
+
+
+def classify_failure(ret_row: dict, judge_row: dict | None) -> dict:
+    """1設問の失敗モードを返す。**anchor_coverage が主、page_coverage は参考値**。"""
+    a, metric = _ret_signal(ret_row)
+    m8 = ret_row["k"][RET_METRIC_K]
+    page = m8.get("coverage")
+    det = judge_row.get("det_coverage") if judge_row else None
+    hall = bool(judge_row.get("hallucination")) if judge_row else None
+
+    if a is None:
+        mode, why = "n/a", "gold/anchor が定義されていない設問（unanswerable）"
+    elif a == 0.0:
+        mode = "(A) 検索失敗"
+        why = "必要な事実が1つもLLMに届いていない"
+    elif a < 1.0:
+        if det is not None and det >= 1.0:
+            mode, why = "(B) 出典なき正答の疑い", "検索が不完全なのに決定的要素は全充足"
+        else:
+            mode, why = "(A') 検索の部分失敗", "必要な事実の一部しか届いていない"
+    else:
+        if det is None:
+            mode, why = "検索OK", "必要な事実はすべて届いている（生成側は未評価）"
+        elif det >= 1.0:
+            mode, why = "OK", "検索・生成とも達成"
+        else:
+            mode, why = "(C) 生成失敗", "事実は届いているのに回答に出せていない"
+    return {"id": ret_row["id"], "category": ret_row["category"], "mode": mode, "why": why,
+            "metric": metric, "ret": a, "page_coverage@8": page,
+            "det_coverage": det, "hallucination": hall}
+
+
+def classify_and_report(ret: dict, judged: dict | None) -> list[dict]:
+    jmap = {c["id"]: c for c in judged["cases"]} if judged else {}
+    rows = [classify_failure(r, jmap.get(r["id"])) for r in ret["cases"]]
+    title = "失敗モード分類（★anchor_coverage@8 が主・page_coverage は参考）"
+    if judged:
+        title += f" / 生成 run={judged.get('run')}"
+    print(f"\n=== {title} ===")
+    print(f"{'ID':<5}{'cat':<4}{'anchor@8':>9}{'page@8':>8}{'det':>7}  モード")
+    fallback = []
+    for r in rows:
+        rv = " n/a" if r["ret"] is None else f"{r['ret']:.2f}"
+        pv = " n/a" if r["page_coverage@8"] is None else f"{r['page_coverage@8']:.2f}"
+        dv = "  -" if r["det_coverage"] is None else f"{r['det_coverage']:.2f}"
+        flag = " ★HALLUCINATION" if r["hallucination"] else ""
+        # アンカー未定義でページ方式に退避した設問は、判定が弱いことを必ず明示する
+        if not r["metric"].startswith("anchor"):
+            rv = "(page)"
+            fallback.append(r["id"])
+        print(f"{r['id']:<5}{r['category']:<4}{rv:>9}{pv:>8}{dv:>7}  {r['mode']}{flag}")
+    if fallback:
+        print(f"  ⚠ アンカー未定義のためページ方式に退避した設問（判定の信頼度が低い）: {fallback}")
+    print("  ---- 内訳:")
+    for mode in ("(A) 検索失敗", "(A') 検索の部分失敗", "(B) 出典なき正答の疑い",
+                 "(C) 生成失敗", "検索OK", "OK", "n/a"):
+        ids = [r["id"] for r in rows if r["mode"] == mode]
+        if ids:
+            print(f"       {mode:<22}: {len(ids)}問 {ids}")
+    # ★ページ方式に従っていたら誤分類していた設問を明示する（再発防止）
+    misled = [r for r in rows
+              if r["metric"].startswith("anchor") and r["page_coverage@8"] == 1.0
+              and r["ret"] is not None and r["ret"] < 1.0]
+    if misled:
+        print("  ---- ★ページ方式なら『検索は成功』と誤判定していた設問: "
+              f"{[r['id'] for r in misled]}")
+    return rows
+
+
+def phase_failmode(args) -> None:
+    ret = json.load(open(args.retrieval, encoding="utf-8"))
+    judged = json.load(open(args.files[0], encoding="utf-8")) if args.files else None
+    classify_and_report(ret, judged)
 
 
 # ==========================================================================
@@ -322,31 +474,97 @@ def phase_generate(args) -> dict:
 # phase: judge （Layer0 + Layer1 = 決定的判定。LLM不要）
 # ==========================================================================
 
+# --------------------------------------------------------------------------
+# 排他語 `match.not_preceded_by`（2026-07-27 追加）
+#
+# 何をするか
+#   `[N]`/`[E]` の alias、および `[X]` の regex が当たったとき、
+#   **その一致の直前**（回答本文側）がここに挙げた語で終わっていたら、その一致を採らない。
+#   ＝ 否定後読み `(?<!即応)` を、フィクスチャ側から宣言的に足せるようにしたもの。
+#   判定は Layer0 正規化した文字列どうしで行うので、`即応 予備自衛官手当` のように
+#   途中に空白・改行が入っていても効く。
+#
+#   **一致の位置**を見るのであって「回答のどこかに排他語があるか」を見るのではない。
+#   したがって同じ回答に正しい表記と誤った表記が両方あれば、誤った側だけが従来どおり出る。
+#   また、一致が排他語の**先頭から**始まっている場合（`即応予備自衛官…` に
+#   `即応予備自衛官.{0,16}12,?300` が当たる場合）は直前に `即応` が無いのでブロックされない。
+#   ＝ 同じ [X] の中の別の選択肢を巻き添えにしない。
+#
+# なぜ必要か
+#   日本語には語境界の空白が無く、`即応予備自衛官手当` ⊃ `予備自衛官手当` のような
+#   包含関係を部分一致では区別できない。Q11 の [X] 正規表現
+#   `予備自衛官手当.{0,10}18,?500` は、**正しい表記**
+#   `即応予備自衛官手当（月額18,500円）` にも発火していた
+#   （実測: scratchpad/a1c1c2/probe_after.json i=1）。
+#   docs/RESEARCH_SCORING_AND_EXTRACTION_NOISE_2026-07-27.md の推奨度A
+#   「alias定義に排他語フィールドを追加」に対応する。
+#
+# 🔴 これは**恒久策ではない**（応急処置）
+#   同調査の結論（推奨度A+）は「`[X]` の判定単位を文字列一致から
+#   **claim の含意判定（LLM-as-judge）**に変え、正規表現は候補抽出の前段フィルタへ
+#   降格する2層構成にする」であり、本フィールドはその**設計変更までのつなぎ**である。
+#   限界を明示しておく:
+#     1. 競合語をあらかじめ列挙できる場合にしか効かない（一般化しない）
+#     2. 前方向しか見ない。`自衛隊` ⊂ `自衛隊員` のような**後方**の包含は救えない
+#     3. **文脈は見ない。** Q11 で実際に多いのは、見出し `**即応予備自衛官**` の配下で
+#        `予備自衛官手当（月額18,500円）` と**略記**するケースで、
+#        一致の直前に `即応` が無いため本フィールドでは救えない
+#        （＝ 表層の包含事故は消せるが、主張の当否は判定できない）
+# --------------------------------------------------------------------------
+
+NOT_PRECEDED_BY = "not_preceded_by"
+
+
+def _blocked_by_prefix(text_before_match: str, terms) -> bool:
+    """一致の直前 `text_before_match` が排他語で終わっているか（正規化して比較）。"""
+    if not terms:
+        return False
+    left = normalize(text_before_match)
+    return any(nt and left.endswith(nt) for nt in (normalize(t) for t in terms))
+
+
 def judge_element(answer: str, el: dict) -> dict:
     """1要素のYES/NO判定。[N]/[E] は alias 一致、[X] は禁止正規表現。
 
     [P] は LLM-as-judge が必要なため、ここでは verdict=None（未判定）を返す。
     設計上 [P] 無しでも『決定的要素カバー率』で運用できる（設計書 §6-3-1）。
+
+    `match.not_preceded_by`（排他語）を**書いていない要素の挙動は従来と完全に同一**である。
+    排他語は述語を狭めるだけで、広げることはない（上のブロックコメント参照）。
     """
     t = el["type"]
+    m = el.get("match") or {}
+    excl = m.get(NOT_PRECEDED_BY)
     if t in ("N", "E"):
         # 2026-07-26: 単純な `in` から**桁境界つき**一致に変更した。
         # 旧実装は `70000円` が `約270000円` の内部に、`17100` が `約1710000円` の
         # 内部に桁を跨いで一致し、誤ってYES判定していた（S08較正中に発覚）。
         # `normalize_marked()` は1回だけ実行し、alias ループで使い回す。
         marked = normalize_marked(answer)
-        for a in el["match"]["alias"]:
-            if normalize(a) and contains_marked(marked, a):
-                return {"verdict": True, "evidence": a}
+        if not excl:
+            for a in m["alias"]:
+                if normalize(a) and contains_marked(marked, a):
+                    return {"verdict": True, "evidence": a}
+            return {"verdict": False, "evidence": None}
+        # 排他語あり: 1件目が弾かれても後続の出現を見に行く（`iter_bounded`）。
+        clean = normalize(answer)
+        for a in m["alias"]:
+            na = normalize(a)
+            if not na:
+                continue
+            for i in iter_bounded(marked, na):
+                if not _blocked_by_prefix(clean[:i], excl):
+                    return {"verdict": True, "evidence": a}
         return {"verdict": False, "evidence": None}
     if t == "X":
         # [X] は「書いてはいけない主張」。正規化前後の両方で当てる
         # （正規化で空白が消えると .{0,N} の距離感が変わるため）。
-        rx = re.compile(el["match"]["regex"])
+        rx = re.compile(m["regex"])
         for s in (answer, normalize(answer)):
-            m = rx.search(s)
-            if m:
-                return {"verdict": True, "evidence": m.group(0)}
+            # 排他語が無いときの初回一致は `rx.search(s)` と同一（従来経路と同じ結果）。
+            for mt in rx.finditer(s):
+                if not _blocked_by_prefix(s[:mt.start()], excl):
+                    return {"verdict": True, "evidence": mt.group(0)}
         return {"verdict": False, "evidence": None}
     return {"verdict": None, "evidence": None}
 
@@ -878,7 +1096,10 @@ def phase_report(args) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="複雑質問20問の評価（Phase A）")
     ap.add_argument("--phase", required=True,
-                    choices=["retrieval", "generate", "judge", "calibrate", "report"])
+                    choices=["retrieval", "generate", "judge", "calibrate", "report",
+                             "failmode"])
+    ap.add_argument("--retrieval", default=None,
+                    help="failmode: retrieval フェーズの出力JSON（必須）")
     ap.add_argument("--fixture", default=FIXTURE)
     ap.add_argument("--out", default=None)
     ap.add_argument("--in", dest="inp", default=None, help="judge の入力（generate の出力）")
@@ -933,6 +1154,12 @@ def main() -> int:
                   file=sys.stderr)
             return 2
         phase_calibrate(args)
+    elif args.phase == "failmode":
+        if not args.retrieval:
+            print("エラー: failmode には --retrieval <retrieval出力JSON> が必要です。",
+                  file=sys.stderr)
+            return 2
+        phase_failmode(args)
     else:
         if not args.files:
             print("エラー: report には judge 出力JSONを1つ以上渡してください。", file=sys.stderr)
