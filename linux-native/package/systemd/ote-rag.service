@@ -1,0 +1,23 @@
+[Unit]
+Description=OTE-RAG (AnythingLLM + Ollama, offline local RAG)
+# 配布物に README.md は含めていない（linux-native/README.md は開発者向けのため）。
+# install.sh が @INSTALL_ROOT@ へ実際に配置するのは INSTALL_GUIDE.md なので、そちらを指す。
+Documentation=file://@INSTALL_ROOT@/INSTALL_GUIDE.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@INSTALL_ROOT@
+# docker compose 側にも restart: unless-stopped を入れてあるため、
+# ここは「OS 起動時に確実に up させる」ことだけを担当する。
+ExecStart=@DOCKER@ compose up -d
+ExecStop=@DOCKER@ compose stop
+# 初回はイメージ展開とモデル読み込みに時間がかかるため、余裕を持たせる。
+TimeoutStartSec=600
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

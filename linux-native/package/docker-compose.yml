@@ -1,0 +1,96 @@
+# OTE-RAG Linux 配布スタック (AnythingLLM + Ollama / Docker Compose)
+#
+# 🔴 このファイルは直接編集しないこと。設定値は config/server.env・config/collector.env
+#    （install.sh が config/*.template から生成）と .env（データ配置とポート）にある。
+#
+# 前提:
+#   - 本物の Docker Engine 20.10+ と compose v2 プラグイン（`docker compose version` が通ること）
+#   - nvidia-container-toolkit 導入済み（未導入だと GPU が見えず CPU 動作＝実用外になる）
+#   - 変数 OTE_RAG_DATA / OTE_RAG_PORT / OTE_RAG_BIND は同ディレクトリの .env で定義される
+#     → 手で操作するときは必ずインストール先ディレクトリで実行すること:
+#         cd /opt/ote-rag && docker compose ps
+#
+# 🔴 RHEL 9 / SELinux Enforcing 対応:
+#   バインドマウントの末尾に `:z` を付けている。付けないと SELinux がコンテナからの
+#   読み書きを拒否し、モデルが読めず Permission denied で起動に失敗する。
+#   `:z`（共有ラベル container_file_t:s0）を選んだ理由:
+#     - `:Z` はコンテナ専有の MCS カテゴリを付けるため、ホスト側の保守作業
+#       （backup/restore、`docker compose run --rm` での一時コンテナ、別コンテナからの参照）が
+#       すべて Permission denied になる。単一製品・単一テナントの本構成では利点がない。
+#     - `:z` なら同じデータを別コンテナ（将来のバックアップ用など）からも読める。
+#   SELinux が Disabled/Permissive の環境では `:z` は無視されるだけで害はない。
+
+name: ote-rag
+
+networks:
+  rag-internal:
+    # LLM/embedding の内部通信。外部公開しない。
+    internal: true
+  rag-public:
+    # AnythingLLM の UI ポートだけをホストへ出すためのネットワーク。
+
+services:
+  ollama:
+    # 🔴 タグは固定。`latest` は再現性が無いため使わない。
+    # 実体: ollama/ollama@sha256:c484b703176aa19dfc0a54cbfb60ab8094b38faa04283fb77eba1d33319e5eca
+    #       ollama client version 0.30.11 / ubuntu 24.04 ベース
+    image: ollama/ollama:0.30.11
+    # オフライン環境。レジストリへ取りに行かせない（イメージは install.sh が docker load する）。
+    pull_policy: never
+    container_name: ote-rag-ollama
+    networks:
+      - rag-internal
+    env_file:
+      - ./config/ollama.env
+    volumes:
+      # ollama コンテナは root で動くため、ホスト側も root:root で配置する（install.sh が chown する）。
+      - ${OTE_RAG_DATA:?OTE_RAG_DATA が未定義です。インストール先ディレクトリ（例 /opt/ote-rag）で実行してください}/ollama-models:/root/.ollama:z
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  anythingllm:
+    # localRAG 改修版をソースからビルドしたカスタムイメージ（fork commit 48c68662 相当）。
+    # ビルド手順は linux-native/build-linux.sh を参照。
+    image: localrag-anythingllm:1.1.0
+    pull_policy: never
+    container_name: ote-rag-app
+    networks:
+      - rag-internal
+      - rag-public
+    ports:
+      # 既定は 127.0.0.1 のみに公開する。Windows 版と同じセキュリティ既定
+      # （2026-07-15、管理者パスワード未設定時に /system/api-keys が誰でも読める脆弱性の修正）。
+      # LAN から使う場合は .env の OTE_RAG_BIND を 0.0.0.0 に変更するが、
+      # 🔴 その前に必ず UI で管理者パスワードを設定すること。
+      - "${OTE_RAG_BIND:-127.0.0.1}:${OTE_RAG_PORT:-3001}:3001"
+    cap_add:
+      # upstream の docker-compose が puppeteer/Chromium のサンドボックス用に付けているもの。
+      # 本製品は DISABLE_WEB_SCRAPING=true で web スクレイピングを止めているため理論上は不要だが、
+      # 開発環境（動作実績のある構成）が付けた状態で全評価を通しているため、そのまま踏襲する。
+      # 外すかどうかは実機での回帰確認とセットで判断すること（未検証）。
+      - SYS_ADMIN
+    depends_on:
+      ollama:
+        condition: service_healthy
+    env_file:
+      # server と collector は同一コンテナ内の同じシェルから起動されるため、
+      # 両方の env がそのまま両プロセスに渡る（docker/docker-entrypoint.sh）。
+      - ./config/server.env
+      - ./config/collector.env
+    volumes:
+      # AnythingLLM コンテナは UID/GID 1000（anythingllm ユーザー）で動く。
+      # ホスト側ディレクトリも 1000:1000 でなければ書き込めない（install.sh が chown する）。
+      - ${OTE_RAG_DATA:?OTE_RAG_DATA が未定義です。インストール先ディレクトリ（例 /opt/ote-rag）で実行してください}/anythingllm-storage:/app/server/storage:z
+    restart: unless-stopped

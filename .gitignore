@@ -31,6 +31,9 @@ hf-cache/
 
 # Build / cache
 dist/
+# Linux 配布物のビルド出力（約26GB: パッケージ13GB + tarball 12.3GB + 分割）。
+# `dist/` では末尾が違うため一致しない。明示的に除外する。
+/dist-linux/
 build/
 .cache/
 coverage/

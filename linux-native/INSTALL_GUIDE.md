@@ -4,10 +4,12 @@
 
 この文書だけ読めば導入できるように書いています。上から順に進めてください。
 
-> **⚠️ 現在の状態（2026-07-28 時点）**
-> 導入資材（tarball）は**作成中**で、まだ配布可能な状態ではありません。
-> **本手順書の「手順0（事前調査）」だけは、資材の完成を待たずに今すぐ実施できます。**
-> むしろ**先に実施していただく必要があります** — 調査結果によって資材の中身が変わるためです。
+> **現在の状態（2026-07-29）**
+> 導入資材は**作成・検証済み**です（24項目の検証すべて合格、`docs/LINUX_DISTRIBUTION_2026-07-28.md`）。
+> **アップロードはまだ行っていません。**
+>
+> **手順0（事前調査）を先に実施してください。** その結果によって、
+> **資材を作り直す必要が生じる可能性があります**（`docker` が podman の別名だった場合など）。
 
 ---
 
@@ -99,22 +101,20 @@ cat survey.txt
 
 ## 手順1: 資材の受け取り
 
-> **この手順は資材の完成後に確定します。** 現時点では想定手順です。
-
-配布物は約 14GB あり、GitHub Release の1ファイル上限（2GB）を超えるため**分割**されます。
+配布物は 12.32GiB（13,233,889,825 バイト）あり、GitHub Release の1ファイル上限（2GB）を超えるため**分割**されます。
 Windows 版と同じ方式です。
 
 ネットの通る端末で全ファイルを取得し、**同じディレクトリ**に置いてください。
 
 ```bash
-gh release download <タグ> --repo ishihara1447/localRAG --dir ~/ote-rag-install
+gh release download linux-v1.1.0 --repo ishihara1447/localRAG --dir ~/ote-rag-install
 ```
 
 取得するもの:
 
 | ファイル | 用途 |
 |---|---|
-| `ote-rag-linux-x64-<版数>.tar.gz.001` 〜 | 本体（分割） |
+| `ote-rag-linux-x64-v1.1.0.tar.gz.001` 〜 `.007`（7分割） | 本体（分割） |
 | `MANIFEST.txt` | SHA-256（破損チェック用） |
 | `join.sh` | 結合ツール |
 | `survey-target.sh` | 手順0の調査スクリプト（**資材にも同梱されます**） |
@@ -123,7 +123,7 @@ gh release download <タグ> --repo ishihara1447/localRAG --dir ~/ote-rag-instal
 
 ```bash
 cd ~/ote-rag-install
-cat ote-rag-linux-x64-*.tar.gz.[0-9][0-9][0-9] > ote-rag-linux-x64.tar.gz
+cat ote-rag-linux-x64-v1.1.0.tar.gz.[0-9][0-9][0-9] > ote-rag-linux-x64-v1.1.0.tar.gz
 ```
 
 または同梱の `join.sh` を実行してください（**SHA-256 検証まで自動で行います**）。
@@ -149,8 +149,8 @@ sha256sum -c MANIFEST.txt
 検証できたら展開します。
 
 ```bash
-tar xzf ote-rag-linux-x64.tar.gz
-cd ote-rag-linux-x64-<版数>
+tar xzf ote-rag-linux-x64-v1.1.0.tar.gz
+cd ote-rag-linux-x64-v1.1.0
 ls
 ```
 
@@ -222,7 +222,7 @@ systemctl status ote-rag
 docker ps
 ```
 
-`anythingllm` と `ollama` の2つのコンテナが動いていれば正常です。
+`ote-rag-app` と `ote-rag-ollama` の2つのコンテナが動いていれば正常です。
 
 ### 4-2. Web UI を開く
 
@@ -240,7 +240,7 @@ http://127.0.0.1:3001
 nvidia-smi
 ```
 
-質問を1回投げた直後に実行し、**`ollama` のプロセスが GPU メモリを使っていれば正常**です。
+質問を1回投げた直後に実行し、**`ollama` のプロセスが GPU メモリを使っていれば正常**です（コンテナ名は `ote-rag-ollama`、プロセス名は `ollama`）。
 GPU メモリの使用が 0 のままなら、CPU 動作に転落しています（`nvidia-container-toolkit` を確認）。
 
 ### 4-4. 実際に質問してみる
@@ -297,13 +297,13 @@ RHEL 9 は cgroup v2 です。Docker 20.10 以降なら問題ありません。�
 | **ポート 3001 に繋がらない** | `--bind` の既定は `127.0.0.1`。**別端末からは接続できない**。同一端末で確認するか `--bind 0.0.0.0` で入れ直す |
 | **`docker: command not found`** | Docker 未導入、または podman のみ。手順0の調査結果を確認 |
 | **ディスク不足で失敗** | `--data-dir` で容量に余裕のある場所を指定して再実行 |
-| **起動待ちがタイムアウト** | 初回はモデル読み込みに時間がかかる。`docker logs anythingllm` でログを確認 |
+| **起動待ちがタイムアウト** | 初回はモデル読み込みに時間がかかる。`docker logs ote-rag-app` でログを確認 |
 
 ログの確認:
 
 ```bash
-docker logs anythingllm --tail 100
-docker logs ollama --tail 100
+docker logs ote-rag-app --tail 100
+docker logs ote-rag-ollama --tail 100
 journalctl -u ote-rag -n 100
 ```
 
