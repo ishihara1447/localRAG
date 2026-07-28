@@ -17,13 +17,13 @@
 
 ```bash
 cd /home/ishihara1447/projects/fukugyo/repos/localRAG
-./windows-native/dist-split/split-release.sh /mnt/c/LocalRAG/dist/OTE-RAG-win64-v1.2.6.zip
+./windows-native/dist-split/split-release.sh /mnt/c/LocalRAG/dist/OTE-RAG-win64-v1.2.7.zip
 ```
 
 `dist/parts/` に以下ができる。
 
 ```
-OTE-RAG-win64-v1.2.6.zip.001 〜 .006        （各約1.77GB）
+OTE-RAG-win64-v1.2.7.zip.001 〜 .006        （各約1.77GB）
 MANIFEST.txt                                 （全パート＋元ファイルのSHA-256）
 Join-OTE-RAG.cmd                             （結合ツール）
 README.md                                    （この文書）
@@ -33,8 +33,8 @@ README.md                                    （この文書）
 
 ```bash
 cd /home/ishihara1447/projects/fukugyo/repos/localRAG
-gh release create v1.2.6 \
-  --title "OTE-RAG v1.2.6" \
+gh release create v1.2.7 \
+  --title "OTE-RAG v1.2.7" \
   --notes-file windows-native/dist-split/RELEASE_NOTES.md \
   /mnt/c/LocalRAG/dist/parts/* \
   /mnt/c/LocalRAG/dist/OTE-RAG-Setup.exe
@@ -54,13 +54,13 @@ Releases ページから **全パート**＋ `MANIFEST.txt` ＋ `Join-OTE-RAG.cm
 `gh` が使えるなら一括で取れる。
 
 ```powershell
-gh release download v1.2.6 --repo ishihara1447/localRAG --dir C:\OTE-RAG-install
+gh release download v1.2.7 --repo ishihara1447/localRAG --dir C:\OTE-RAG-install
 ```
 
 ### 2. 結合する
 
 **方法A（推奨・7-Zipがある場合）**
-`OTE-RAG-win64-v1.2.6.zip.001` を **右クリック → 7-Zip → 展開**。
+`OTE-RAG-win64-v1.2.7.zip.001` を **右クリック → 7-Zip → 展開**。
 7-Zip が `.001` を分割書庫として認識し、残りのパートを自動で読んで結合する。
 
 **方法B（7-Zipが無い場合／確実に検証したい場合）**

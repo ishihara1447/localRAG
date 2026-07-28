@@ -352,7 +352,7 @@ if ($LASTEXITCODE -ne 0) { Fail "Windows サービスの登録・起動に失敗
 # is writable. A failure here does NOT trigger rollback (the product is already
 # installed); we only warn so the desktop uninstall shortcut can still be used.
 # =====================================================================
-$displayVersion = "1.2.2"
+$displayVersion = "1.2.7"
 $versionsLock = Join-Path $InstallRoot "versions.lock"
 if (Test-Path $versionsLock) {
     $vLine = Get-Content $versionsLock | Where-Object { $_ -match "^package_version=" } | Select-Object -First 1

@@ -10,7 +10,7 @@
 #       （同梱の Join-OTE-RAG.cmd）で復元でき、どちらの経路でも復元可能。
 #
 # 使い方:
-#   ./split-release.sh /mnt/c/LocalRAG/dist/OTE-RAG-win64-v1.2.6.zip
+#   ./split-release.sh /mnt/c/LocalRAG/dist/OTE-RAG-win64-v1.2.7.zip
 set -euo pipefail
 
 SRC="${1:?使い方: split-release.sh <配布zipのパス>}"
