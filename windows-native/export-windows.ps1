@@ -66,6 +66,17 @@ if (-not ((Test-Path (Join-Path $publicDir "index.html")) -or (Test-Path (Join-P
     Write-Host "       Build frontend and copy dist to server\public first."
     exit 1
 }
+# frontend\.env の開発値 (VITE_API_BASE='http://localhost:3001/api') のままビルドすると、
+# 絶対URLが配布バンドルに焼き込まれ、顧客環境でAPIに到達できなくなる。
+# .env ではなくビルド成果物そのものを検査する（.env を直しても再ビルドし忘れれば同じ事故になるため）。
+$bundleJs = Get-ChildItem -Path $publicDir -Filter "*.js" -Recurse -ErrorAction SilentlyContinue
+$devApiHit = $bundleJs | Where-Object { Select-String -Path $_.FullName -Pattern "localhost:3001" -Quiet -ErrorAction SilentlyContinue }
+if ($devApiHit) {
+    Write-Host "ERROR: built frontend contains 'localhost:3001' - it was built with the dev VITE_API_BASE."
+    Write-Host "       Set frontend\.env to VITE_API_BASE='/api', rebuild the frontend, recopy dist to server\public."
+    Write-Host "       Offending file(s): $($devApiHit.FullName -join ', ')"
+    exit 1
+}
 Assert-Path (Join-Path $NodeDir "node.exe") "node.exe in NodeDir"
 Assert-Path (Join-Path $OllamaDir "ollama.exe") "ollama.exe in OllamaDir"
 Assert-Path (Join-Path $OllamaDir "lib\ollama\llama-server.exe") "llama-server.exe in OllamaDir (extract the full Ollama Windows zip, not only ollama.exe)"
@@ -163,6 +174,20 @@ Write-Host "  bundling: bge-reranker-v2-m3 ONNX int8"
 $rerankerOut = Join-Path $Pkg "app\server\storage\models\onnx-community\bge-reranker-v2-m3-ONNX"
 robocopy $RerankerModelDir $rerankerOut /E /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) { Write-Host "ERROR: robocopy reranker failed ($LASTEXITCODE)"; exit 1 }
+$global:LASTEXITCODE = 0
+
+# OCR言語データ。tesseract.js は langPath 未指定だと jsdelivr の CDN から
+# 取得するため、完全オフライン環境ではスキャンPDFの取り込みが失敗する。
+# OCRLoader の cacheDir (=STORAGE_DIR\models\tesseract) へ同梱する。
+# gzip:false で読むので拡張子は .traineddata（.gz ではない）。
+Write-Host "  bundling: tesseract OCR language data (jpn, eng)"
+$tessSrc = Join-Path $PSScriptRoot "assets\tesseract"
+$tessOut = Join-Path $Pkg "app\server\storage\models\tesseract"
+foreach ($tessFile in @("jpn.traineddata", "eng.traineddata")) {
+    Assert-Path (Join-Path $tessSrc $tessFile) "OCR language data $tessFile"
+}
+robocopy $tessSrc $tessOut /E /NFL /NDL /NJH /NJS | Out-Null
+if ($LASTEXITCODE -ge 8) { Write-Host "ERROR: robocopy tesseract failed ($LASTEXITCODE)"; exit 1 }
 $global:LASTEXITCODE = 0
 
 # --- 5. scripts / config / fixtures / docs / licenses ---
