@@ -109,6 +109,10 @@ echo
 result "[new] 正しい場所を指定（復旧）"   "KEPT/REMOVED" "$(scenario b01 new none data -- --data-dir '@R@/data')"
 result "[new] 存在しない場所を指定"       "ABORT2/KEPT"  "$(scenario b02 new none data -- --data-dir '@R@/nope')"
 result "[new] 存在するが別の場所を指定"   "ABORT2/KEPT"  "$(scenario b03 new none data -- --data-dir '@R@/other')"
+# データが3階層より深い場合。以前は最後の砦が -maxdepth 3 で打ち切っており、
+# 「データは残しました」と表示しながら文書を消していた（深さだけが分かれ目だった）。
+result "[new] 誤指定＋データが深い階層"  "ABORT2/KEPT" \
+  "$(scenario b06 new none a/b/c/data --check a/b/c/data -- --data-dir '@R@/other')"
 result "[new] 相対パスを拒否"             "ABORT2/KEPT"  "$(scenario b04 new none data -- --data-dir data)"
 result "[new] 空文字を拒否"               "ABORT1/KEPT"  "$(scenario b05 new '@R@/data' data -- --data-dir '')"
 

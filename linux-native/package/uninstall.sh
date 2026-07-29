@@ -236,7 +236,10 @@ done
 # すべて通ってしまう（パスとしては正当なため）。消す直前の中身で判断する。
 if [ "$PURGE" -eq 0 ] && [ ${#DOOMED[@]} -gt 0 ]; then
   for entry in "${DOOMED[@]}"; do
-    if find "$entry" -maxdepth 3 \( -name anythingllm-storage -o -name ollama-models \) \
+    # 深さで打ち切らない。-maxdepth 3 では ROOT/a/b/c/data/anythingllm-storage を
+    # 見逃し、「データは残しました」と表示しながら文書を消していた（実測）。
+    # -print -quit で最初の1件が見つかった時点で止まるので、走査コストは小さい。
+    if find "$entry" \( -name anythingllm-storage -o -name ollama-models \) \
          -print -quit 2>/dev/null | grep -q .; then
       echo "エラー: 削除しようとしている場所に文書データが含まれています。" >&2
       echo "  検出場所: $entry" >&2
