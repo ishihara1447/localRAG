@@ -25,6 +25,7 @@ OLLAMA_DIGEST="sha256:c484b703176aa19dfc0a54cbfb60ab8094b38faa04283fb77eba1d3331
 OUTPUT="$REPO_ROOT/dist-linux"
 SKIP_BUILD=0
 SKIP_VERIFY=0
+ALLOW_DIRTY=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -32,6 +33,7 @@ while [ $# -gt 0 ]; do
     --version) VERSION="${2:?}"; IMAGE_APP="localrag-anythingllm:$VERSION"; shift 2 ;;
     --skip-build) SKIP_BUILD=1; shift ;;
     --skip-verify) SKIP_VERIFY=1; shift ;;
+    --allow-dirty) ALLOW_DIRTY=1; shift ;;
     -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
     *) echo "不明なオプション: $1" >&2; exit 1 ;;
   esac
@@ -53,10 +55,35 @@ die() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
 
 # ---------------------------------------------------------------- 1. イメージのビルド
 say "1. AnythingLLM イメージ ($IMAGE_APP)"
+FORK_DIRTY=""
+[ -n "$(git -C "$FORK" status --porcelain 2>/dev/null)" ] && FORK_DIRTY=1
+
 if [ "$SKIP_BUILD" -eq 1 ]; then
   docker image inspect "$IMAGE_APP" >/dev/null 2>&1 || die "--skip-build ですが $IMAGE_APP がありません"
   echo "既存イメージを使用（--skip-build）"
+  if [ -n "$FORK_DIRTY" ]; then
+    # 既存イメージを使う場合、作業ツリーの状態はイメージに影響しない。
+    # verify-image.sh が git のコミットを基準に照合するので、ここは警告で足りる。
+    echo "  補足: fork の作業ツリーに未コミットの変更がありますが、"
+    echo "        既存イメージを使うため配布物には影響しません（step 2 でコミット基準に照合）。"
+  fi
 else
+  # 🔴 dirty な作業ツリーからビルドすると、未コミットの実験コードが製品イメージに
+  #    焼き込まれる。しかも verify-image.sh はコミット基準で照合するため
+  #    「不一致」として現れ、原因が分かりにくい失敗になる。ここで止める。
+  if [ -n "$FORK_DIRTY" ] && [ "$ALLOW_DIRTY" -eq 0 ]; then
+    echo "ERROR: fork の作業ツリーに未コミットの変更があります。" >&2
+    git -C "$FORK" status --porcelain | sed 's/^/    /' >&2
+    cat >&2 <<'EOS'
+
+  この状態でビルドすると、未コミットのコードが顧客向けイメージに入ります。
+  対処のいずれかを選んでください:
+    1) 既存のイメージを使う         : --skip-build      ← 通常はこれ
+    2) 変更をコミットしてからビルド : git -C anything-llm commit ...
+    3) 承知のうえで強行する         : --allow-dirty
+EOS
+    exit 1
+  fi
   ( cd "$FORK" && docker build --network=host -t "$IMAGE_APP" -f docker/Dockerfile . )
 fi
 docker image inspect "$IMAGE_APP" --format '  ID={{.Id}} Size={{.Size}} User={{.Config.User}}'
