@@ -98,7 +98,79 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# 🔴 パスを正規化する。ここで正規化しないと `--install-root /opt/ote-rag/`（タブ補完が
+#    付ける末尾スラッシュ）が .env に `OTE_RAG_DATA=/opt/ote-rag//data` として書き込まれ、
+#    uninstall.sh 側のパス比較が外れて顧客文書を巻き込む事故につながる。
+#    readlink -m は対象が存在しなくても正規化できる（-f は途中の要素の存在を要求する）。
+normalize_path() {  # $1: パス（絶対でなければエラー）
+  case "$1" in
+    /*) readlink -m -- "$1" ;;
+    *)  die "パスは絶対パスで指定してください（指定値: $1）" ;;
+  esac
+}
+INSTALL_ROOT="$(normalize_path "$INSTALL_ROOT")"
 [ -n "$DATA_DIR" ] || DATA_DIR="$INSTALL_ROOT/data"
+DATA_DIR="$(normalize_path "$DATA_DIR")"
+
+if [ "$DATA_DIR" = "$INSTALL_ROOT" ]; then
+  die "データ領域とプログラムの配置先に同じパスは指定できません（$INSTALL_ROOT）。" \
+      "アンインストール時にデータだけを残すことができなくなります。"
+fi
+
+# ---------------------------------------------------------------- ロールバック
+# 途中で失敗したときに「半インストール状態」を残さない。
+# 🔴 ただしデータ領域（顧客文書・モデル）は何があっても削除しない。
+INSTALL_OK=0
+ROLLBACK_ARMED=0
+INSTALL_ROOT_PREEXISTED=0
+SYSTEMD_UNIT_INSTALLED=0
+COMPOSE_STARTED=0
+
+rollback() {
+  [ "$ROLLBACK_ARMED" -eq 1 ] || return 0
+  ROLLBACK_ARMED=0   # 再入防止
+  printf '\n--- 変更を巻き戻しています ---\n' >&2
+
+  if [ "$COMPOSE_STARTED" -eq 1 ] && [ -f "$INSTALL_ROOT/docker-compose.yml" ]; then
+    if ( cd "$INSTALL_ROOT" && docker compose down --remove-orphans ) >/dev/null 2>&1; then
+      printf '  コンテナを停止しました\n' >&2
+    else
+      printf '  [注意] コンテナの停止に失敗しました。手動で確認してください:\n' >&2
+      printf '         cd %s && docker compose down\n' "$INSTALL_ROOT" >&2
+    fi
+  fi
+
+  if [ "$SYSTEMD_UNIT_INSTALLED" -eq 1 ]; then
+    systemctl disable --now ote-rag.service >/dev/null 2>&1 || true
+    rm -f /etc/systemd/system/ote-rag.service
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    printf '  systemd の登録を解除しました\n' >&2
+  fi
+
+  if [ "$INSTALL_ROOT_PREEXISTED" -eq 1 ]; then
+    printf '  %s は元からあったため残しました\n' "$INSTALL_ROOT" >&2
+  elif [ -d "$INSTALL_ROOT" ]; then
+    case "$DATA_DIR/" in
+      "$INSTALL_ROOT"/*)
+        # データ領域が配置先の下にある構成。データ以外だけを消す。
+        keep="${DATA_DIR#"$INSTALL_ROOT"/}"; keep="${keep%%/*}"
+        for e in "$INSTALL_ROOT"/* "$INSTALL_ROOT"/.[!.]* "$INSTALL_ROOT"/..?*; do
+          { [ -e "$e" ] || [ -L "$e" ]; } || continue
+          [ -n "$keep" ] && [ "$e" = "$INSTALL_ROOT/$keep" ] && continue
+          rm -rf "$e" 2>/dev/null || true
+        done
+        printf '  %s のプログラムを削除しました（データ %s は残しています）\n' \
+               "$INSTALL_ROOT" "$DATA_DIR" >&2 ;;
+      *)
+        rm -rf "${INSTALL_ROOT:?}" 2>/dev/null \
+          && printf '  %s を削除しました\n' "$INSTALL_ROOT" >&2 ;;
+    esac
+  fi
+
+  printf '  Docker イメージとデータ領域は残しています（再実行時に再利用されます）\n' >&2
+  printf '  同じコマンドでやり直せます。\n' >&2
+}
+trap '[ "$INSTALL_OK" -eq 1 ] || rollback' EXIT
 
 printf '════════════════════════════════════════════════════════\n'
 printf ' OTE-RAG Linux オフラインインストーラ\n'
@@ -424,6 +496,10 @@ fi
 # ================================================================
 step "プログラムを配置しています"
 # ================================================================
+# ここから環境を変更する。以降の失敗は rollback で巻き戻す。
+[ -d "$INSTALL_ROOT" ] && INSTALL_ROOT_PREEXISTED=1
+ROLLBACK_ARMED=1
+
 mkdir -p "$INSTALL_ROOT" "$INSTALL_ROOT/config" "$INSTALL_ROOT/systemd"
 install -m 0644 "$PKG_ROOT/docker-compose.yml" "$INSTALL_ROOT/docker-compose.yml"
 install -m 0644 "$PKG_ROOT/systemd/ote-rag.service" "$INSTALL_ROOT/systemd/ote-rag.service"
@@ -468,6 +544,16 @@ OTE_RAG_BIND=$BIND
 EOF
 chmod 0644 "$INSTALL_ROOT/.env"
 ok "設定ファイル（config/server.env, config/collector.env, .env）"
+
+# 🔴 compose の検証はここで行う（旧版は systemd 登録より後だった）。
+#    ここで落とせば、この後の 11GB のコピーも systemd 登録も走らないので、
+#    巻き戻す対象が最小で済む。compose config は実体のディレクトリを要求しない。
+compose_err="$( cd "$INSTALL_ROOT" && docker compose config -q 2>&1 )" || die \
+  "docker-compose.yml の検証に失敗しました。" \
+  "$compose_err" \
+  "compose プラグインのバージョンが古い可能性があります（v2.20 以降を推奨）:" \
+  "  docker compose version"
+ok "compose ファイルの検証"
 
 # ================================================================
 step "モデルとデータ領域を準備しています（約11GB のコピー。数分かかります）"
@@ -528,6 +614,7 @@ if [ "$WITH_SYSTEMD" -eq 1 ]; then
       "$PKG_ROOT/systemd/ote-rag.service" > /etc/systemd/system/ote-rag.service
   chmod 0644 /etc/systemd/system/ote-rag.service
   systemctl daemon-reload
+  SYSTEMD_UNIT_INSTALLED=1
   systemctl enable ote-rag.service >/dev/null 2>&1 \
     || warn "systemctl enable に失敗しました。手動起動（start.sh）は使えます。"
   ok "/etc/systemd/system/ote-rag.service を登録（OS 起動時に自動で立ち上がります）"
@@ -538,18 +625,11 @@ fi
 # ================================================================
 step "サービスを起動しています"
 # ================================================================
-# 起動前に compose ファイルを検証する。compose のバージョン差で未対応のキーがあれば
-# ここで具体的なエラーが出る（起動してから原因不明で落ちるのを避ける）。
-compose_err="$( cd "$INSTALL_ROOT" && docker compose config -q 2>&1 )" || die \
-  "docker-compose.yml の検証に失敗しました。" \
-  "$compose_err" \
-  "compose プラグインのバージョンが古い可能性があります（v2.20 以降を推奨）:" \
-  "  docker compose version"
-ok "compose ファイルの検証"
-
+# compose ファイルの検証は step 5（配置直後）で済ませてある。
 if [ "$START_AFTER_INSTALL" -eq 0 ]; then
   info "--no-start が指定されたため起動しません。起動するには: sudo $INSTALL_ROOT/start.sh"
 else
+  COMPOSE_STARTED=1
   ( cd "$INSTALL_ROOT" && docker compose up -d ) \
     || die "サービスの起動に失敗しました。" \
            "ログを確認してください:  cd $INSTALL_ROOT && docker compose logs --tail=100"
@@ -574,6 +654,10 @@ else
     fi
   done
 fi
+
+# ここまで来ればインストールは成立している。以降で起動確認がタイムアウトしても
+# （exit 3）配置済みのものは正しいので、巻き戻してはいけない。
+INSTALL_OK=1
 
 printf '\n════════════════════════════════════════════════════════\n'
 if [ "$healthy" -eq 1 ]; then
