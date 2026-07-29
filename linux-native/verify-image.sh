@@ -1,17 +1,34 @@
 #!/usr/bin/env bash
 # ビルドした Docker イメージの中身が fork のソースと一致することを検証する。
 #
-#   ./verify-image.sh [イメージタグ]        （既定: localrag-anythingllm:1.1.0）
+#   ./verify-image.sh [イメージタグ] [--ref <commit>]
+#     イメージタグ 既定: localrag-anythingllm:1.1.0
+#     --ref        比較の基準にするコミット（既定: HEAD）
 #
 # 目的: 「ソースには入っているのに配布物には入っていない」事故の検出。
 #       Windows 版ビルド（docs/WINDOWS_BUILD_V1.2.6_2026-07-28.md §2, §5）と同じ検査を
 #       Docker イメージに対して行う。
 #
+# 🔴 比較の基準は **git のコミット**であって作業ツリーではない。
+#    作業ツリーと比べると、未コミットの実験コードが入ったイメージでも「一致」してしまい、
+#    この検査が本来の目的（配布物に何が入っているかの保証）を果たせない。
+#    作業ツリーとの差分は情報として表示するだけで、合否には使わない。
+#
 # 方式: コンテナは **起動しない**（docker create → docker cp → docker rm）。
 #       稼働中のコンテナには一切触れない。
 set -euo pipefail
 
-IMAGE="${1:-localrag-anythingllm:1.1.0}"
+IMAGE=""
+REF="HEAD"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ref) REF="${2:?--ref にコミットを指定してください}"; shift 2 ;;
+    -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*) echo "不明なオプション: $1" >&2; exit 1 ;;
+    *) IMAGE="$1"; shift ;;
+  esac
+done
+IMAGE="${IMAGE:-localrag-anythingllm:1.1.0}"
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 FORK="$REPO_ROOT/anything-llm"
 TMP="$(mktemp -d)"
@@ -41,10 +58,14 @@ echo "=== イメージ内容の検証: $IMAGE ==="
 docker image inspect "$IMAGE" >/dev/null 2>&1 || { echo "ERROR: イメージがありません: $IMAGE" >&2; exit 1; }
 [ -d "$FORK" ] || { echo "ERROR: fork が見つかりません: $FORK" >&2; exit 1; }
 
-echo "--- fork の状態 ---"
-git -C "$FORK" log --oneline -1
+REF_COMMIT="$(git -C "$FORK" rev-parse --verify "$REF^{commit}" 2>/dev/null)" || {
+  echo "ERROR: 基準コミットを解決できません: $REF" >&2; exit 1; }
+
+echo "--- 比較の基準 ---"
+echo "  基準コミット: $REF ($REF_COMMIT)"
+git -C "$FORK" log --oneline -1 "$REF_COMMIT" | sed 's/^/  /'
 if [ -n "$(git -C "$FORK" status --porcelain)" ]; then
-  echo "🔴 注意: fork の作業ツリーに未コミットの変更があります。イメージはその状態を含みます。"
+  echo "  補足: fork の作業ツリーには未コミットの変更があります（合否には影響しません）。"
   git -C "$FORK" status --porcelain | sed 's/^/    /'
 fi
 
@@ -52,11 +73,11 @@ CID="$(docker create "$IMAGE" /bin/true)"
 echo "--- 一時コンテナ $CID を作成（起動はしない） ---"
 
 fail=0
+drift=0
 printf '\n%-8s  %s\n' "結果" "ファイル"
 for rel in "${FILES[@]}"; do
-  src="$FORK/$rel"
-  if [ ! -f "$src" ]; then
-    printf '%-8s  %s (fork 側に存在しない)\n' "SKIP" "$rel"
+  if ! git -C "$FORK" cat-file -e "$REF_COMMIT:$rel" 2>/dev/null; then
+    printf '%-8s  %s (基準コミットに存在しない)\n' "SKIP" "$rel"
     continue
   fi
   mkdir -p "$TMP/$(dirname "$rel")"
@@ -65,17 +86,29 @@ for rel in "${FILES[@]}"; do
     fail=$((fail + 1))
     continue
   fi
-  a="$(sha256sum "$src" | cut -d' ' -f1)"
+  a="$(git -C "$FORK" show "$REF_COMMIT:$rel" | sha256sum | cut -d' ' -f1)"
   b="$(sha256sum "$TMP/$rel" | cut -d' ' -f1)"
   if [ "$a" = "$b" ]; then
     printf '%-8s  %s  %s\n' "一致" "${a:0:16}…" "$rel"
   else
     printf '%-8s  %s\n' "不一致" "$rel"
-    printf '          fork : %s\n' "$a"
+    printf '          基準 : %s\n' "$a"
     printf '          image: %s\n' "$b"
     fail=$((fail + 1))
   fi
+  # 作業ツリーとの差分は情報のみ（イメージの合否とは無関係）。
+  if [ -f "$FORK/$rel" ]; then
+    w="$(sha256sum "$FORK/$rel" | cut -d' ' -f1)"
+    if [ "$w" != "$a" ]; then
+      printf '          （参考）作業ツリーは基準と異なる: %s\n' "${w:0:16}…"
+      drift=$((drift + 1))
+    fi
+  fi
 done
+if [ "$drift" -gt 0 ]; then
+  printf '\n  参考: 検査対象 %d ファイルで作業ツリーが基準コミットと異なります。\n' "$drift"
+  printf '        イメージの合否には影響しません（イメージは基準コミットと比較済み）。\n'
+fi
 
 # --- フロントエンドのビルド成果物 ---
 echo
