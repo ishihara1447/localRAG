@@ -96,6 +96,15 @@ fi
 # `--install-root /opt/ote-rag/`（末尾スラッシュ）で install.sh が .env に
 # `OTE_RAG_DATA=/opt/ote-rag//data` を書くため、これは正式な操作だけで起きる。
 INSTALL_ROOT_REAL="$(readlink -f -- "$INSTALL_ROOT")"
+
+# 🔴 配置先が / だと、KEEP_ENTRY の算出（`"$INSTALL_ROOT_REAL"/*` が `//*` になる）が
+#    必ず外れ、/ 直下すべてが削除対象になる。install.sh 側でも拒否しているが、
+#    手で配置された場合に備えてここでも止める。
+if [ "$INSTALL_ROOT_REAL" = "/" ]; then
+  echo "エラー: プログラムの配置先がルートディレクトリ（/）です。" >&2
+  echo "  安全に削除できないため中止しました。" >&2
+  exit 2
+fi
 DATA_DIR_REAL=""
 if [ -n "$DATA_DIR" ]; then
   # 存在しないデータ領域は「特定できていない」のと同じ。守る対象を確定できない。
