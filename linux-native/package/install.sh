@@ -146,6 +146,9 @@ COMPOSE_STARTED=0
 rollback() {
   [ "$ROLLBACK_ARMED" -eq 1 ] || return 0
   ROLLBACK_ARMED=0   # 再入防止
+  # 巻き戻しの途中で中断されると、半端に消えた状態が残る。ここでは割り込みを無視する。
+  trap '' INT TERM HUP
+  local keep e
   printf '\n--- 変更を巻き戻しています ---\n' >&2
 
   if [ "$COMPOSE_STARTED" -eq 1 ] && [ -f "$INSTALL_ROOT/docker-compose.yml" ]; then
@@ -653,6 +656,13 @@ else
   ok "コンテナを起動しました"
 fi
 
+# 🔴 ここでインストールは成立している。以降の失敗（起動確認のタイムアウト、
+#    待機中の SIGHUP／SIGTERM）で巻き戻してはいけない。
+#    ロールバックを解除するのが遅いと、5分の起動待ちの最中に SSH が切れる
+#    （SIGHUP）だけで EXIT trap が発火し、成功したインストールが消える。
+#    遠隔導入では現実的に起こる（実測で再現済み）。
+INSTALL_OK=1
+
 # ================================================================
 step "起動を待っています（最大 5 分。初回はモデル読み込みに時間がかかります）"
 # ================================================================
@@ -666,15 +676,19 @@ else
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ote-rag-app 2>/dev/null || echo missing)"
     if [ "$status" = "healthy" ]; then healthy=1; break; fi
     if [ "$status" = "missing" ]; then
-      die "コンテナ ote-rag-app が見つかりません。起動に失敗しています。" \
-          "ログ:  cd $INSTALL_ROOT && docker compose logs --tail=100"
+      # ここでの失敗は「配置」ではなく「起動」の失敗。ファイルは正しく置かれて
+      # いるので削除しない（die は使わない）。原因調査に必要な情報だけ出す。
+      printf '\n════════════════════════════════════════════════════════\n' >&2
+      printf 'エラー: コンテナ ote-rag-app が見つかりません。起動に失敗しています。\n' >&2
+      printf '  インストール自体は完了しています（%s）。\n' "$INSTALL_ROOT" >&2
+      printf '  ログ:  cd %s && docker compose logs --tail=100\n' "$INSTALL_ROOT" >&2
+      printf '  再起動: sudo %s/start.sh\n' "$INSTALL_ROOT" >&2
+      printf '  削除  : sudo %s/uninstall.sh\n' "$INSTALL_ROOT" >&2
+      printf '════════════════════════════════════════════════════════\n' >&2
+      exit 3
     fi
   done
 fi
-
-# ここまで来ればインストールは成立している。以降で起動確認がタイムアウトしても
-# （exit 3）配置済みのものは正しいので、巻き戻してはいけない。
-INSTALL_OK=1
 
 printf '\n════════════════════════════════════════════════════════\n'
 if [ "$healthy" -eq 1 ]; then
