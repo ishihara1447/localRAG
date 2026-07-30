@@ -41,8 +41,15 @@ if command -v docker >/dev/null 2>&1; then
   DV=$(docker --version 2>&1)
   info "docker --version: $DV"
   if echo "$DV" | grep -qi podman; then
-    warn "docker コマンドの実体が podman です（podman-docker パッケージ）。"
-    warn "→ compose の書式や SELinux の扱いが異なります。構成を変える必要があります。"
+    # 🔴 [注意] ではなく [NG]。これは導入可否を左右する最重要項目であり、
+    #    podman-docker が入っていると他の項目はほぼ [OK] になるため、
+    #    弱い表示だと「概ね問題なし」と誤読される。
+    ng "docker コマンドの実体が podman です（podman-docker パッケージ）。"
+    ng "→ 本配布物は使用できません。導入前に開発元へご連絡ください。"
+    info "  compose の書式・GPU の渡し方・SELinux の扱いが Docker と異なります。"
+    info "  対処は次のいずれかです:"
+    info "    (a) Docker Engine を導入する（RHEL では非サポート構成になる点に注意）"
+    info "    (b) podman 向けの配布物を用意する（開発元で対応します）"
   else
     ok "本物の Docker Engine です"
   fi
@@ -80,6 +87,31 @@ else
   id -nG 2>/dev/null | tr ' ' '\n' | grep -qx docker && info "  → docker グループには所属しています" || warn "  → docker グループに所属していません"
 fi
 
+# --- podman 環境の詳細（podman 版が必要になった場合の判断材料）---
+# ここは「podman があるかどうか」ではなく「podman 版をどう作るべきか」を
+# 決めるための情報を集める。判断を1往復で終わらせるため、Docker が
+# 見つかった場合でも podman が同居していれば記録する。
+if command -v podman >/dev/null 2>&1; then
+  info ""
+  info "--- podman の詳細（podman 版を用意する場合の判断材料）---"
+  info "  podman: $(podman --version 2>/dev/null)"
+  info "  rootless: $(podman info --format '{{.Host.Security.Rootless}}' 2>/dev/null || echo '取得不可')"
+  # Quadlet は podman 4.4 以降。systemd 連携の方式がこれで決まる。
+  if [ -d /usr/share/containers/systemd ] || [ -d /etc/containers/systemd ]; then
+    info "  Quadlet: 利用可能（/etc/containers/systemd あり）"
+  else
+    info "  Quadlet: ディレクトリが見つかりません（podman 4.4 未満の可能性）"
+  fi
+  # compose プロバイダは podman 本体に含まれず、RHEL 標準リポジトリにも無い。
+  cp_found=""
+  for c in docker-compose podman-compose; do
+    command -v "$c" >/dev/null 2>&1 && cp_found="$cp_found $c"
+  done
+  info "  compose プロバイダ:${cp_found:- なし（podman compose は単独では動きません）}"
+  # 短縮イメージ名の解決先。オフラインでは localhost/ への完全修飾が要る。
+  info "  レジストリ検索設定: $(grep -s '^unqualified-search-registries' /etc/containers/registries.conf 2>/dev/null || echo '既定')"
+fi
+
 # ---------------------------------------------------------------
 sec "3. GPU ★実用性を左右する"
 if command -v nvidia-smi >/dev/null 2>&1; then
@@ -95,6 +127,13 @@ echo
 info "--- コンテナからGPUを使うための部品 ★RHEL定番の落とし穴 ---"
 if command -v nvidia-ctk >/dev/null 2>&1; then
   ok "nvidia-container-toolkit あり: $(nvidia-ctk --version 2>&1 | head -1)"
+  # CDI spec の有無。podman は CDI 経由で GPU を渡すため、podman 版が
+  # 必要になった場合にここが未生成だと GPU が使えない（要 nvidia-ctk cdi generate）。
+  if [ -e /etc/cdi/nvidia.yaml ] || [ -e /var/run/cdi/nvidia.yaml ]; then
+    info "  CDI spec: あり（podman での GPU 利用に必要な設定が生成済み）"
+  else
+    info "  CDI spec: なし（Docker では不要。podman を使う場合は要生成）"
+  fi
 else
   ng "nvidia-container-toolkit がありません"
   ng "→ これが無いと、GPUがあってもコンテナからは使えません（CPU動作に転落し実用外）"
@@ -167,15 +206,25 @@ sec "8. 権限"
 info "実行ユーザー: $(id -un)  (uid=$(id -u))"
 if sudo -n true 2>/dev/null; then
   ok "パスワード無しで sudo が使えます"
-elif sudo -v 2>/dev/null; then
-  ok "sudo が使えます（パスワード必要）"
+elif sudo -nv 2>&1 | grep -q 'password is required'; then
+  # 🔴 `sudo -v` は使わない。パスワードを対話的に要求してしまい、
+  #    「読み取りのみ・root 権限不要」という本スクリプトの説明と矛盾する。
+  #    sudo 権限の無いユーザーでは監査ログに失敗記録が残る点にも配慮する。
+  ok "sudo が使えます（実行時にパスワードが必要）"
 else
   warn "sudo が使えない可能性があります。導入には管理者権限が必要です。"
 fi
 
 # ---------------------------------------------------------------
 sec "9. ネットワーク（オフラインであることの確認）"
-if timeout 5 curl -sSf -o /dev/null https://registry-1.docker.io/v2/ 2>/dev/null; then
+if [ "${SURVEY_CHECK_NETWORK:-0}" != "1" ]; then
+  # 🔴 既定では外部へ接続しない。閉域網の本番サーバから Docker Hub への
+  #    接続試行は IDS/プロキシのアラートを引く可能性があり、
+  #    「読み取りのみ」と説明した調査で外部通信するのは信頼を損なう。
+  #    確認したい場合のみ SURVEY_CHECK_NETWORK=1 を付けて実行する。
+  info "外部への疎通確認は既定で行いません（本スクリプトは外部へ接続しません）"
+  info "  → 確認する場合: SURVEY_CHECK_NETWORK=1 bash survey-target.sh"
+elif timeout 5 curl -sSf -o /dev/null https://registry-1.docker.io/v2/ 2>/dev/null; then
   warn "外部ネットワークに到達できます（完全オフラインではありません）"
   info "  → その場合でも、本製品は外部へ出ない設計のまま導入します"
 else
