@@ -116,7 +116,8 @@ INSTALL_ROOT="$(normalize_path "$INSTALL_ROOT")"
 # （<install-root>/data）に切り替わる。旧データは消えないが製品からは
 # 見えなくなり、画面には「文書データとモデルは保持されます」と出る。
 # しかも旧 .env を上書きするため、後から旧データの場所を知る手段が失われる。
-if [ -z "$DATA_DIR" ] && [ -f "$INSTALL_ROOT/.env" ]; then
+prev_data=""
+if [ -f "$INSTALL_ROOT/.env" ]; then
   prev_data="$(awk '/^[[:space:]]*(export[[:space:]]+)?OTE_RAG_DATA[[:space:]]*=/{sub(/^[^=]*=/, ""); print}' \
                  "$INSTALL_ROOT/.env" 2>/dev/null | tail -1)"
   prev_data="${prev_data%$'\r'}"
@@ -126,10 +127,10 @@ if [ -z "$DATA_DIR" ] && [ -f "$INSTALL_ROOT/.env" ]; then
     \"*\") prev_data="${prev_data#\"}"; prev_data="${prev_data%\"}" ;;
     \'*\') prev_data="${prev_data#\'}"; prev_data="${prev_data%\'}" ;;
   esac
-  if [ -n "$prev_data" ]; then
+  if [ -n "$prev_data" ] && [ -z "$DATA_DIR" ]; then
     DATA_DIR="$prev_data"
+    DATA_DIR_SOURCE="$INSTALL_ROOT/.env"
     info "既存のデータ領域を引き継ぎます: $DATA_DIR"
-    info "  （変更する場合は --data-dir で明示してください）"
   fi
 fi
 
@@ -152,11 +153,47 @@ esac
 
 # データ領域が配置先の上位を指していると、アンインストール時に
 # 「データだけ残す」ことができず中止するしかなくなる（削除手段が失われる）。
+# 🔴 `${DATA_DIR%/}` で末尾スラッシュを落とす。DATA_DIR=/ のときパターンが
+#    `//*` になり、`/opt/ote-rag/` と一致しないため判定が素通りしていた。
 case "$INSTALL_ROOT/" in
-  "$DATA_DIR"/*)
+  "${DATA_DIR%/}"/*)
     die "データ領域（$DATA_DIR）がプログラムの配置先（$INSTALL_ROOT）の上位です。" \
         "アンインストール時にデータだけを残せなくなるため、別の場所を指定してください。" ;;
 esac
+
+# データ領域にもシステムディレクトリの拒否を適用する。配置先側にはあったが
+# データ領域側には無く、`--data-dir /usr` や .env 由来の `/` が通っていた。
+# root 実行なので、通ると / 直下に ollama-models 等が作られ 11GB がコピーされる。
+case "$DATA_DIR" in
+  / | /usr | /usr/* | /etc | /var | /home | /root | /boot | /bin | /sbin \
+  | /lib | /lib32 | /lib64 | /libx32 | /srv | /dev | /proc | /sys | /run)
+    die "データ領域に $DATA_DIR は指定できません（取得元: ${DATA_DIR_SOURCE:-コマンドライン}）。" \
+        "専用のディレクトリを指定してください（例: /var/lib/ote-rag）。" ;;
+esac
+
+# 🔴 データ領域を切り替える場合の警告。
+# install.sh が新しい場所へコピーするのはモデル・リランカー・OCR データだけで、
+# 顧客の文書とベクトルDB（anythingllm-storage）は移動しない。
+# 黙って進むと、製品からは空の場所が見え、UI 上は全文書が消えたように見える。
+if [ -n "$prev_data" ]; then
+  prev_data_norm="$(readlink -m -- "$prev_data" 2>/dev/null || printf '%s' "$prev_data")"
+  if [ "$prev_data_norm" != "$DATA_DIR" ]; then
+    warn "データ領域を切り替えようとしています。"
+    warn "  現在: $prev_data_norm"
+    warn "  変更: $DATA_DIR"
+    warn "🔴 既存の文書とベクトルDBは自動では移動しません。"
+    warn "   このまま進めると、製品からは新しい（空の）場所が見えます。"
+    warn "   移行するには、先に停止してから手動で移してください:"
+    warn "     sudo $INSTALL_ROOT/stop.sh"
+    warn "     sudo mv $prev_data_norm/anythingllm-storage $DATA_DIR/"
+    warn "     sudo mv $prev_data_norm/ollama-models       $DATA_DIR/"
+    if [ "$ASSUME_YES" -eq 0 ]; then
+      printf '  このまま続行しますか？ [y/N]: '
+      read -r ans
+      case "$ans" in [yY]*) ;; *) die "中止しました。環境は変更していません。" ;; esac
+    fi
+  fi
+fi
 
 # ---------------------------------------------------------------- ロールバック
 # 途中で失敗したときに「半インストール状態」を残さない。
@@ -166,8 +203,15 @@ ROLLBACK_ARMED=0
 INSTALL_ROOT_PREEXISTED=0
 SYSTEMD_UNIT_INSTALLED=0
 SYSTEMD_UNIT_BACKUP=""     # 既存 unit を上書きする場合の退避先
+SYSTEMD_UNIT_TOUCHED=0     # 退避した時点で立てる（この後どこで失敗しても復元する）
 COMPOSE_STARTED=0
-SYSTEMD_UNIT_PATH="${SYSTEMD_UNIT_PATH:-/etc/systemd/system/ote-rag.service}"
+# 🔴 環境変数 SYSTEMD_UNIT_PATH は systemd 自身が「unit を探すディレクトリの
+#    コロン区切り列」として定義済みの名前であり、流用してはいけない。
+#    systemd 的に正当な値（例 "/etc/systemd/system:"）が環境にあると、
+#    そこへ unit ファイルを書き込んでしまう。
+#    テストからの差し替えは製品固有の名前でのみ受け付ける。
+SYSTEMD_UNIT_PATH="/etc/systemd/system/ote-rag.service"
+[ -n "${OTE_RAG_TEST_SYSTEMD_UNIT:-}" ] && SYSTEMD_UNIT_PATH="$OTE_RAG_TEST_SYSTEMD_UNIT"
 
 rollback() {
   [ "$ROLLBACK_ARMED" -eq 1 ] || return 0
@@ -186,7 +230,11 @@ rollback() {
     fi
   fi
 
-  if [ "$SYSTEMD_UNIT_INSTALLED" -eq 1 ]; then
+  # 退避した時点（SYSTEMD_UNIT_TOUCHED）から復元対象にする。
+  # SYSTEMD_UNIT_INSTALLED だけを見ると、退避後・フラグ設定前
+  # （sed による上書き、chmod、daemon-reload）で失敗した場合に
+  # 顧客の unit が新版のまま取り残される。
+  if [ "$SYSTEMD_UNIT_INSTALLED" -eq 1 ] || [ "$SYSTEMD_UNIT_TOUCHED" -eq 1 ]; then
     systemctl disable --now ote-rag.service >/dev/null 2>&1 || true
     if [ -n "$SYSTEMD_UNIT_BACKUP" ] && [ -f "$SYSTEMD_UNIT_BACKUP" ]; then
       # アップグレードの失敗。元からあった unit を戻す。
@@ -593,7 +641,13 @@ install -m 0644 "$PKG_ROOT/config/collector.env.template" "$INSTALL_ROOT/config/
 # ここにはデータ領域の場所が記録されており、失うと復旧の手がかりが消える。
 if [ -f "$INSTALL_ROOT/.env" ]; then
   env_bak="$INSTALL_ROOT/.env.bak-$(date +%Y%m%d-%H%M%S)"
-  cp -a "$INSTALL_ROOT/.env" "$env_bak" && info "既存の .env を $(basename "$env_bak") へ退避しました"
+  # 同じ内容なら退避しない（config/*.env の render_config と揃える）。
+  if ! cmp -s "$INSTALL_ROOT/.env" "$env_bak" 2>/dev/null; then
+    cp -a "$INSTALL_ROOT/.env" "$env_bak" \
+      || die "既存の .env を退避できませんでした: $env_bak" \
+             "データ領域の記録が失われる可能性があるため中止しました。"
+    info "既存の .env を $(basename "$env_bak") へ退避しました"
+  fi
 fi
 cat > "$INSTALL_ROOT/.env" <<EOF
 # OTE-RAG の配置設定（docker compose の変数展開に使う）。install.sh が生成。
@@ -678,8 +732,15 @@ if [ "$WITH_SYSTEMD" -eq 1 ]; then
   # （サービス停止＋自動起動なし）で取り残される。
   if [ -f "$SYSTEMD_UNIT_PATH" ]; then
     SYSTEMD_UNIT_BACKUP="$SYSTEMD_UNIT_PATH.bak-$(date +%Y%m%d-%H%M%S)"
+    # 🔴 `cp ... && info` にすると set -e が発火せず、退避に失敗しても続行して
+    #    しまう。その場合 SYSTEMD_UNIT_BACKUP は存在しないファイルを指し、
+    #    ロールバックが「復元」ではなく「削除」に落ちて顧客の unit が消える。
     cp -a "$SYSTEMD_UNIT_PATH" "$SYSTEMD_UNIT_BACKUP" \
-      && info "既存の systemd unit を $(basename "$SYSTEMD_UNIT_BACKUP") へ退避しました"
+      || die "既存の systemd unit を退避できませんでした: $SYSTEMD_UNIT_BACKUP" \
+             "この状態で続行すると、失敗時に元の unit を戻せません。" \
+             "/etc の空き容量と書き込み権限を確認してください。"
+    SYSTEMD_UNIT_TOUCHED=1
+    info "既存の systemd unit を $(basename "$SYSTEMD_UNIT_BACKUP") へ退避しました"
   fi
   sed -e "s|@INSTALL_ROOT@|$INSTALL_ROOT|g" -e "s|@DOCKER@|$docker_bin|g" \
       "$PKG_ROOT/systemd/ote-rag.service" > "$SYSTEMD_UNIT_PATH"
@@ -688,7 +749,7 @@ if [ "$WITH_SYSTEMD" -eq 1 ]; then
   SYSTEMD_UNIT_INSTALLED=1
   systemctl enable ote-rag.service >/dev/null 2>&1 \
     || warn "systemctl enable に失敗しました。手動起動（start.sh）は使えます。"
-  ok "/etc/systemd/system/ote-rag.service を登録（OS 起動時に自動で立ち上がります）"
+  ok "$SYSTEMD_UNIT_PATH を登録（OS 起動時に自動で立ち上がります）"
 else
   info "systemd への登録はスキップしました（--no-systemd）。"
 fi

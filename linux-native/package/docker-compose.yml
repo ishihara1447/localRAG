@@ -39,7 +39,7 @@ services:
     pull_policy: never
     container_name: ote-rag-ollama
     # GPU に載せた 8GB 級のモデルを解放してから終了するための猶予。
-    # app 側と揃える（上記コメント参照）。
+    # app 側と揃える（上記の但し書きも参照）。
     stop_grace_period: 30s
     networks:
       - rag-internal
@@ -70,9 +70,16 @@ services:
     pull_policy: never
     container_name: ote-rag-app
     # 停止時に SIGTERM から SIGKILL までの猶予を延ばす。
-    # 既定の 10 秒では終了しきれず exit 137（SIGKILL）になることを実測した
-    # （2026-07-31 の E2E 検証。docs/LINUX_E2E_WSL2_2026-07-31.md §4-2）。
-    # LanceDB と SQLite への書き込み中に強制終了されるとデータ破損の余地がある。
+    #
+    # ⚠️ これだけでは exit 137 は解消しない。イメージの entrypoint
+    # （docker-entrypoint.sh）が bash で trap を設定しておらず、PID 1 の bash は
+    # カーネル仕様により既定動作のシグナルを配送されないため、SIGTERM が
+    # node に届かない。猶予を延ばしても最終的に SIGKILL になる。
+    # 根本対処には entrypoint への trap 追加とイメージ再ビルドが必要で、別途対応する。
+    #
+    # それでも 30s を入れておくのは、将来 entrypoint を直したときに
+    # 猶予不足で切られないようにするため。現時点では停止に 30 秒かかるだけで、
+    # データ破損のリスクは減っていない。
     stop_grace_period: 30s
     networks:
       - rag-internal

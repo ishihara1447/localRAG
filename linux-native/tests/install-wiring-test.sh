@@ -111,9 +111,16 @@ run_install() { # $1: ケース名, 残り: install.sh への追加引数
     echo "テストの前提が壊れています: root チェックを無効化できませんでした" >&2
     exit 1
   fi
-  ( cd "$pkg" && CALLLOG="$base/calls.log" PATH="$stub:$PATH" bash "$pkg/install.test.sh" \
-      --install-root "$root" --data-dir "$base/data" \
-      --no-systemd --skip-checksum -y "$@" ) >"$base/out.log" 2>&1
+  # --data-dir と --no-systemd は既定で付けるが、呼び出し側が
+  # NO_DATA_DIR=1 / WITH_SYSTEMD=1 を指定すると外せる。
+  # 固定していると .env 引き継ぎ経路と systemd 経路を一度も通らず、
+  # それらの実装をまるごと消してもテストが気づかない（実測で確認済み）。
+  local -a opts=(--install-root "$root" --skip-checksum -y)
+  [ "${NO_DATA_DIR:-0}" = 1 ] || opts+=(--data-dir "$base/data")
+  [ "${WITH_SYSTEMD:-0}" = 1 ] || opts+=(--no-systemd)
+  ( cd "$pkg" && CALLLOG="$base/calls.log" PATH="$stub:$PATH" \
+      OTE_RAG_TEST_SYSTEMD_UNIT="${TEST_UNIT:-}" bash "$pkg/install.test.sh" \
+      "${opts[@]}" "$@" ) >"$base/out.log" 2>&1
   echo $?
 }
 
@@ -153,6 +160,52 @@ result "起動確認の失敗では巻き戻さない"    "3/INSTALLED" "$code/$
 down_called=NO
 [ -f "$WORK/w3/calls.log" ] && grep -q 'compose down' "$WORK/w3/calls.log" && down_called=YES
 result "巻き戻し前にコンテナを停止する"    "YES" "$down_called"
+
+echo
+echo "════ データ領域の引き継ぎと保護 ════"
+echo
+
+# 6. --data-dir 未指定＋既存 .env → 記録された場所を引き継ぐ。
+#    引き継ぎを消すとここが落ちる。
+prep_env() { # $1=ケース名 $2=.env に書く値
+  local base="$WORK/$1"; mkdir -p "$base/opt/ote-rag"
+  printf 'OTE_RAG_DATA=%s\n' "$2" > "$base/opt/ote-rag/.env"
+}
+mkdir -p "$WORK/w5/prev-data"
+prep_env w5 "$WORK/w5/prev-data"
+code=$(NO_DATA_DIR=1 run_install w5)
+inherited=NO
+grep -q "OTE_RAG_DATA=$WORK/w5/prev-data" "$WORK/w5/opt/ote-rag/.env" 2>/dev/null && inherited=YES
+result "既存 .env のデータ領域を引き継ぐ"  "0/YES" "$code/$inherited"
+
+# 7. .env に危険な値（/）→ 中止する。
+#    `//*` の glob が一致しない問題で、以前は全ガードを素通りしていた。
+prep_env w6 "/"
+code=$(NO_DATA_DIR=1 run_install w6)
+# 🔴 終了コードだけを見てはいけない。ガードを外しても、非 root で / に書けず
+#    別の理由で exit 1 になり偽の PASS になる（ミューテーションで実測）。
+#    「なぜ止まったか」まで確認する。
+reason=NO
+grep -q 'データ領域に / は指定できません' "$WORK/w6/out.log" 2>/dev/null && reason=YES
+result "危険なデータ領域（/）は中止する"    "1/YES" "$code/$reason"
+
+echo
+echo "════ systemd unit の保護 ════"
+echo
+
+# 8. 既存 unit がある状態で失敗 → 元の内容が復元される。
+mkdir -p "$WORK/w7"; U="$WORK/w7/ote-rag.service"; printf 'OLD-UNIT\n' > "$U"
+code=$(TEST_UNIT="$U" WITH_SYSTEMD=1 DOCKER_FAIL_AT=up run_install w7)
+restored=NO; grep -q 'OLD-UNIT' "$U" 2>/dev/null && restored=YES
+result "失敗時に既存 unit を復元する"      "1/YES" "$code/$restored"
+
+# 9. 退避が取れない場合は中止する（続行すると復元不能になるため）。
+#    退避先を書けないディレクトリにして再現する。
+mkdir -p "$WORK/w8/ro"; U8="$WORK/w8/ro/ote-rag.service"; printf 'KEEP-ME\n' > "$U8"; chmod 500 "$WORK/w8/ro"
+code=$(TEST_UNIT="$U8" WITH_SYSTEMD=1 run_install w8)
+kept=NO; grep -q 'KEEP-ME' "$U8" 2>/dev/null && kept=YES
+chmod 700 "$WORK/w8/ro" 2>/dev/null
+result "退避できないなら顧客 unit を触らない" "1/YES" "$code/$kept"
 
 echo
 echo "──────────────────────────────────────────────"
