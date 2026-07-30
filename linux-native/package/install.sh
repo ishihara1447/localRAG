@@ -109,6 +109,30 @@ normalize_path() {  # $1: パス（絶対でなければエラー）
   esac
 }
 INSTALL_ROOT="$(normalize_path "$INSTALL_ROOT")"
+
+# 🔴 再インストール時は、既存の .env に記録されたデータ領域を引き継ぐ。
+# これをしないと、--data-dir で別の場所を指定して導入した顧客が
+# `sudo ./install.sh` を素で再実行しただけで、データ領域が既定
+# （<install-root>/data）に切り替わる。旧データは消えないが製品からは
+# 見えなくなり、画面には「文書データとモデルは保持されます」と出る。
+# しかも旧 .env を上書きするため、後から旧データの場所を知る手段が失われる。
+if [ -z "$DATA_DIR" ] && [ -f "$INSTALL_ROOT/.env" ]; then
+  prev_data="$(awk '/^[[:space:]]*(export[[:space:]]+)?OTE_RAG_DATA[[:space:]]*=/{sub(/^[^=]*=/, ""); print}' \
+                 "$INSTALL_ROOT/.env" 2>/dev/null | tail -1)"
+  prev_data="${prev_data%$'\r'}"
+  prev_data="${prev_data#"${prev_data%%[![:space:]]*}"}"
+  prev_data="${prev_data%"${prev_data##*[![:space:]]}"}"
+  case "$prev_data" in
+    \"*\") prev_data="${prev_data#\"}"; prev_data="${prev_data%\"}" ;;
+    \'*\') prev_data="${prev_data#\'}"; prev_data="${prev_data%\'}" ;;
+  esac
+  if [ -n "$prev_data" ]; then
+    DATA_DIR="$prev_data"
+    info "既存のデータ領域を引き継ぎます: $DATA_DIR"
+    info "  （変更する場合は --data-dir で明示してください）"
+  fi
+fi
+
 [ -n "$DATA_DIR" ] || DATA_DIR="$INSTALL_ROOT/data"
 DATA_DIR="$(normalize_path "$DATA_DIR")"
 
@@ -553,6 +577,12 @@ install -m 0644 "$PKG_ROOT/config/server.env.template"    "$INSTALL_ROOT/config/
 install -m 0644 "$PKG_ROOT/config/collector.env.template" "$INSTALL_ROOT/config/collector.env.template"
 
 # compose の変数定義（データ配置・ポート・公開アドレス）
+# config/*.env と同様、既存の内容が異なる場合は退避してから上書きする。
+# ここにはデータ領域の場所が記録されており、失うと復旧の手がかりが消える。
+if [ -f "$INSTALL_ROOT/.env" ]; then
+  env_bak="$INSTALL_ROOT/.env.bak-$(date +%Y%m%d-%H%M%S)"
+  cp -a "$INSTALL_ROOT/.env" "$env_bak" && info "既存の .env を $(basename "$env_bak") へ退避しました"
+fi
 cat > "$INSTALL_ROOT/.env" <<EOF
 # OTE-RAG の配置設定（docker compose の変数展開に使う）。install.sh が生成。
 # 変更したら stop.sh → start.sh で反映する。
