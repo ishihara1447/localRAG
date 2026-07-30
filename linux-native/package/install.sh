@@ -165,7 +165,9 @@ INSTALL_OK=0
 ROLLBACK_ARMED=0
 INSTALL_ROOT_PREEXISTED=0
 SYSTEMD_UNIT_INSTALLED=0
+SYSTEMD_UNIT_BACKUP=""     # 既存 unit を上書きする場合の退避先
 COMPOSE_STARTED=0
+SYSTEMD_UNIT_PATH="${SYSTEMD_UNIT_PATH:-/etc/systemd/system/ote-rag.service}"
 
 rollback() {
   [ "$ROLLBACK_ARMED" -eq 1 ] || return 0
@@ -186,9 +188,19 @@ rollback() {
 
   if [ "$SYSTEMD_UNIT_INSTALLED" -eq 1 ]; then
     systemctl disable --now ote-rag.service >/dev/null 2>&1 || true
-    rm -f /etc/systemd/system/ote-rag.service
-    systemctl daemon-reload >/dev/null 2>&1 || true
-    printf '  systemd の登録を解除しました\n' >&2
+    if [ -n "$SYSTEMD_UNIT_BACKUP" ] && [ -f "$SYSTEMD_UNIT_BACKUP" ]; then
+      # アップグレードの失敗。元からあった unit を戻す。
+      # 消してしまうと顧客は実行前より悪い状態で取り残される。
+      mv -f "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_PATH"
+      systemctl daemon-reload >/dev/null 2>&1 || true
+      systemctl enable ote-rag.service >/dev/null 2>&1 || true
+      printf '  既存の systemd unit を復元しました（%s）\n' "$SYSTEMD_UNIT_PATH" >&2
+    else
+      # 新規インストールの失敗。自分が作った unit を消す。
+      rm -f "$SYSTEMD_UNIT_PATH"
+      systemctl daemon-reload >/dev/null 2>&1 || true
+      printf '  systemd の登録を解除しました\n' >&2
+    fi
   fi
 
   if [ "$INSTALL_ROOT_PREEXISTED" -eq 1 ]; then
@@ -660,9 +672,18 @@ step "自動起動（systemd）を設定しています"
 # ================================================================
 if [ "$WITH_SYSTEMD" -eq 1 ]; then
   docker_bin="$(command -v docker)"
+  # 🔴 既存 unit があれば退避してから上書きする。
+  # これをしないと、アップグレードが途中で失敗したときにロールバックが
+  # 「元からあった unit」まで削除し、顧客は実行前より悪い状態
+  # （サービス停止＋自動起動なし）で取り残される。
+  if [ -f "$SYSTEMD_UNIT_PATH" ]; then
+    SYSTEMD_UNIT_BACKUP="$SYSTEMD_UNIT_PATH.bak-$(date +%Y%m%d-%H%M%S)"
+    cp -a "$SYSTEMD_UNIT_PATH" "$SYSTEMD_UNIT_BACKUP" \
+      && info "既存の systemd unit を $(basename "$SYSTEMD_UNIT_BACKUP") へ退避しました"
+  fi
   sed -e "s|@INSTALL_ROOT@|$INSTALL_ROOT|g" -e "s|@DOCKER@|$docker_bin|g" \
-      "$PKG_ROOT/systemd/ote-rag.service" > /etc/systemd/system/ote-rag.service
-  chmod 0644 /etc/systemd/system/ote-rag.service
+      "$PKG_ROOT/systemd/ote-rag.service" > "$SYSTEMD_UNIT_PATH"
+  chmod 0644 "$SYSTEMD_UNIT_PATH"
   systemctl daemon-reload
   SYSTEMD_UNIT_INSTALLED=1
   systemctl enable ote-rag.service >/dev/null 2>&1 \
