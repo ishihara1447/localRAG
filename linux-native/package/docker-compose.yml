@@ -38,6 +38,9 @@ services:
     # オフライン環境。レジストリへ取りに行かせない（イメージは install.sh が docker load する）。
     pull_policy: never
     container_name: ote-rag-ollama
+    # GPU に載せた 8GB 級のモデルを解放してから終了するための猶予。
+    # app 側と揃える（上記コメント参照）。
+    stop_grace_period: 30s
     networks:
       - rag-internal
     env_file:
@@ -66,6 +69,11 @@ services:
     image: localrag-anythingllm:1.1.0
     pull_policy: never
     container_name: ote-rag-app
+    # 停止時に SIGTERM から SIGKILL までの猶予を延ばす。
+    # 既定の 10 秒では終了しきれず exit 137（SIGKILL）になることを実測した
+    # （2026-07-31 の E2E 検証。docs/LINUX_E2E_WSL2_2026-07-31.md §4-2）。
+    # LanceDB と SQLite への書き込み中に強制終了されるとデータ破損の余地がある。
+    stop_grace_period: 30s
     networks:
       - rag-internal
       - rag-public
