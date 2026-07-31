@@ -189,6 +189,9 @@ install -m 0755 "$LINUX_DIR/survey-target.sh" "$PKG/survey-target.sh"
 # 導入先担当者向けの手順書（開発者向けの linux-native/README.md ではない）
 [ -f "$LINUX_DIR/INSTALL_GUIDE.md" ] || die "INSTALL_GUIDE.md がありません: $LINUX_DIR/INSTALL_GUIDE.md"
 install -m 0644 "$LINUX_DIR/INSTALL_GUIDE.md" "$PKG/INSTALL_GUIDE.md"
+# 導入担当者が最初に読む案内。手順の全体像と、どのファイルから見ればよいかを示す。
+[ -f "$LINUX_DIR/START_HERE.md" ] || die "START_HERE.md がありません: $LINUX_DIR/START_HERE.md"
+install -m 0644 "$LINUX_DIR/START_HERE.md" "$PKG/START_HERE.md"
 [ -d "$REPO_ROOT/LICENSES" ] && cp -a "$REPO_ROOT/LICENSES" "$PKG/LICENSES"
 [ -f "$REPO_ROOT/NOTICE" ] && cp -a "$REPO_ROOT/NOTICE" "$PKG/NOTICE"
 [ -f "$REPO_ROOT/docs/MODEL_CARDS.md" ] && cp -a "$REPO_ROOT/docs/MODEL_CARDS.md" "$PKG/docs/MODEL_CARDS.md"
