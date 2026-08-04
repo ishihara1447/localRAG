@@ -4,7 +4,11 @@
 
 ## 現在地
 
-- フェーズ: **Phase 1（個人PC検証）の技術タスクは全完了**。製品名は **OTE-RAG（おてらぐ）**（2026-07-13リブランド、日の丸アイコン）。**セッション開始時はまず `docs/HANDOFF.md` を読む**（最新状態・ブロッカー・次手。本ファイルと矛盾したらHANDOFFが正）。
+- フェーズ: **Phase 1（個人PC検証）の技術タスクは全完了**。製品名は **OTE-RAG（おてらぐ）**（2026-07-13リブランド、日の丸アイコン）。**セッション開始時はまず `docs/HANDOFF.md` を読み、続けて `docs/WORKLOG.md` の上から数エントリを読む**
+（HANDOFF＝最新状態・ブロッカー・次手。本ファイルと矛盾したらHANDOFFが正。
+WORKLOG＝時系列の追記専用ログで、何を試し何が失敗したか・**撤回済みの数値**が書いてある。
+撤回した数値を再び引用する事故が複数回起きているため、数値を持ち出す前に WORKLOG を確認すること）。
+作業の区切りでは `scripts/worklog.sh "見出し"` で WORKLOG に追記する。
 - **対象プラットフォーム（2026-07-08確定）**: Windows（GPU搭載機、RTX 5070 Ti相当以上を想定）。当初のApple Silicon Mac限定戦略は撤回。macOS向け実装は行わない。この変更は当初の批判リスク「士業事務所PCはほぼGPU非搭載」と矛盾するため、対象顧客のGPU保有実態が未検証の新規リスクとして残っている（`fukugyo/ideas/2026-06-29_local-rag-pro.md`の批判・懸念点参照）。
 - 済: ハルシネーション対策・日本語CIDフォントPDF対応（upstream未修正のバグをfork側で修正）・日本語PDF字間空白の正規化・APIキー未認証露出の修正（127.0.0.1バインド化）。
 - **モデル構成確定（2026-07-16）**: LLM=`gemma4:12b`（Google, Apache-2.0, 非中国系）・Embedding=`bge-m3`（MIT）・Reranker=`hotchpotch/japanese-reranker-xsmall-v2`（MIT, ONNX int8, 37MB。ハイブリッド検索後の「文抽出クッション」で使用。2026-08-04 に BAAI `bge-reranker-v2-m3` から非中国系方針で差し替え）・topN既定8・日本語セパレータ・ハイブリッド検索（dense+BM25+RRF）既定ON。旧LLMの変遷: llm-jp GGUF（テンプレート破損で空回答）→ qwen3:8b（中国系のため2026-07-14に切替）→ gemma4:12b。Phi-4 14Bは架空引用の捏造で不採用。詳細は `docs/HANDOFF.md` および `docs/MODEL_CARDS.md`。
