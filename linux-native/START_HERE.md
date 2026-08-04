@@ -60,14 +60,14 @@ bash survey-target.sh > survey.txt
 
 | ファイル | 用途 |
 |---|---|
-| `ote-rag-linux-x64-v1.1.1.tar.gz.001` 〜 `.007` | 配布物本体（7分割） |
+| `ote-rag-linux-x64-v1.1.2.tar.gz.001` 〜 `.007` | 配布物本体（7分割） |
 | `MANIFEST.txt` | 各ファイルの照合値 |
 | `join.sh` | 結合用スクリプト |
 
 12GB あるため、`gh` コマンドが使える環境では次が確実です。
 
 ```bash
-gh release download linux-v1.1.1 --repo ishihara1447/localRAG
+gh release download linux-v1.1.2 --repo ishihara1447/localRAG
 ```
 
 ---
@@ -79,15 +79,15 @@ bash join.sh
 ```
 
 分割ファイルを1つに戻し、内容が正しいかを自動で検証します。
-`ote-rag-linux-x64-v1.1.1.tar.gz`（約12GB）ができれば成功です。
+`ote-rag-linux-x64-v1.1.2.tar.gz`（約12GB）ができれば成功です。
 
 ---
 
 ## ④ 導入する（所要 15分）
 
 ```bash
-tar xzf ote-rag-linux-x64-v1.1.1.tar.gz
-cd ote-rag-linux-x64-v1.1.1
+tar xzf ote-rag-linux-x64-v1.1.2.tar.gz
+cd ote-rag-linux-x64-v1.1.2
 sudo ./install.sh
 ```
 

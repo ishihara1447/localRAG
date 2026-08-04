@@ -1,0 +1,3 @@
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    

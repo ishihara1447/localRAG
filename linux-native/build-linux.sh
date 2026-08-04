@@ -14,8 +14,13 @@ LINUX_DIR="$REPO_ROOT/linux-native"
 FORK="$REPO_ROOT/anything-llm"
 RUNTIME="$REPO_ROOT/runtime"
 
-VERSION="1.1.0"
-IMAGE_APP="localrag-anythingllm:$VERSION"
+# 🔴 パッケージ版数とイメージタグは別物である。
+# 以前は同じ変数だったため、--version 1.1.2 とするとイメージタグまで 1.1.2 になり
+# 「そのイメージが無い」で停止していた。配布物の版数を上げるのはスクリプトの修正や
+# 同梱物の入れ替えでも起こるが、イメージは作り直さないことが多い。
+VERSION="1.1.2"                       # 配布パッケージの版数（ファイル名・versions.lock）
+IMAGE_VERSION="1.1.0"                 # 同梱する AnythingLLM イメージのタグ
+IMAGE_APP="localrag-anythingllm:$IMAGE_VERSION"
 OLLAMA_VERSION="0.30.11"
 OLLAMA_SRC_TAG="ollama/ollama:latest"
 OLLAMA_PIN_TAG="ollama/ollama:$OLLAMA_VERSION"
@@ -30,14 +35,37 @@ ALLOW_DIRTY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --output) OUTPUT="${2:?}"; shift 2 ;;
-    --version) VERSION="${2:?}"; IMAGE_APP="localrag-anythingllm:$VERSION"; shift 2 ;;
+    --version) VERSION="${2:?}"; shift 2 ;;
+    --image-version) IMAGE_VERSION="${2:?}"; IMAGE_APP="localrag-anythingllm:$IMAGE_VERSION"; shift 2 ;;
     --skip-build) SKIP_BUILD=1; shift ;;
     --skip-verify) SKIP_VERIFY=1; shift ;;
     --allow-dirty) ALLOW_DIRTY=1; shift ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help)
+      cat <<'USAGE'
+使い方: build-linux.sh [オプション]
+  --output DIR           出力先（既定: <repo>/dist-linux）
+  --version X.Y.Z        配布パッケージの版数。ファイル名と versions.lock に入る
+  --image-version X.Y.Z  同梱する AnythingLLM イメージのタグ。
+                         ※ package/ 側が版数をハードコードしているため、
+                            既定値以外を指定すると起動直後に停止する
+  --skip-build           fork のビルドを省略（既存イメージを使う）
+  --skip-verify          同梱物の網羅性検証を省略（非推奨）
+  --allow-dirty          fork に未コミットの変更があっても続行
+USAGE
+      exit 0 ;;
     *) echo "不明なオプション: $1" >&2; exit 1 ;;
   esac
 done
+
+# --image-version を既定値以外にすると、12GB 積み上げた後の step 6 まで
+# 誰も気づかない壊れたパッケージができる（package/ 側がタグをハードコードしているため）。
+# 4.4GB の docker save を始める前に、ここで落とす。
+if ! grep -q "localrag-anythingllm:$IMAGE_VERSION" "$LINUX_DIR/package/docker-compose.yml"; then
+  echo "エラー: --image-version $IMAGE_VERSION は package/docker-compose.yml のタグと一致しません。" >&2
+  echo "        package/docker-compose.yml・package/install.sh・package/uninstall.sh の" >&2
+  echo "        ハードコード値も併せて更新してください。" >&2
+  exit 1
+fi
 
 # 配布物の命名は linux-native/INSTALL_GUIDE.md の記載と一致させること。
 PKG_NAME="ote-rag-linux-x64-v$VERSION"
@@ -124,7 +152,9 @@ mkdir -p "$PKG"/{images,models,assets,checksums,docs}
 
 echo "[4-1] Docker イメージを保存（docker save + pigz）..."
 GZ="gzip"; command -v pigz >/dev/null 2>&1 && GZ="pigz"
-docker save "$IMAGE_APP"      | $GZ -c > "$PKG/images/localrag-anythingllm-$VERSION.tar.gz"
+# ファイル名は $VERSION（パッケージ版数）ではなく $IMAGE_VERSION（イメージのタグ）に
+# 合わせる。中身はそのタグのイメージであり、install.sh もその名前で参照している。
+docker save "$IMAGE_APP"      | $GZ -c > "$PKG/images/localrag-anythingllm-$IMAGE_VERSION.tar.gz"
 docker save "$OLLAMA_PIN_TAG" | $GZ -c > "$PKG/images/ollama-$OLLAMA_VERSION.tar.gz"
 ls -l "$PKG/images" | sed 's/^/    /'
 

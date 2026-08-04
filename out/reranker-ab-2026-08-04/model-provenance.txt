@@ -1,0 +1,17 @@
+# モデル同一性の記録 (2026-08-04)
+
+## onnx-community/bge-reranker-v2-m3-ONNX
+848  122e922dcfed6503  onnx-community/bge-reranker-v2-m3-ONNX/config.json
+570727094  912fc1215c2dbff6  onnx-community/bge-reranker-v2-m3-ONNX/onnx/model_quantized.onnx
+964  8c785abebea9ae32  onnx-community/bge-reranker-v2-m3-ONNX/special_tokens_map.json
+17082900  8bf8afbfd11306bd  onnx-community/bge-reranker-v2-m3-ONNX/tokenizer.json
+1203  b87c8703482b0300  onnx-community/bge-reranker-v2-m3-ONNX/tokenizer_config.json
+config.json: model_type= xlm-roberta arch= ['XLMRobertaForSequenceClassification'] max_pos= 8194 layers= 24 hidden= 1024
+
+## hotchpotch/japanese-reranker-xsmall-v2
+1349  1347b4c877e89064  hotchpotch/japanese-reranker-xsmall-v2/config.json
+37367189  34d4657df53c875f  hotchpotch/japanese-reranker-xsmall-v2/onnx/model_quantized.onnx
+968  30bf8256f9a1eb32  hotchpotch/japanese-reranker-xsmall-v2/special_tokens_map.json
+6724873  0a94ac9a0a02c067  hotchpotch/japanese-reranker-xsmall-v2/tokenizer.json
+3783  2be5256642ed6573  hotchpotch/japanese-reranker-xsmall-v2/tokenizer_config.json
+config.json: model_type= xlm-roberta arch= ['XLMRobertaForSequenceClassification'] max_pos= 8192 layers= 10 hidden= 256

@@ -1,0 +1,6 @@
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loading reranker suite...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded model hotchpotch/japanese-reranker-xsmall-v2
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded tokenizer hotchpotch/japanese-reranker-xsmall-v2
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 612ms

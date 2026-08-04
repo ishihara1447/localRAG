@@ -1,0 +1,91 @@
+--- ollama ps (before topN=8 run1) 2026-08-04T01:09:31+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       6 seconds from now    
+10599 MiB, 16303 MiB
+=== START topN=8 run1 2026-08-04T01:09:31+09:00 ===
+exit=0 2026-08-04T01:48:20+09:00
+[gen] Q167 27.4s 172字
+[gen] Q168 28.5s 22字
+(生成結果JSON → out/topn4/topn8-gen-run1.json)
+--- ollama ps (after topN=8 run1) 2026-08-04T01:48:20+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10584 MiB, 16303 MiB
+--- ollama ps (before topN=4 run1) 2026-08-04T01:48:22+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10582 MiB, 16303 MiB
+=== START topN=4 run1 2026-08-04T01:48:23+09:00 ===
+exit=0 2026-08-04T02:12:26+09:00
+[gen] Q167 2.2s 22字
+[gen] Q168 2.1s 22字
+(生成結果JSON → out/topn4/topn4-gen-run1.json)
+--- ollama ps (after topN=4 run1) 2026-08-04T02:12:26+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+--- ollama ps (before topN=8 run2) 2026-08-04T02:12:26+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+=== START topN=8 run2 2026-08-04T02:12:26+09:00 ===
+exit=0 2026-08-04T02:33:20+09:00
+[gen] Q167 5.2s 164字
+[gen] Q168 3.5s 22字
+(生成結果JSON → out/topn4/topn8-gen-run2.json)
+--- ollama ps (after topN=8 run2) 2026-08-04T02:33:20+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+--- ollama ps (before topN=4 run2) 2026-08-04T02:33:21+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+=== START topN=4 run2 2026-08-04T02:33:21+09:00 ===
+exit=0 2026-08-04T02:47:04+09:00
+[gen] Q167 2.2s 22字
+[gen] Q168 2.0s 22字
+(生成結果JSON → out/topn4/topn4-gen-run2.json)
+--- ollama ps (after topN=4 run2) 2026-08-04T02:47:04+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+--- ollama ps (before topN=8 run3) 2026-08-04T02:47:04+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+=== START topN=8 run3 2026-08-04T02:47:04+09:00 ===
+exit=0 2026-08-04T03:08:16+09:00
+[gen] Q167 4.7s 164字
+[gen] Q168 3.5s 22字
+(生成結果JSON → out/topn4/topn8-gen-run3.json)
+--- ollama ps (after topN=8 run3) 2026-08-04T03:08:16+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+--- ollama ps (before topN=4 run3) 2026-08-04T03:08:16+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+=== START topN=4 run3 2026-08-04T03:08:16+09:00 ===
+exit=0 2026-08-04T03:21:58+09:00
+[gen] Q167 2.1s 22字
+[gen] Q168 2.0s 22字
+(生成結果JSON → out/topn4/topn4-gen-run3.json)
+--- ollama ps (after topN=4 run3) 2026-08-04T03:21:58+09:00 ---
+NAME             ID              SIZE      PROCESSOR    CONTEXT    UNTIL              
+bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     
+gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    
+10583 MiB, 16303 MiB
+=== ALL DONE 2026-08-04T03:21:58+09:00 ===

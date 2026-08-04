@@ -1,0 +1,7 @@
+ Container rag-ollama Running 
+ Container anythingllm Recreate 
+ Container anythingllm Recreated 
+ Container rag-ollama Waiting 
+ Container rag-ollama Healthy 
+ Container anythingllm Starting 
+ Container anythingllm Started 

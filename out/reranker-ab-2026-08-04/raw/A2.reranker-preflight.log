@@ -1,0 +1,6 @@
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loading reranker suite...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded model onnx-community/bge-reranker-v2-m3-ONNX
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded tokenizer onnx-community/bge-reranker-v2-m3-ONNX
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 4595ms

@@ -227,6 +227,31 @@ fi
 if [ -x "$PKG/install.sh" ]; then pass "install.sh に実行権限あり"; else bad "install.sh に実行権限が無い"; fi
 if [ -x "$PKG/survey-target.sh" ]; then pass "survey-target.sh に実行権限あり"; else bad "survey-target.sh に実行権限が無い"; fi
 
+# ---------------------------------------------------------------- G
+echo
+echo "── G. 手順書の版数がパッケージと一致するか ──"
+# v1.1.2 のパッケージに「cd ote-rag-linux-x64-v1.1.0」と書かれた手順書が同梱され、
+# 導入担当者が最初の3コマンドで詰まる事故が起きた（2026-08-04 のレビューで検出）。
+# 手順書は展開後のディレクトリ名やダウンロードするタグを名指しするので、
+# 版数が1つでもずれていれば、そのまま実行不能な手順になる。
+PKG_VER="$(basename "$PKG" | sed -n 's/^ote-rag-linux-x64-v//p')"
+if [ -z "$PKG_VER" ]; then
+  bad "パッケージ名から版数を取り出せない: $(basename "$PKG")"
+else
+  for doc in INSTALL_GUIDE.md START_HERE.md; do
+    [ -f "$PKG/$doc" ] || continue
+    # 自分の版数以外の v番号（vX.Y.Z 形式）が残っていないか
+    stale="$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' "$PKG/$doc" | sort -u | grep -vFx "v$PKG_VER" || true)"
+    if [ -n "$stale" ]; then
+      bad "$doc に別版数の記載が残っている（パッケージは v$PKG_VER）: $(echo "$stale" | tr '\n' ' ')"
+    else
+      grep -qF "v$PKG_VER" "$PKG/$doc" \
+        && pass "$doc の版数は v$PKG_VER で一致" \
+        || bad "$doc に v$PKG_VER の記載が無い"
+    fi
+  done
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "✅ 網羅性検証 PASS"

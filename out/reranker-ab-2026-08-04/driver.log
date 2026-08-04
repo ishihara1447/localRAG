@@ -1,0 +1,61 @@
+[2026-08-04T13:03:48+09:00] === RUN A1  overlay=docker-compose.reranker-old.yml  expect=onnx-community/bge-reranker-v2-m3-ONNX ===
+[2026-08-04T13:04:01+09:00] container 89a8e5d8182c -> 76c6ab419c0e (recreated=yes)
+[2026-08-04T13:04:17+09:00] health=healthy
+[2026-08-04T13:04:17+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:05:13+09:00] warmup done (10128 bytes)
+[2026-08-04T13:05:13+09:00] VERIFY OK: Loaded model onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:05:13+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:09:43+09:00] eval rc=0 elapsed=270s  === 合計: 27/30 ===
+[2026-08-04T13:09:43+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:09:43+09:00] rerank lines=31
+[2026-08-04T13:09:43+09:00] === RUN B1  overlay=docker-compose.reranker-test.yml  expect=hotchpotch/japanese-reranker-xsmall-v2 ===
+[2026-08-04T13:09:55+09:00] container 76c6ab419c0e -> b5c7943a20d7 (recreated=yes)
+[2026-08-04T13:10:00+09:00] health=healthy
+[2026-08-04T13:10:00+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:10:10+09:00] warmup done (10033 bytes)
+[2026-08-04T13:10:10+09:00] VERIFY OK: Loaded model hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:10:10+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:11:41+09:00] eval rc=0 elapsed=91s  === 合計: 27/30 ===
+[2026-08-04T13:11:41+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:11:41+09:00] rerank lines=31
+[2026-08-04T13:11:41+09:00] === RUN A2  overlay=docker-compose.reranker-old.yml  expect=onnx-community/bge-reranker-v2-m3-ONNX ===
+[2026-08-04T13:11:52+09:00] container b5c7943a20d7 -> d7102647f690 (recreated=yes)
+[2026-08-04T13:11:57+09:00] health=healthy
+[2026-08-04T13:11:57+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:12:13+09:00] warmup done (10130 bytes)
+[2026-08-04T13:12:13+09:00] VERIFY OK: Loaded model onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:12:13+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:15:45+09:00] eval rc=0 elapsed=212s  === 合計: 27/30 ===
+[2026-08-04T13:15:45+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:15:45+09:00] rerank lines=31
+[2026-08-04T13:15:45+09:00] === RUN B2  overlay=docker-compose.reranker-test.yml  expect=hotchpotch/japanese-reranker-xsmall-v2 ===
+[2026-08-04T13:15:57+09:00] container d7102647f690 -> bdc26a8e7b56 (recreated=yes)
+[2026-08-04T13:16:02+09:00] health=healthy
+[2026-08-04T13:16:02+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:16:12+09:00] warmup done (10035 bytes)
+[2026-08-04T13:16:12+09:00] VERIFY OK: Loaded model hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:16:12+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:17:41+09:00] eval rc=0 elapsed=89s  === 合計: 27/30 ===
+[2026-08-04T13:17:41+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:17:41+09:00] rerank lines=31
+[2026-08-04T13:17:41+09:00] === RUN A3  overlay=docker-compose.reranker-old.yml  expect=onnx-community/bge-reranker-v2-m3-ONNX ===
+[2026-08-04T13:17:53+09:00] container bdc26a8e7b56 -> de362b04e56e (recreated=yes)
+[2026-08-04T13:17:58+09:00] health=healthy
+[2026-08-04T13:17:58+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:18:15+09:00] warmup done (10129 bytes)
+[2026-08-04T13:18:15+09:00] VERIFY OK: Loaded model onnx-community/bge-reranker-v2-m3-ONNX
+[2026-08-04T13:18:15+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:21:40+09:00] eval rc=0 elapsed=205s  === 合計: 27/30 ===
+[2026-08-04T13:21:40+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:21:40+09:00] rerank lines=31
+[2026-08-04T13:21:40+09:00] === RUN B3  overlay=docker-compose.reranker-test.yml  expect=hotchpotch/japanese-reranker-xsmall-v2 ===
+[2026-08-04T13:21:52+09:00] container de362b04e56e -> 74d7b8144d1c (recreated=yes)
+[2026-08-04T13:21:57+09:00] health=healthy
+[2026-08-04T13:21:57+09:00] env RERANKER_MODEL_PREF=RERANKER_MODEL_PREF=hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:22:07+09:00] warmup done (10034 bytes)
+[2026-08-04T13:22:07+09:00] VERIFY OK: Loaded model hotchpotch/japanese-reranker-xsmall-v2
+[2026-08-04T13:22:07+09:00] ollama(before): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:23:34+09:00] eval rc=0 elapsed=87s  === 合計: 27/30 ===
+[2026-08-04T13:23:34+09:00] ollama(after): bge-m3:latest    790764642607    618 MB    100% GPU     500        24 hours from now     ;gemma4:12b       4eb23ef187e2    8.4 GB    100% GPU     8192       4 minutes from now    ;
+[2026-08-04T13:23:34+09:00] rerank lines=31
+[2026-08-04T13:23:34+09:00] === ALL RUNS DONE ===

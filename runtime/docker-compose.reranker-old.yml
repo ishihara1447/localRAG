@@ -1,0 +1,16 @@
+# リランカー A/B（2026-08-04）用オーバーレイ: **旧**モデル（条件A）。
+# 使い方: docker compose -f docker-compose.yml -f docker-compose.reranker-old.yml up -d anythingllm
+# 新モデル（条件B）に戻すには、このオーバーレイを外して docker-compose.yml 単体で起動する
+# （本体が既に RERANKER_MODEL_PREF=hotchpotch/japanese-reranker-xsmall-v2 を持つ）。
+# docker-compose.yml 本体は無変更。
+#
+# 🔴 このオーバーレイを当てるときの注意:
+#   ・顧客要件で禁止した中国系（BAAI）モデルに戻る。製品構成としては使えない。
+#   ・その 570MB の重みは v1.1.2 以降の配布物に同梱されていない。
+#   ・リランカーは読み込みに失敗しても例外を出さず、黙って元の順序へフォールバックする。
+#     つまり重みが無い環境では「エラーにならないまま精度だけ落ちる」。開発機には
+#     runtime/anythingllm-storage/models/onnx-community/ が残っているので動くだけである。
+services:
+  anythingllm:
+    environment:
+      - RERANKER_MODEL_PREF=onnx-community/bge-reranker-v2-m3-ONNX

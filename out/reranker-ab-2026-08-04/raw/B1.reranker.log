@@ -1,0 +1,157 @@
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loading reranker suite...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded model hotchpotch/japanese-reranker-xsmall-v2
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded tokenizer hotchpotch/japanese-reranker-xsmall-v2
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 612ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 20/44
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 45 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 45 documents to top 45 took 564ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 21/45
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 512ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 22/44
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 408ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/36
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 687ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 21/33
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 39 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 39 documents to top 39 took 392ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/39
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 683ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 16/35
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 42 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 42 documents to top 42 took 225ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 21/42
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 573ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/41
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 795ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 18/36
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 30 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 30 documents to top 30 took 675ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 17/30
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents to top 43 took 779ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 19/43
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 356ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 19/41
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 50 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 50 documents to top 50 took 801ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 19/50
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 633ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 18/35
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents to top 40 took 365ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 19/40
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents to top 32 took 348ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 19/32
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 451ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 4, sentences kept 19/41
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 310ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 4, sentences kept 15/35
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 307ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 19/33
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents to top 40 took 261ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 17/40
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 46 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 46 documents to top 46 took 286ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 21/46
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 560ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 4, sentences kept 15/33
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 970ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 21/36
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 429ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 17/35
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 38 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 38 documents to top 38 took 699ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 16/38
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents to top 43 took 435ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 22/43
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 488ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/36
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents to top 32 took 451ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 17/32
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 31 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 31 documents to top 31 took 498ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/31
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 49 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 49 documents to top 49 took 517ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 20/49

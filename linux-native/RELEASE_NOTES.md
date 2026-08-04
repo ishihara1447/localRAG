@@ -1,7 +1,31 @@
-# OTE-RAG v1.1.0 (Linux x86_64)
+# OTE-RAG v1.1.2 (Linux x86_64)
 
 **完全ローカルで動く日本語RAG。** 取り込んだ文書は一切外部へ送信しません。
 LLM・埋め込み・リランカー・OCR をすべて同梱しているため、**インターネットに接続していない環境で動作します。**
+
+---
+
+## v1.1.2 での変更点（v1.1.1 からの差分）
+
+**リランカーを非中国系モデルへ差し替えました。**
+
+| | v1.1.1 まで | v1.1.2 |
+|---|---|---|
+| リランカー | `BAAI/bge-reranker-v2-m3`（中国・北京智源人工智能研究院） | **`hotchpotch/japanese-reranker-xsmall-v2`**（日本、MIT） |
+| サイズ | 570MB | **37MB** |
+| リランク所要（中央値） | 約 4,400ms | **約 500ms** |
+| 精度（防衛白書30問） | 27/30 | **27/30**（同一条件A/B・各3run、差 ±0） |
+
+- 系譜は `cl-nagoya/ruri-v3-pt-30m`（名古屋大）← `sbintuitions/modernbert-ja-30m`（SB Intuitions）で、
+  **中国系の混入はありません**。
+- 精度は同一条件の A/B 測定で**旧モデルと同点**でした。n=30 のため「差が無いことの証明」ではなく、
+  「この規模では差を検出できなかった」という意味です（95%CI −2.77〜+2.77）。
+- **アップグレード時、旧リランカー（570MB）は `install.sh` が自動で削除します。**
+- 配布物サイズが 12.3GB → 11.9GB になりました。
+
+> **LLM `gemma4:12b`（Google）・埋め込み `bge-m3` は変更していません。**
+> 埋め込みを変更すると全文書の再取り込みが必要になるため、本版では据え置いています
+> （`bge-m3` は BAAI 製である点が未解決の課題として残っています）。
 
 ---
 
@@ -42,11 +66,11 @@ bash survey-target.sh > survey.txt
 
 ### 1. すべてのファイルを同じディレクトリにダウンロード
 
-- `ote-rag-linux-x64-v1.1.0.tar.gz.001` 〜 `.007`（7分割）
+- `ote-rag-linux-x64-v1.1.2.tar.gz.001` 〜 `.007`（7分割）
 - `MANIFEST.txt` / `join.sh` / `survey-target.sh`
 
 ```bash
-gh release download linux-v1.1.0 --repo ishihara1447/localRAG --dir ~/ote-rag-install
+gh release download linux-v1.1.2 --repo ishihara1447/localRAG --dir ~/ote-rag-install
 ```
 
 > 分割しているのは、GitHub Release の1ファイル上限が 2GB のためです。
@@ -63,8 +87,8 @@ bash join.sh
 ### 3. 展開してインストール
 
 ```bash
-tar xzf ote-rag-linux-x64-v1.1.0.tar.gz
-cd ote-rag-linux-x64-v1.1.0
+tar xzf ote-rag-linux-x64-v1.1.2.tar.gz
+cd ote-rag-linux-x64-v1.1.2
 sudo ./install.sh
 ```
 
@@ -95,7 +119,7 @@ nvidia-smi
 |---|---|
 | Ollamaモデル（gemma4:12b + bge-m3） | 8.12GiB |
 | Docker イメージ（AnythingLLM + Ollama） | 4.08GiB |
-| リランカー（bge-reranker-v2-m3 ONNX int8） | 570MB |
+| リランカー（japanese-reranker-xsmall-v2 ONNX int8） | 37MB |
 | OCR言語データ（日本語・英語） | 8.2MB |
 
 **サイズの大半はモデルです。** インストール時にネットワークから取得すれば小さくできますが、

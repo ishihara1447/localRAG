@@ -107,14 +107,14 @@ Windows 版と同じ方式です。
 ネットの通る端末で全ファイルを取得し、**同じディレクトリ**に置いてください。
 
 ```bash
-gh release download linux-v1.1.0 --repo ishihara1447/localRAG --dir ~/ote-rag-install
+gh release download linux-v1.1.2 --repo ishihara1447/localRAG --dir ~/ote-rag-install
 ```
 
 取得するもの:
 
 | ファイル | 用途 |
 |---|---|
-| `ote-rag-linux-x64-v1.1.0.tar.gz.001` 〜 `.007`（7分割） | 本体（分割） |
+| `ote-rag-linux-x64-v1.1.2.tar.gz.001` 〜 `.007`（7分割） | 本体（分割） |
 | `MANIFEST.txt` | SHA-256（破損チェック用） |
 | `join.sh` | 結合ツール |
 | `survey-target.sh` | 手順0の調査スクリプト（**資材にも同梱されます**） |
@@ -123,7 +123,7 @@ gh release download linux-v1.1.0 --repo ishihara1447/localRAG --dir ~/ote-rag-in
 
 ```bash
 cd ~/ote-rag-install
-cat ote-rag-linux-x64-v1.1.0.tar.gz.[0-9][0-9][0-9] > ote-rag-linux-x64-v1.1.0.tar.gz
+cat ote-rag-linux-x64-v1.1.2.tar.gz.[0-9][0-9][0-9] > ote-rag-linux-x64-v1.1.2.tar.gz
 ```
 
 または同梱の `join.sh` を実行してください（**SHA-256 検証まで自動で行います**）。
@@ -149,8 +149,8 @@ sha256sum -c MANIFEST.txt
 検証できたら展開します。
 
 ```bash
-tar xzf ote-rag-linux-x64-v1.1.0.tar.gz
-cd ote-rag-linux-x64-v1.1.0
+tar xzf ote-rag-linux-x64-v1.1.2.tar.gz
+cd ote-rag-linux-x64-v1.1.2
 ls
 ```
 

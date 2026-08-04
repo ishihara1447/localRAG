@@ -1,0 +1,4 @@
+28c28
+<       RERANKER_MODEL_PREF: onnx-community/bge-reranker-v2-m3-ONNX
+---
+>       RERANKER_MODEL_PREF: hotchpotch/japanese-reranker-xsmall-v2

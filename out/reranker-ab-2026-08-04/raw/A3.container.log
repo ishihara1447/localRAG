@@ -1,0 +1,528 @@
+[36m[collector][0m [32minfo[39m: [35m[TikTokenTokenizer][0m Initialized new TikTokenTokenizer instance.
+[36m[collector][0m [32minfo[39m: Collector hot directory and tmp storage wiped!
+[36m[collector][0m [32minfo[39m: Document processor app listening on 127.0.0.1:8888
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v5.3.1) to ./node_modules/@prisma/client in 218ms
+
+Start using Prisma Client in Node.js (See: https://pris.ly/d/client)
+```
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+```
+or start using Prisma Client at the edge (See: https://pris.ly/d/accelerate)
+```
+import { PrismaClient } from '@prisma/client/edge'
+const prisma = new PrismaClient()
+```
+
+See other ways of importing Prisma Client: http://pris.ly/d/importing-client
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "anythingllm.db" at "file:../storage/anythingllm.db"
+
+40 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+[36m[backend][0m [32minfo[39m: [36m[SDK Timeout Patch][0m undici global dispatcher — headersTimeout & bodyTimeout 600s
+[36m[backend][0m [32minfo[39m: [36m[SDK Timeout Patch][0m OpenAI SDK — timeout 600s, maxRetries 0
+[36m[backend][0m [32minfo[39m: [36m[SDK Timeout Patch][0m Anthropic SDK — timeout 600s, maxRetries 0
+[36m[backend][0m [32minfo[39m: [36m[EncryptionManager][0m Self-assigning key & salt for encrypting arbitrary data.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Initialized new TokenManager instance for model: gpt-3.5-turbo
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gpt-3.5-turbo
+[36m[backend][0m [32minfo[39m: [33m[SWAGGER DISABLED][0m Swagger documentation is disabled via DISABLE_SWAGGER_DOCS environment variable.
+[36m[backend][0m [32minfo[39m: prisma:info Starting a sqlite pool with 41 connections.
+[36m[backend][0m [32minfo[39m: [31m[TELEMETRY DISABLED][0m Telemetry is marked as disabled - no events will send. Telemetry helps Mintplex Labs Inc improve AnythingLLM.
+[36m[backend][0m [32minfo[39m: [36m[CommunicationKey][0m RSA key pair generated for signed payloads within AnythingLLM services.
+[36m[backend][0m [32minfo[39m: [36m[EncryptionManager][0m Loaded existing key & salt for encrypting arbitrary data.
+[36m[backend][0m [32minfo[39m: [36m[BackgroundWorkerService][0m SINGLETON LOCK: Using existing BackgroundService.
+[36m[backend][0m [32minfo[39m: [36m[BackgroundWorkerService][0m Starting...
+[36m[backend][0m [32minfo[39m: [36m[BackgroundWorkerService][0m Service started with 2 jobs ["cleanup-orphan-documents","cleanup-generated-files"]
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: ⚡[32mPre-cached context windows for Ollama[0m
+[36m[backend][0m [32minfo[39m: [36m[PushNotifications][0m Loaded existing VAPID keys!
+[36m[backend][0m [32minfo[39m: [36m[PushNotifications][0m Loading single user mode subscriptions...
+[36m[backend][0m [32minfo[39m: Primary server in HTTP mode listening on 0.0.0.0:3001
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_key_created
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loading reranker suite...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded model onnx-community/bge-reranker-v2-m3-ONNX
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Loaded tokenizer onnx-community/bge-reranker-v2-m3-ONNX
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 5204ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 21/44
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Initialized new TokenManager instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_key_created
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 45 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 45 documents to top 45 took 5354ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 22/45
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 44 documents to top 44 took 4315ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 20/44
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 3091ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/36
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 5208ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 21/33
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 39 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 39 documents to top 39 took 3795ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 17/39
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 5559ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 18/35
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[EncryptionManager][0m Loaded existing key & salt for encrypting arbitrary data.
+prisma:info Starting a sqlite pool with 41 connections.
+[36m[backend][0m [32minfo[39m: [33m[121:267][0m: No direct uploads path found - exiting.
+[36m[bg-worker][0m[33m[cleanup-orphan-documents][0m [32minfo[39m: [33m[121:267][0m: No direct uploads path found - exiting.
+[36m[backend][0m [33mwarn[39m: Child process exited with code 0 and signal null
+[36m[backend][0m [32minfo[39m: Worker for job "cleanup-orphan-documents" exited with code 0
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 42 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 42 documents to top 42 took 2235ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 19/42
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 2607ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 20/41
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 5348ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 19/36
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 30 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 30 documents to top 30 took 4484ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 19/30
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents to top 43 took 2790ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 18/43
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 2542ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 17/41
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 50 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 50 documents to top 50 took 6689ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 20/50
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 4553ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 18/35
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents to top 40 took 4345ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 19/40
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents to top 32 took 3107ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 20/32
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 41 documents to top 41 took 5825ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 22/41
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 3677ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 5, sentences kept 17/35
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 2094ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 21/33
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 40 documents to top 40 took 3432ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 19/40
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 46 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 46 documents to top 46 took 2497ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 4, sentences kept 16/46
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 33 documents to top 33 took 4406ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 15/33
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 3857ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 19/36
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 35 documents to top 35 took 4443ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 8, sentences kept 18/35
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 38 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 38 documents to top 38 took 3815ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 18/38
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 43 documents to top 43 took 4366ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 21/43
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 36 documents to top 36 took 4692ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 4, sentences kept 14/36
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 32 documents to top 32 took 4928ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 18/32
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 31 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 31 documents to top 31 took 4179ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 7, sentences kept 21/31
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m initialized with model bge-m3:latest at http://ollama:11434. Batch size: 1, num_ctx: 500
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Applying custom fetch w/timeout of 20 minutes.
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m initialized with model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m Context windows cached for all models!
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Embedding 1 chunks of text with bge-m3:latest in batches of 1.
+[36m[backend][0m [32minfo[39m: [36m[OllamaEmbedder][0m Batch 1/1: Embedded 1 chunks. Total: 1/1
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Initialized
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranker suite already fully initialized - reusing.
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 49 documents...
+[36m[backend][0m [32minfo[39m: [36m[NativeEmbeddingReranker][0m Reranking 49 documents to top 49 took 4931ms
+[36m[backend][0m [32minfo[39m: [36m[VectorDB::LanceDb][0m sentence-cushion chunks 8 -> 6, sentences kept 20/49
+[36m[backend][0m [32minfo[39m: [32m[Ollama][0m model gemma4:12b is using a max context window of 8192/262144 tokens.
+[36m[backend][0m [32minfo[39m: [35m[TokenManager][0m Returning existing instance for model: gemma4:12b
+[36m[backend][0m [32minfo[39m: [32m[Event Logged][0m - api_sent_chat
