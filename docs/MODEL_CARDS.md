@@ -53,10 +53,11 @@
 | 提供元 | hotchpotch（日本）。系譜は `cl-nagoya/ruri-v3-pt-30m`（名古屋大, Apache-2.0）← `sbintuitions/modernbert-ja-30m`（SB Intuitions, MIT）で、**中国系の混入なし** |
 | ライセンス | MIT（全文: `LICENSES/JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt`） |
 | アーキテクチャ | ModernBERT-Ja、36.8M parameters、sequence classification |
-| 配布形式 | ONNX dynamic int8、37,367,189 bytes。CPU実行 |
+| 配布形式 | ONNX int8（**AVX2 向け量子化**。HuggingFace の `onnx/model_qint8_avx2.onnx` を `model_quantized.onnx` にリネームして同梱）、37,367,189 bytes。CPU実行 |
+| 🔴 CPU依存 | **AVX2 が必要。** 旧 `bge-reranker-v2-m3` は汎用 dynamic int8 で命令セット依存が無かったため、これは本製品で初めて入った依存である。**導入先 CPU の AVX2 対応は未確認**（`survey-target.sh` で確認できる）。非対応環境での挙動は未検証。上流には AVX512 / ARM64 版もあるので差し替えは可能 |
 | ONNX SHA-256 | `34d4657df53c875f970dbf87e584a21d59e6cfcd9368f9828d69a09ed152168f` |
 | キャッシュパス | `app/server/storage/models/hotchpotch/japanese-reranker-xsmall-v2` |
-| 採用根拠 | 中国系モデルを使わないという要件（2026-08-04）。JQaRA nDCG@10=0.7403（旧 0.6730 を上回る）。防衛白書30問の**同一条件A/B（各3run・交互実行）で 27/30、旧モデルと完全に同点**（Δ=±0.00、95%CI −2.77〜+2.77。差が無いことの証明ではなく、n=30 では差を検出できなかったという意味）。定義説明 6/6・白書外 5/5 を維持。副次効果としてリランク処理が中央値 約4,400ms → 約500ms（計算量が約1/38）、同梱サイズが 571MB → 37MB。証跡: `out/reranker-ab-2026-08-04/AGGREGATE.txt` |
+| 採用根拠 | 中国系モデルを使わないという要件（2026-08-04）。JQaRA nDCG@10=0.7403（旧 0.6730 を上回る）。防衛白書30問の**同一条件A/B（各3run・交互実行）で 27/30、旧モデルと完全に同点**（Δ=±0.00、95%CI −2.77〜+2.77。差が無いことの証明ではなく、n=30 では差を検出できなかったという意味）。**合計は同点だが内訳では増減がある**（定義説明 5/6→**6/6**、直接事実 7/8→**6/8**、白書外 5/5 で不変）。副次効果としてリランク処理が中央値 約4,400ms → 約500ms（**実測で約1/9**。層数×隠れ次元²から求めた理論上の計算量比は約1/38 だが、実測はそこまで縮まない）、同梱サイズが 571MB → 37MB。証跡: `out/reranker-ab-2026-08-04/AGGREGATE.txt` |
 
 > 🔴 **同梱時の注意**: `config.json` の `model_type` を `modernbert` → `xlm-roberta` に、
 > `architectures` を `XLMRobertaForSequenceClassification` に書き換えている。

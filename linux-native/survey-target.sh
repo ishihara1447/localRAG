@@ -164,6 +164,26 @@ else
 fi
 
 # ---------------------------------------------------------------
+sec "4-2. CPU 命令セット（AVX2）★v1.1.2 で新たに必要になりました"
+# 同梱リランカーの ONNX は AVX2 向けに量子化されている
+# （model_qint8_avx2.onnx をリネームして同梱）。旧リランカーは命令セット
+# 非依存だったため、この確認は v1.1.2 から必要になった。
+if [ -r /proc/cpuinfo ]; then
+  CPU_MODEL=$(awk -F': ' '/^model name/{print $2; exit}' /proc/cpuinfo)
+  [ -n "$CPU_MODEL" ] && info "CPU: $CPU_MODEL"
+  if grep -qm1 '^flags.*\bavx2\b' /proc/cpuinfo; then
+    ok "AVX2 に対応しています"
+  else
+    ng "AVX2 に対応していません。"
+    ng "→ 検索結果を並べ替えるモデルが想定どおり動かない可能性があります。"
+    ng "  エラーにならず、静かに遅くなる・精度が落ちる形で出ることがあります。"
+    ng "  この結果を開発元へお知らせください（AVX512/ARM64 版への差し替えが可能です）"
+  fi
+else
+  warn "/proc/cpuinfo を読めないため AVX2 の有無を確認できませんでした"
+fi
+
+# ---------------------------------------------------------------
 sec "5. ディスク容量"
 info "--- 空き容量（配布物の展開と Docker イメージの保存先）---"
 df -h / /var /var/lib/docker /opt /home 2>/dev/null | awk 'NR==1 || !seen[$6]++' | sed 's/^/         /'
