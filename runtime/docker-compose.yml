@@ -135,7 +135,14 @@ services:
       #   (埋め込み済みチャンクは再取り込みしない限り変わらない)。
       # 実測: docs/MOJIBAKE_FIX_2026-07-27.md
       # - PDF_MOJIBAKE_TO_ELLIPSIS=true
-      # リランカー精度。既定=量子化int8(model_quantized.onnx, 570MB)。上記検証でint8で十分と確定。
+      # リランカー。2026-08-04 に BAAI（中国系）の bge-reranker-v2-m3 から
+      # hotchpotch/japanese-reranker-xsmall-v2（MIT、日本発の系譜のみ）へ差し替えた。
+      # 詳細: docs/RERANKER_SWAP_2026-08-04.md
+      # 🔴 製品既定（linux-native/package/config/server.env.template）と揃えてある。
+      #    ここを未設定にすると開発機だけ旧モデルを読み、評価が製品と食い違う。
+      #    リランカーは失敗時に静かに元順序へフォールバックするので、気付けない。
+      - RERANKER_MODEL_PREF=hotchpotch/japanese-reranker-xsmall-v2
+      # リランカー精度。既定=量子化int8(model_quantized.onnx, 37MB)。int8で十分と確定済み。
       # RERANKER_QUANTIZED=false にすると非量子化 model.onnx を読むが、同梱していないため既定のまま。
       # --- 以下は「意図的に未設定」で無効化される項目 (値を設定しないこと) ---
       # COMMUNITY_HUB_BUNDLE_DOWNLOADS_ENABLED:

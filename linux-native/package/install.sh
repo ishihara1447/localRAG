@@ -360,7 +360,7 @@ for required in \
   "$PKG_ROOT/images/ollama-0.30.11.tar.gz" \
   "$PKG_ROOT/models/ollama/models/manifests/registry.ollama.ai/library/gemma4/12b" \
   "$PKG_ROOT/models/ollama/models/manifests/registry.ollama.ai/library/bge-m3/latest" \
-  "$PKG_ROOT/assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX/onnx/model_quantized.onnx" \
+  "$PKG_ROOT/assets/reranker/hotchpotch/japanese-reranker-xsmall-v2/onnx/model_quantized.onnx" \
   "$PKG_ROOT/assets/tesseract/jpn.traineddata" \
   "$PKG_ROOT/assets/tesseract/eng.traineddata" \
 ; do
@@ -697,16 +697,35 @@ for b in "$PKG_ROOT/models/ollama/models/blobs/"*; do
   fi
 done
 
-# リランカー（bge-reranker-v2-m3 ONNX int8）
-info "リランカー（bge-reranker-v2-m3 ONNX int8）を配置中..."
-mkdir -p "$DATA_DIR/anythingllm-storage/models/onnx-community"
-cp -a -f "$PKG_ROOT/assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX" \
-         "$DATA_DIR/anythingllm-storage/models/onnx-community/"
+# リランカー（japanese-reranker-xsmall-v2 ONNX int8）
+# 2026-08-04 に BAAI（中国系）の bge-reranker-v2-m3 から差し替えた。
+# 配布物側のディレクトリ構造（assets/reranker/<配布元>/<モデル名>/）をそのまま
+# storage/models/ へ写すので、モデル名が変わってもこのコードは変えなくてよい。
+RERANKER_REL="hotchpotch/japanese-reranker-xsmall-v2"
+info "リランカー（$RERANKER_REL, ONNX int8）を配置中..."
+mkdir -p "$DATA_DIR/anythingllm-storage/models/$(dirname "$RERANKER_REL")"
+cp -a -f "$PKG_ROOT/assets/reranker/$RERANKER_REL" \
+         "$DATA_DIR/anythingllm-storage/models/$(dirname "$RERANKER_REL")/"
 for f in config.json tokenizer.json tokenizer_config.json onnx/model_quantized.onnx; do
-  [ -f "$DATA_DIR/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX/$f" ] \
+  [ -f "$DATA_DIR/anythingllm-storage/models/$RERANKER_REL/$f" ] \
     || die "リランカーの配置に失敗しました: $f" \
            "このファイルが無いと検索精度が静かに低下します（起動は成功してしまいます）。"
 done
+
+# 旧リランカー（BAAI bge-reranker-v2-m3、571MB）の残置を掃除する。
+# v1.1.1 以前からのアップグレードでは、置き換えるだけだと中国系モデルの実体が
+# 顧客のディスクに残り続ける。非中国系を要件とする顧客が監査したときに問題になる。
+# 新モデルの配置に成功した後に限って消す（先に消すと失敗時に戻せない）。
+OLD_RERANKER="$DATA_DIR/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX"
+if [ -d "$OLD_RERANKER" ]; then
+  if rm -rf "$OLD_RERANKER"; then
+    rmdir "$DATA_DIR/anythingllm-storage/models/onnx-community" 2>/dev/null || true
+    info "旧リランカー（bge-reranker-v2-m3, 約571MB）を削除しました。"
+  else
+    warn "旧リランカーを削除できませんでした: $OLD_RERANKER"
+    warn "  動作には影響しませんが、不要なファイルが残ります。手動で削除できます。"
+  fi
+fi
 
 # OCR 言語データ（tesseract）
 info "OCR 言語データ（jpn, eng）を配置中..."

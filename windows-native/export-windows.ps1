@@ -23,7 +23,7 @@
 #     -OllamaDir C:\LocalRAG\build-deps\ollama `
 #     -WinSWExe C:\LocalRAG\build-deps\WinSW-x64.exe `
 #     -ModelsDir $env:USERPROFILE\.ollama\models `
-#     -RerankerModelDir C:\LocalRAG\build-deps\reranker\bge-reranker-v2-m3-ONNX `
+#     -RerankerModelDir C:\LocalRAG\build-deps\reranker\japanese-reranker-xsmall-v2 `
 #     -OutputDir C:\LocalRAG\dist
 
 param(
@@ -40,6 +40,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Reranker model name (cache path under storage/models). 2026-08-04: switched from
+# BAAI's bge-reranker-v2-m3 (Chinese) to hotchpotch/japanese-reranker-xsmall-v2
+# (MIT, Japanese lineage only: cl-nagoya <- sbintuitions). Accuracy improved
+# (26/30 -> 27/30 on the 30-question eval) and TTFT dropped 6.99s -> ~2.9s.
+# See docs/RERANKER_SWAP_2026-08-04.md.
+# NOTE: the bundled config.json must have model_type rewritten to xlm-roberta
+#   because the bundled @xenova/transformers 2.17.2 does not know modernbert.
+$RerankerModelName = "hotchpotch/japanese-reranker-xsmall-v2"
 
 # Models to bundle: model name -> manifest relative path
 # 2026-07-14: switched LLM to gemma4:12b (non-Chinese, Apache 2.0, official Ollama library)
@@ -170,8 +179,12 @@ foreach ($model in $BundleModels.Keys) {
 
 # NativeEmbeddingReranker loads this exact cache path. Bundle only the default
 # int8 model; the optional fp32 diagnostic model would add about 1.1GB.
-Write-Host "  bundling: bge-reranker-v2-m3 ONNX int8"
-$rerankerOut = Join-Path $Pkg "app\server\storage\models\onnx-community\bge-reranker-v2-m3-ONNX"
+Write-Host "  bundling: $RerankerModelName ONNX int8"
+# Build the path segment by segment. Avoid -replace here: its replacement string
+# treats backslash as an escape character, which is easy to get wrong and would
+# only fail on the build machine.
+$rerankerOut = Join-Path $Pkg "app\server\storage\models"
+foreach ($seg in $RerankerModelName.Split('/')) { $rerankerOut = Join-Path $rerankerOut $seg }
 robocopy $RerankerModelDir $rerankerOut /E /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) { Write-Host "ERROR: robocopy reranker failed ($LASTEXITCODE)"; exit 1 }
 $global:LASTEXITCODE = 0
@@ -244,7 +257,7 @@ try {
     "node=$nodeVer",
     "ollama=$ollamaVer",
     "models=$($BundleModels.Keys -join ', ')",
-    "reranker=onnx-community/bge-reranker-v2-m3-ONNX (int8)",
+    "reranker=$RerankerModelName (int8)",
     "source_dir=$SourceDir"
 ) | Set-Content -Path (Join-Path $Pkg "versions.lock")
 

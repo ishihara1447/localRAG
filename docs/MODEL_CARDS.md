@@ -1,6 +1,6 @@
 # MODEL CARDS — 同梱モデル一覧
 
-最終更新: 2026-07-16（gemma4:12b + bge-m3 + bge-reranker-v2-m3 int8の配布構成を確定）
+最終更新: 2026-08-04（リランカーを非中国系 japanese-reranker-xsmall-v2 へ差し替え）
 
 本製品（OTE-RAG）に同梱・使用するAIモデルの正式な記録。配布パッケージのモデル差し替え時は本ファイルを必ず更新すること。**すべてのモデルは完全ローカルで動作し、顧客文書・質問内容を外部に送信しない。**
 
@@ -45,23 +45,31 @@
 
 ---
 
-## 3. Reranker: BGE Reranker v2 M3（`onnx-community/bge-reranker-v2-m3-ONNX`）
+## 3. Reranker: Japanese Reranker xsmall v2（`hotchpotch/japanese-reranker-xsmall-v2`）
 
 | 項目 | 内容 |
 |---|---|
 | 用途 | hybrid検索後の文抽出クッション。質問との関連度で文を並べ替え、上位文と隣接文だけをLLMへ渡す |
-| 提供元 | BAAI `BAAI/bge-reranker-v2-m3`を`onnx-community`がONNX変換した配布物 |
-| ライセンス | MIT（全文: `LICENSES/BGE-RERANKER-V2-M3_LICENSE.txt`） |
-| アーキテクチャ | XLM-RoBERTa、568M parameters、sequence classification |
-| 配布形式 | ONNX dynamic int8、570,727,094 bytes。CPU実行、`@xenova/transformers` 2.17.2互換 |
-| ONNX SHA-256 | `912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d` |
-| キャッシュパス | `app/server/storage/models/onnx-community/bge-reranker-v2-m3-ONNX` |
-| 採用根拠 | JQaRA全1,667問でnDCG@10=0.672659。防衛白書30問26/30、士業30問25/30の現行確定構成。日本語特化候補は一般ベンチで上回ったが士業が21〜26/30と不安定なため不採用 |
+| 提供元 | hotchpotch（日本）。系譜は `cl-nagoya/ruri-v3-pt-30m`（名古屋大, Apache-2.0）← `sbintuitions/modernbert-ja-30m`（SB Intuitions, MIT）で、**中国系の混入なし** |
+| ライセンス | MIT（全文: `LICENSES/JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt`） |
+| アーキテクチャ | ModernBERT-Ja、36.8M parameters、sequence classification |
+| 配布形式 | ONNX dynamic int8、37,367,189 bytes。CPU実行 |
+| ONNX SHA-256 | `34d4657df53c875f970dbf87e584a21d59e6cfcd9368f9828d69a09ed152168f` |
+| キャッシュパス | `app/server/storage/models/hotchpotch/japanese-reranker-xsmall-v2` |
+| 採用根拠 | 中国系モデルを使わないという要件（2026-08-04）。JQaRA nDCG@10=0.7403（旧 0.6730 を上回る）。防衛白書30問で **27/30**（旧 26/30）、定義説明 6/6・白書外 5/5 を維持。副次効果として TTFT が中央値 6.99秒 → 約2.9秒（計算量が約1/38）、同梱サイズが 571MB → 37MB |
+
+> 🔴 **同梱時の注意**: `config.json` の `model_type` を `modernbert` → `xlm-roberta` に、
+> `architectures` を `XLMRobertaForSequenceClassification` に書き換えている。
+> 同梱の `@xenova/transformers` 2.17.2 が `modernbert` を知らないためで、
+> ONNX グラフの実行はアーキテクチャ非依存なので出力は変わらない（実測で確認済み）。
+> `tokenizer_config.json` の `tokenizer_class` も `LlamaTokenizer` → `PreTrainedTokenizer` に変更。
+> **モデルを再取得する場合は同じ書き換えが必要。** 詳細は `docs/RERANKER_SWAP_2026-08-04.md`
 
 ## 撤回済みモデル（参考・再採用禁止）
 
 | モデル | 撤回日 | 理由 |
 |---|---|---|
+| `onnx-community/bge-reranker-v2-m3-ONNX` | 2026-08-04 | 中国系（BAAI＝北京智源人工智能研究院）のため非中国系方針で置換。性能面の問題ではない（JQaRA 0.6730、防衛白書26/30で長く既定だった）。置換先が精度・速度・サイズのすべてで上回ったため撤回に至った |
 | `qwen3:8b` | 2026-07-14 | 中国系（Alibaba）のため非中国系方針で置換。現行30問評価でも22/30・捏造4件でgemma4:12b（25/30・捏造0）に劣る |
 | `hf.co/mmnga-o/llm-jp-4-8b-thinking-gguf:Q4_K_M` | 2026-07-11 | コミュニティGGUFのテンプレート破損で本文が空になる（30問評価0/30）。過去のe2e PASSは思考テキストへの偶然マッチ |
 | `mxbai-embed-large:latest` | 2026-07-11 | 日本語言い換え検索で正解文書をtop8に入れられない |
@@ -71,5 +79,10 @@
 
 - Docker/WSL2版: `runtime/ollama-models/` をディレクトリごと同梱（`scripts/export.sh`）
 - Windows native版: `windows-native/export-windows.ps1` の `$BundleModels`（manifest解析で必要blobのみ同梱）
-- 両配布とも上記3モデル（gemma4:12b + bge-m3:latest + bge-reranker-v2-m3 int8）のみを同梱する。撤回済みモデルは同梱しない
+- **🔴 リランカーは配布系統で異なる（2026-08-04 時点）**
+  - Linux 版（次回ビルド以降）: `hotchpotch/japanese-reranker-xsmall-v2` int8（**非中国系**）
+  - Windows 版 v1.2.7 以前: `onnx-community/bge-reranker-v2-m3-ONNX` int8（**旧・中国系**）
+  - Windows 版の差し替えは `windows-native/export-windows.ps1` を更新済みだが、**再ビルドは未実施**。
+    実際の同梱物は各パッケージの `versions.lock` を確認すること
+- LLM と Embedding は両配布とも共通（gemma4:12b + bge-m3:latest）。撤回済みモデルは同梱しない
 - **ビルドマシン準備**: 再ビルド前に `ollama pull gemma4:12b` でモデルをModelsDirに取得しておくこと（同梱blob解析の対象）

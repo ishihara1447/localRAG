@@ -48,8 +48,12 @@ die() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
 
 [ -d "$FORK" ] || die "fork がありません: $FORK"
 [ -d "$RUNTIME/ollama-models/models" ] || die "Ollama モデルがありません: $RUNTIME/ollama-models/models"
-[ -d "$RUNTIME/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX" ] \
-  || die "リランカーがありません: $RUNTIME/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX"
+# リランカーのモデル名。2026-08-04 に BAAI（中国系）の bge-reranker-v2-m3 から
+# hotchpotch/japanese-reranker-xsmall-v2（MIT、日本発の系譜のみ）へ差し替えた。
+# 詳細は docs/RERANKER_SWAP_2026-08-04.md
+RERANKER_MODEL="hotchpotch/japanese-reranker-xsmall-v2"
+[ -d "$RUNTIME/anythingllm-storage/models/$RERANKER_MODEL" ] \
+  || die "リランカーがありません: $RUNTIME/anythingllm-storage/models/$RERANKER_MODEL"
 [ -d "$REPO_ROOT/windows-native/assets/tesseract" ] || die "OCR 言語データがありません（windows-native/assets/tesseract）"
 [ -f "$LINUX_DIR/survey-target.sh" ] || die "survey-target.sh がありません: $LINUX_DIR/survey-target.sh"
 
@@ -158,8 +162,8 @@ print(f"    合計 {total/1024**3:.2f} GiB")
 PY
 
 echo "[4-3] リランカー（int8 のみ。fp32 model.onnx は同梱しない）..."
-RR_SRC="$RUNTIME/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX"
-RR_DST="$PKG/assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX"
+RR_SRC="$RUNTIME/anythingllm-storage/models/$RERANKER_MODEL"
+RR_DST="$PKG/assets/reranker/$RERANKER_MODEL"
 mkdir -p "$RR_DST/onnx"
 for f in config.json tokenizer.json tokenizer_config.json special_tokens_map.json; do
   [ -f "$RR_SRC/$f" ] || die "リランカーのファイルが無い: $f"
@@ -210,7 +214,7 @@ echo "[4-6] versions.lock..."
   echo "image_ollama_id=$(docker image inspect "$OLLAMA_PIN_TAG" --format '{{.Id}}')"
   echo "image_ollama_source_digest=$OLLAMA_DIGEST"
   echo "models=gemma4:12b, bge-m3:latest"
-  echo "reranker=onnx-community/bge-reranker-v2-m3-ONNX (int8, model_quantized.onnx)"
+  echo "reranker=$RERANKER_MODEL (int8, model_quantized.onnx)"
   echo "ocr=tesseract jpn+eng"
 } > "$PKG/versions.lock"
 sed 's/^/    /' "$PKG/versions.lock"

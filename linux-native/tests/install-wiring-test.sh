@@ -44,12 +44,12 @@ mkpkg() { # $1: 配布物ルート
   # --skip-checksum と docker スタブにより、実際に読まれることはない）。
   local mf="$p/models/ollama/models/manifests/registry.ollama.ai/library"
   mkdir -p "$mf/gemma4" "$mf/bge-m3" "$p/models/ollama/models/blobs" \
-           "$p/assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX/onnx" \
+           "$p/assets/reranker/hotchpotch/japanese-reranker-xsmall-v2/onnx" \
            "$p/assets/tesseract"
   printf 'x\n' > "$mf/gemma4/12b"
   printf 'x\n' > "$mf/bge-m3/latest"
   printf 'x\n' > "$p/models/ollama/models/blobs/sha256-dummy"
-  local rr="$p/assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX"
+  local rr="$p/assets/reranker/hotchpotch/japanese-reranker-xsmall-v2"
   printf 'x\n' > "$rr/onnx/model_quantized.onnx"
   for f in config.json tokenizer.json tokenizer_config.json; do printf '{}\n' > "$rr/$f"; done
   printf 'x\n' > "$p/assets/tesseract/jpn.traineddata"
@@ -115,7 +115,10 @@ run_install() { # $1: ケース名, 残り: install.sh への追加引数
   # NO_DATA_DIR=1 / WITH_SYSTEMD=1 を指定すると外せる。
   # 固定していると .env 引き継ぎ経路と systemd 経路を一度も通らず、
   # それらの実装をまるごと消してもテストが気づかない（実測で確認済み）。
-  local -a opts=(--install-root "$root" --skip-checksum -y)
+  # 🔴 ポートを明示する。既定の 3001 は開発機で製品が稼働していると衝突し、
+  #    install.sh が「別のプログラムが使用中」で die する（テストの本題と無関係な失敗）。
+  #    3001 を避けた固定値を使う（テスト用サンドボックスなので実際には listen しない）。
+  local -a opts=(--install-root "$root" --port "${TEST_PORT:-39001}" --skip-checksum -y)
   [ "${NO_DATA_DIR:-0}" = 1 ] || opts+=(--data-dir "$base/data")
   [ "${WITH_SYSTEMD:-0}" = 1 ] || opts+=(--no-systemd)
   ( cd "$pkg" && CALLLOG="$base/calls.log" PATH="$stub:$PATH" \
@@ -145,7 +148,7 @@ result "正常時はロールバックしない"        "0/INSTALLED" "$code/$(i
 #    compose 検証(step 5)はデータ作成(step 6)より前なので、w1 ではデータが
 #    そもそも存在しない。ここでは起動(step 8)で失敗させる。
 code=$(DOCKER_FAIL_AT=up run_install w3)
-d=LOST; [ -f "$WORK/w3/data/anythingllm-storage/models/onnx-community/bge-reranker-v2-m3-ONNX/config.json" ] && d=KEPT
+d=LOST; [ -f "$WORK/w3/data/anythingllm-storage/models/hotchpotch/japanese-reranker-xsmall-v2/config.json" ] && d=KEPT
 result "起動失敗でもデータ領域は残す"      "1/REMOVED/KEPT" "$code/$(installed w3)/$d"
 
 # 4. 起動後にコンテナが消えた場合は、インストールを巻き戻さない（exit 3）。

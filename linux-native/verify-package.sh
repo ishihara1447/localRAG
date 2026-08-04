@@ -72,7 +72,7 @@ if assert_line "付随ファイルのコピーループ" 'for f in NOTICE versio
 fi
 if assert_line "リランカー必須ファイルの確認ループ" 'for f in config.json tokenizer.json tokenizer_config.json onnx/model_quantized.onnx; do'; then
   for f in config.json tokenizer.json tokenizer_config.json onnx/model_quantized.onnx; do
-    p="assets/reranker/onnx-community/bge-reranker-v2-m3-ONNX/$f"
+    p="assets/reranker/hotchpotch/japanese-reranker-xsmall-v2/$f"
     [ -f "$PKG/$p" ] && pass "$p" || bad "$p ← install.sh が起動前に必須と判定するが同梱されていない"
   done
 fi

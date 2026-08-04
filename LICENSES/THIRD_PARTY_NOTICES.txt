@@ -10,15 +10,23 @@ OTE-RAG 第三者コンポーネント ライセンス一覧
 | Ollama                                    | MIT                             | Ollama_LICENSE.txt                       | https://github.com/ollama/ollama |
 | Google Gemma 4 12B (LLM, 既定)            | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://ollama.com/library/gemma4 |
 | BAAI bge-m3 (Embedding, 既定)             | MIT                             | BGE-M3_LICENSE.txt                       | https://huggingface.co/BAAI/bge-m3 |
-| BAAI bge-reranker-v2-m3 (Reranker, 既定) | MIT                             | BGE-RERANKER-V2-M3_LICENSE.txt           | https://huggingface.co/BAAI/bge-reranker-v2-m3 |
+| hotchpotch japanese-reranker-xsmall-v2 (Reranker, 既定) | MIT               | JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt  | https://huggingface.co/hotchpotch/japanese-reranker-xsmall-v2 |
+| └ cl-nagoya ruri-v3-pt-30m (上記の派生元)  | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/cl-nagoya/ruri-v3-pt-30m |
+| └ sbintuitions modernbert-ja-30m (同上)   | MIT                             | JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt  | https://huggingface.co/sbintuitions/modernbert-ja-30m |
 | WinSW (Windows Service wrapper)           | MIT                             | WinSW_LICENSE.txt                        | https://github.com/winsw/winsw |
 | Node.js v22 (win-x64 portable runtime)    | MIT + 同梱物の複合ライセンス    | Node.js_LICENSE.txt                      | https://github.com/nodejs/node |
 
 ## 注意事項
 
-- 既定モデルは 2026-07-16 の製品採用検証
-  (`docs/JAPANESE_RERANKER_PRODUCT_VALIDATION_2026-07-16.md`) に基づき
-  Gemma 4 12B (Apache-2.0) + bge-m3 (MIT) + bge-reranker-v2-m3 (MIT) に確定した。
+- 既定モデルは Gemma 4 12B (Apache-2.0) + bge-m3 (MIT)
+  + japanese-reranker-xsmall-v2 (MIT) である。
+
+- リランカーは 2026-08-04 に BAAI bge-reranker-v2-m3 (MIT) から
+  hotchpotch/japanese-reranker-xsmall-v2 (MIT) へ差し替えた。
+  中国系モデルを使わないという要件によるもので、性能上の問題ではない。
+  経緯は `docs/RERANKER_SWAP_2026-08-04.md` を参照。
+  **Windows native 配布版 v1.2.7 以前は旧 BAAI モデルを同梱している。**
+  配布系統ごとの実際の同梱物は各パッケージの versions.lock を確認すること。
   過去に検証した Qwen3-8B (Apache-2.0)・llm-jp-4-8b-thinking (Apache-2.0)・
   mxbai-embed-large (Apache-2.0)・llama3.1:8b (Llama 3.1
   Community License) は現在は同梱しない。llama3.1 を再同梱する

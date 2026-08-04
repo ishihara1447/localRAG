@@ -143,7 +143,7 @@ cd /opt/ote-rag && docker compose logs --tail=200 > logs.txt
 |---|---|
 | 生成 AI | gemma4:12b（Google, Apache-2.0） |
 | 文書検索 | bge-m3（MIT） |
-| 検索結果の並べ替え | bge-reranker-v2-m3（MIT） |
+| 検索結果の並べ替え | japanese-reranker-xsmall-v2（MIT、日本製） |
 | 文字認識 | tesseract（日本語・英語） |
 
 すべて配布物に含まれています。導入時にインターネットからの取得は発生しません。
