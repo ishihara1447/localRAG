@@ -16,7 +16,7 @@
 | パラメータ数 | 11.9B（dense） |
 | 量子化 | Q4_K_M（約7.38GB。マルチモーダルprojector 175MB込みで約7.56GB） |
 | コンテキスト長 | 262,144トークン（256K） |
-| 必要Ollama | 0.30.5以上（同梱の配布用Ollama v0.31.2で動作。dev v0.30.11でも確認） |
+| 必要Ollama | 0.30.5以上（Linux 配布物が同梱するのは `ollama/ollama:0.30.11`。Windows 配布用 v0.31.2 でも動作確認済み） |
 | 特記 | thinking（推論過程生成）対応。vision/audio/tools対応の基盤だが、本製品ではテキストRAGのみ使用。`trust_remote_code`不要（Ollama公式配布のみ使用する方針に適合） |
 | manifest config digest | `sha256:c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23` |
 | model blob digest | `sha256:1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606`（7,381,382,048 bytes） |
@@ -49,7 +49,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| 用途 | hybrid検索後の文抽出クッション。質問との関連度で文を並べ替え、上位文と隣接文だけをLLMへ渡す |
+| 用途 | ①hybrid検索後の文抽出クッション（質問との関連度で文を並べ替え、上位文と隣接文だけをLLMへ渡す）②**チャンク単位の再順位付け**（`LANCE_HYBRID_RERANK=true`。配布イメージ 1.1.0 で有効。開発用 1.0.7 には実装が無い） |
 | 提供元 | hotchpotch（日本）。系譜は `cl-nagoya/ruri-v3-pt-30m`（名古屋大, Apache-2.0）← `sbintuitions/modernbert-ja-30m`（SB Intuitions, MIT）で、**中国系の混入なし** |
 | ライセンス | MIT（全文: `LICENSES/JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt`） |
 | アーキテクチャ | ModernBERT-Ja、36.8M parameters、sequence classification |
@@ -57,7 +57,7 @@
 | 🔴 CPU依存 | **AVX2 が必要。** 旧 `bge-reranker-v2-m3` は汎用 dynamic int8 で命令セット依存が無かったため、これは本製品で初めて入った依存である。**導入先 CPU の AVX2 対応は未確認**（`survey-target.sh` で確認できる）。非対応環境での挙動は未検証。上流には AVX512 / ARM64 版もあるので差し替えは可能 |
 | ONNX SHA-256 | `34d4657df53c875f970dbf87e584a21d59e6cfcd9368f9828d69a09ed152168f` |
 | キャッシュパス | `app/server/storage/models/hotchpotch/japanese-reranker-xsmall-v2` |
-| 採用根拠 | 中国系モデルを使わないという要件（2026-08-04）。JQaRA nDCG@10=0.7403（旧 0.6730 を上回る）。防衛白書30問の**同一条件A/B（各3run・交互実行）で 27/30、旧モデルと完全に同点**（Δ=±0.00、95%CI −2.77〜+2.77。差が無いことの証明ではなく、n=30 では差を検出できなかったという意味）。**合計は同点だが内訳では増減がある**（定義説明 5/6→**6/6**、直接事実 7/8→**6/8**、白書外 5/5 で不変）。副次効果としてリランク処理が中央値 約4,400ms → 約500ms（**実測で約1/9**。層数×隠れ次元²から求めた理論上の計算量比は約1/38 だが、実測はそこまで縮まない）、同梱サイズが 571MB → 37MB。証跡: `out/reranker-ab-2026-08-04/AGGREGATE.txt` |
+| 採用根拠 | 中国系モデルを使わないという要件（2026-08-04）。JQaRA nDCG@10=0.7403（旧 0.6730 を上回る）。防衛白書30問の**同一条件A/B（各3run・交互実行）で 27/30、旧モデルと完全に同点**（Δ=±0.00。**差が無いことの証明ではない**。旧と新で答えが分かれたのは30問中2問だけで、この規模では差を検出する力がほとんど無い）。**合計は同点だが内訳では増減がある**（定義説明 5/6→**6/6**、直接事実 7/8→**6/8**、白書外 5/5 で不変）。副次効果としてリランク処理が中央値 約4,400ms → 約500ms（**実測で約1/9**。層数×隠れ次元²から求めた理論上の計算量比は約1/38 だが、実測はそこまで縮まない）、同梱サイズが 571MB → 37MB。証跡: `out/reranker-ab-2026-08-04/AGGREGATE.txt` |
 
 > 🔴 **同梱時の注意**: `config.json` の `model_type` を `modernbert` → `xlm-roberta` に、
 > `architectures` を `XLMRobertaForSequenceClassification` に書き換えている。

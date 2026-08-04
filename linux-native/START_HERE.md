@@ -43,7 +43,8 @@ bash survey-target.sh > survey.txt
 **主な要件**（詳しくは同梱の `INSTALL_GUIDE.md`）
 
 - RHEL 9（x86_64）
-- Docker Engine と `docker compose`（v2 以降）
+- **CPU が AVX2 に対応していること**（🔴 v1.1.2 で新たに必要になりました）
+- Docker Engine と `docker compose`（v2 以降。**podman では動作しません**）
 - NVIDIA GPU（VRAM 16GB 以上）と `nvidia-container-toolkit`
 - 空き容量 40GB 以上
 
