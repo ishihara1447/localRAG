@@ -7,7 +7,7 @@
 - フェーズ: **Phase 1（個人PC検証）の技術タスクは全完了**。製品名は **OTE-RAG（おてらぐ）**（2026-07-13リブランド、日の丸アイコン）。**セッション開始時はまず `docs/HANDOFF.md` を読む**（最新状態・ブロッカー・次手。本ファイルと矛盾したらHANDOFFが正）。
 - **対象プラットフォーム（2026-07-08確定）**: Windows（GPU搭載機、RTX 5070 Ti相当以上を想定）。当初のApple Silicon Mac限定戦略は撤回。macOS向け実装は行わない。この変更は当初の批判リスク「士業事務所PCはほぼGPU非搭載」と矛盾するため、対象顧客のGPU保有実態が未検証の新規リスクとして残っている（`fukugyo/ideas/2026-06-29_local-rag-pro.md`の批判・懸念点参照）。
 - 済: ハルシネーション対策・日本語CIDフォントPDF対応（upstream未修正のバグをfork側で修正）・日本語PDF字間空白の正規化・APIキー未認証露出の修正（127.0.0.1バインド化）。
-- **モデル構成確定（2026-07-16）**: LLM=`gemma4:12b`（Google, Apache-2.0, 非中国系）・Embedding=`bge-m3`（MIT）・Reranker=`bge-reranker-v2-m3`（MIT, ONNX int8。ハイブリッド検索後の「文抽出クッション」で使用）・topN既定8・日本語セパレータ・ハイブリッド検索（dense+BM25+RRF）既定ON。旧LLMの変遷: llm-jp GGUF（テンプレート破損で空回答）→ qwen3:8b（中国系のため2026-07-14に切替）→ gemma4:12b。Phi-4 14Bは架空引用の捏造で不採用。詳細は `docs/HANDOFF.md` および `docs/MODEL_CARDS.md`。
+- **モデル構成確定（2026-07-16）**: LLM=`gemma4:12b`（Google, Apache-2.0, 非中国系）・Embedding=`bge-m3`（MIT）・Reranker=`hotchpotch/japanese-reranker-xsmall-v2`（MIT, ONNX int8, 37MB。ハイブリッド検索後の「文抽出クッション」で使用。2026-08-04 に BAAI `bge-reranker-v2-m3` から非中国系方針で差し替え）・topN既定8・日本語セパレータ・ハイブリッド検索（dense+BM25+RRF）既定ON。旧LLMの変遷: llm-jp GGUF（テンプレート破損で空回答）→ qwen3:8b（中国系のため2026-07-14に切替）→ gemma4:12b。Phi-4 14Bは架空引用の捏造で不採用。詳細は `docs/HANDOFF.md` および `docs/MODEL_CARDS.md`。
 - **配布形態は2系統ある。導入先は RHEL 9 なので、現在の主戦場は Linux 版。**
   - **Linux 版（現行・出荷可能）**: `linux-native/` 一式。RHEL 9 + Docker + NVIDIA GPU 向けの
     完全オフライン配布物。**最新は `linux-v1.1.1`**（2026-07-31 公開、SHA-256 `0241fd0a…`）。
@@ -35,7 +35,7 @@
 - monorepo: `frontend`(Vite+React) / `server`(Node+Express, LLM・VectorDB・Workspace管理) / `collector`(文書パース) / `docker` / `embed`。
 - LLM: **`gemma4:12b`**（Google, Apache-2.0, Ollama公式・非中国系）。2026-07-14確定。旧採用のqwen3:8b（中国系）から切替。llm-jp系はコミュニティGGUFのテンプレート破損（本文が生成されない）により撤回。Ollama公式配布モデルのみを使う方針（`trust_remote_code`不要）。
 - Vector DB: LanceDB（既定）。Embedding: **`bge-m3`**（MIT, 多言語）。2026-07-11確定。mxbaiは日本語の言い換え検索で正解文書をtop8にも入れられず撤回。**embedding変更時は全文書の再embedが必須**。
-- Reranker: **`bge-reranker-v2-m3`**（BAAI, MIT, ONNX int8, 約571MB）。2026-07-16採用。ハイブリッド検索（dense+BM25+RRF, 既定ON）の結果を文単位で再順位付けする「文抽出クッション」で使用（`LANCE_SENTENCE_CUSHION=true` / `RERANKER_QUANTIZED=true`）。
+- Reranker: **`hotchpotch/japanese-reranker-xsmall-v2`**（hotchpotch, MIT, ONNX int8, 37MB）。2026-08-04採用（非中国系要件。系譜は名古屋大 ruri-v3 ← SB Intuitions modernbert-ja）。同一条件A/Bで旧 `bge-reranker-v2-m3`（BAAI・571MB）と精度同点（27/30 対 27/30）、リランク所要は約1/9。ハイブリッド検索（dense+BM25+RRF, 既定ON）の結果を文単位で再順位付けする「文抽出クッション」で使用（`LANCE_SENTENCE_CUSHION=true` / `RERANKER_QUANTIZED=true`）。
 - 開発環境: Windows 11 + WSL2 Ubuntu + Docker Desktop。Node >= 18（推奨20）、Yarn は Corepack 経由。
 
 ## クローン直後のセットアップ（このリポジトリだけでは動かない）

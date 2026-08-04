@@ -137,7 +137,7 @@
 > ## 6. judge モデルについて（配布事故の注意）
 >
 > 評価用judgeは **`qwen3.5:4b`（Alibaba, Apache-2.0）**。ユーザー判断で**評価用途に限り中国系LLMを解禁**（配布物に含まれないため）。κ=0.878。
-> **🔴 製品の非中国系方針は配布物に対する制約であり、これに矛盾しない。judgeを `MODEL_CARDS.md` / `NOTICE` / `THIRD_PARTY_NOTICES` / `LICENSES/` / `windows-native/` / export系に絶対に追加しないこと。** 同梱モデルは gemma4:12b / bge-m3 / bge-reranker-v2-m3 の3種のまま。
+> **🔴 製品の非中国系方針は配布物に対する制約であり、これに矛盾しない。judgeを `MODEL_CARDS.md` / `NOTICE` / `THIRD_PARTY_NOTICES` / `LICENSES/` / `windows-native/` / export系に絶対に追加しないこと。** 同梱モデルは gemma4:12b / bge-m3 / hotchpotch/japanese-reranker-xsmall-v2 の3種のまま（リランカーは 2026-08-04 に BAAI から差し替え）。
 
 ---
 
