@@ -163,9 +163,25 @@ try {
     $vramMiB = [int]((& $nvidiaSmi --query-gpu=memory.total --format=csv,noheader,nounits | Select-Object -First 1).Trim())
 } catch { Fail "GPU 情報の取得に失敗しました(nvidia-smi 実行エラー)。NVIDIA ドライバーの状態を確認してください。" }
 Info "  GPU VRAM: $vramMiB MiB"
-if ($vramMiB -lt 15000) {
-    Write-Host "注意: GPU メモリが 16GB 未満です。OTE-RAG は RTX 5070 Ti(16GB)相当の GPU で動作確認しています。動作が不安定になる場合があります。"
-    if (-not $Force) { Fail "GPU メモリが 16GB 未満です(推奨環境外)。それでも続行する場合は -Force を付けて再実行してください。" }
+# 2026-08-04: VRAM 8GB 機を対象に加えたため閾値を見直した。
+# 同梱 LLM を gemma4:12b(ctx8192 で実測 8.4GB) から granite4.1:8b(同 6.7GB) へ
+# 差し替え、bge-m3(0.6GB) と合わせて 7.3GB。8GB カードの実効容量は
+# デスクトップ描画を引いて 7.5〜7.8GiB 程度と見込まれ、**余裕はほとんど無い**。
+# したがって 8GB は「動く見込みだが実機未検証」という位置づけであり、
+# 停止させずに警告する。7GB 未満は明確に足りないので従来どおり停止する。
+$vramWarnMiB = 9000   # これ未満なら警告（8GB カードは 8188 前後を報告する）
+$vramFailMiB = 7000   # これ未満なら停止
+if ($vramMiB -lt $vramFailMiB) {
+    Fail "GPU メモリが不足しています($vramMiB MiB)。8GB 以上が必要です。"
+}
+if ($vramMiB -lt $vramWarnMiB) {
+    Write-Host ""
+    Write-Host "注意: GPU メモリが $vramMiB MiB です(8GB 相当)。"
+    Write-Host "  同梱 LLM(granite4.1:8b)と埋め込みで約 7.3GB を使います。"
+    Write-Host "  **8GB 実機での動作確認は未実施です。** 他のアプリが GPU を使っていると"
+    Write-Host "  メモリが足りず、CPU 動作に転落して回答が非常に遅くなることがあります。"
+    Write-Host "  その場合はブラウザなど GPU を使うアプリを閉じてからお試しください。"
+    Write-Host ""
 }
 
 # Disk space (>= 20GB free on the InstallRoot drive)

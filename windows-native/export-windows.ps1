@@ -43,22 +43,39 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Reranker model name (cache path under storage/models). 2026-08-04: switched from
 # BAAI's bge-reranker-v2-m3 (Chinese) to hotchpotch/japanese-reranker-xsmall-v2
-# (MIT, Japanese lineage only: cl-nagoya <- sbintuitions). Accuracy improved
-# (26/30 -> 27/30 on the 30-question eval) and TTFT dropped 6.99s -> ~2.9s.
-# See docs/RERANKER_SWAP_2026-08-04.md.
+# (MIT, Japanese lineage only: cl-nagoya <- sbintuitions).
+# Accuracy: 27/30 vs 27/30 on the 30-question eval (same-condition A/B, 3 runs
+#   each, identical per-question). NOT an improvement - it is a tie. Do not
+#   quote "26/30 -> 27/30"; that comparison was withdrawn (the 26/30 came from a
+#   different condition, before sessionId was introduced).
+# Rerank time: median ~4,400ms -> ~500ms (measured, about 1/9).
+# See docs/RERANKER_SWAP_2026-08-04.md and out/reranker-ab-2026-08-04/.
 # NOTE: the bundled config.json must have model_type rewritten to xlm-roberta
 #   because the bundled @xenova/transformers 2.17.2 does not know modernbert.
 $RerankerModelName = "hotchpotch/japanese-reranker-xsmall-v2"
 
 # Models to bundle: model name -> manifest relative path
-# 2026-07-14: switched LLM to gemma4:12b (non-Chinese, Apache 2.0, official Ollama library)
-# after the model-selection evaluation (docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md).
-# gemma4:12b + the tuned Japanese RAG prompt scored 25/30 with zero hallucination and beat
-# qwen3:8b (22/30, 4 hallucinations) on the current 30-question eval. Embedding stays bge-m3.
-# NOTE: the build machine must have gemma4:12b pulled into ModelsDir before running this
-#   (ollama pull gemma4:12b). Requires an Ollama new enough for gemma4 (bundled v0.31.2 OK).
+#
+# 2026-08-04: switched LLM to granite4.1:8b (IBM, Apache-2.0, official Ollama library)
+#   for the Windows / VRAM 8GB target. gemma4:12b measures 8.4GB VRAM at ctx 8192,
+#   which does not fit in 8GB once bge-m3 (0.6GB) is resident. granite4.1:8b measures
+#   6.7GB under the identical condition.
+#   Accuracy is a TIE, not an improvement: 27/30 vs 27/30 on the 30-question eval
+#   (same-condition A/B, 3 runs each, identical per question). The category mix does
+#   differ - granite is +1 on direct facts and +1 on numeric discrimination but -2 on
+#   definitions, and those 2 losses are keyword-matching artifacts (it paraphrases
+#   instead of reproducing the set phrases). See docs/LLM_8GB_AB_2026-08-04.md.
+#
+#   The system prompt is still the one tuned for gemma4. It was deliberately NOT
+#   retuned for granite, so that the measurement isolated the model change.
+#
+# 2026-07-14 (superseded): gemma4:12b replaced qwen3:8b (Chinese).
+#   docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md
+#
+# NOTE: the build machine must have granite4.1:8b pulled into ModelsDir before running
+#   this (ollama pull granite4.1:8b). Embedding stays bge-m3.
 $BundleModels = @{
-    "gemma4:12b"      = "manifests\registry.ollama.ai\library\gemma4\12b";
+    "granite4.1:8b"   = "manifests\registry.ollama.ai\library\granite4.1\8b";
     "bge-m3:latest"   = "manifests\registry.ollama.ai\library\bge-m3\latest";
 }
 
