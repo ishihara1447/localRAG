@@ -51,9 +51,40 @@ echo "[2/3] 各パートの SHA-256 を計算中..."
   done
 } > "$OUT/MANIFEST.txt"
 
-echo "[3/3] 結合スクリプトを配置中..."
+echo "[3/3] 結合スクリプトと照合ファイルを配置中..."
 cp "$(dirname "$0")/Join-OTE-RAG.cmd" "$OUT/" 2>/dev/null || true
-cp "$(dirname "$0")/README.md" "$OUT/" 2>/dev/null || true
+# 開発者向けの README.md（gh release create の手順など）は顧客に配らない。
+# 代わりに、このフォルダで何をすればよいかだけを書いた案内を生成する。
+cat > "$OUT/README.txt" <<EOF
+OTE-RAG インストール手順（このフォルダ）
+
+1. Join-OTE-RAG.cmd をダブルクリックしてください。
+   分割ファイルを1つに結合し、壊れていないか自動で検証します。
+   完了すると $BASE ができます。
+
+2. OTE-RAG-Setup.exe を右クリックして「管理者として実行」を選んでください。
+   「WindowsによってPCが保護されました」と出たら
+   「詳細情報」→「実行」を押してください（署名を付けていないため出ます）。
+
+3. 結合が終われば、分割ファイル（.001 〜）は削除して構いません。
+
+必要な空き容量: 開始時に 40GB 以上（インストール後の製品本体は約10GB）
+
+うまくいかない場合は、この画面の表示内容を保守担当へお送りください。
+EOF
+
+# 🔴 .sha256 は必ず同梱すること。
+#    OTE-RAG-Setup.exe は zip と同じ場所の "<zip名>.sha256" を**必須**とし、
+#    無ければ起動直後に「SHA-256 の照合ファイルが見つかりません」で終了する
+#    （setup/OTE-RAG-Setup.cs の PackageLocator）。
+#    Join-OTE-RAG.cmd も期待値をこのファイルから読む
+#    （MANIFEST.txt は UTF-8、バッチは CP932 で日本語ラベルを照合できないため）。
+if [ -f "$SRC.sha256" ]; then
+  cp "$SRC.sha256" "$OUT/"
+else
+  ( cd "$(dirname "$SRC")" && sha256sum "$BASE" > "$OUT/${BASE}.sha256" )
+fi
+[ -s "$OUT/${BASE}.sha256" ] || { echo "エラー: ${BASE}.sha256 を用意できませんでした" >&2; exit 1; }
 
 echo
 echo "完了: $OUT"
