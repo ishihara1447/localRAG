@@ -1,0 +1,27 @@
+(topN=8, temperature=0)
+warmup...
+[01] Q01 TTFT=4.685s total=11.161s srv_first=Nonems pe=Nonems/Nonetok
+[02] Q07 TTFT=3.576s total=9.413s srv_first=Nonems pe=Nonems/Nonetok
+[03] Q13 TTFT=3.172s total=11.127s srv_first=Nonems pe=Nonems/Nonetok
+[04] Q021 TTFT=3.159s total=8.135s srv_first=Nonems pe=Nonems/Nonetok
+[05] Q027 TTFT=3.309s total=8.495s srv_first=Nonems pe=Nonems/Nonetok
+[06] Q033 TTFT=3.648s total=6.346s srv_first=Nonems pe=Nonems/Nonetok
+[07] Q039 TTFT=2.753s total=5.869s srv_first=Nonems pe=Nonems/Nonetok
+[08] Q045 TTFT=3.819s total=9.518s srv_first=Nonems pe=Nonems/Nonetok
+[09] Q051 TTFT=3.664s total=11.238s srv_first=Nonems pe=Nonems/Nonetok
+[10] Q057 TTFT=3.903s total=10.063s srv_first=Nonems pe=Nonems/Nonetok
+[11] Q063 TTFT=3.412s total=13.889s srv_first=Nonems pe=Nonems/Nonetok
+[12] Q069 TTFT=4.223s total=7.308s srv_first=Nonems pe=Nonems/Nonetok
+[13] Q075 TTFT=3.542s total=11.962s srv_first=Nonems pe=Nonems/Nonetok
+[14] Q081 TTFT=3.389s total=10.216s srv_first=Nonems pe=Nonems/Nonetok
+[15] Q087 TTFT=4.399s total=10.622s srv_first=Nonems pe=Nonems/Nonetok
+[16] Q093 TTFT=4.163s total=9.025s srv_first=Nonems pe=Nonems/Nonetok
+[17] Q099 TTFT=3.33s total=7.624s srv_first=Nonems pe=Nonems/Nonetok
+[18] Q105 TTFT=3.274s total=7.447s srv_first=Nonems pe=Nonems/Nonetok
+[19] Q111 TTFT=3.065s total=4.957s srv_first=Nonems pe=Nonems/Nonetok
+[20] Q117 TTFT=3.173s total=10.933s srv_first=Nonems pe=Nonems/Nonetok
+[21] Q123 TTFT=3.174s total=10.001s srv_first=Nonems pe=Nonems/Nonetok
+[22] Q129 TTFT=6.836s total=13.063s srv_first=Nonems pe=Nonems/Nonetok
+[23] Q135 TTFT=3.476s total=15.96s srv_first=Nonems pe=Nonems/Nonetok
+[24] Q141 TTFT=4.722s total=13.116s srv_first=Nonems pe=Nonems/Nonetok
+wrote out/cushion/ttft/topk24.json
