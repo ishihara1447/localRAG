@@ -1,0 +1,19 @@
+===== bgem3-run1 (bge-m3:latest) 11:07:27 =====
+  合計: 28/30
+===== granite-run1 (granite-embedding:278m) 11:10:55 =====
+  合計: 27/30
+===== gemma-run1 (embeddinggemma:300m) 11:13:46 =====
+  合計: 28/30
+===== bgem3-run2 (bge-m3:latest) 11:24:30 =====
+  合計: 28/30
+===== granite-run2 (granite-embedding:278m) 11:27:28 =====
+  合計: 27/30
+===== gemma-run2 (embeddinggemma:300m) 11:30:18 =====
+  合計: 28/30
+===== bgem3-run3 (bge-m3:latest) 11:40:54 =====
+  合計: 28/30
+===== granite-run3 (granite-embedding:278m) 11:43:44 =====
+  合計: 27/30
+===== gemma-run3 (embeddinggemma:300m) 11:46:34 =====
+  合計: 28/30
+完了: 11:57:28

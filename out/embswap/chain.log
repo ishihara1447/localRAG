@@ -1,0 +1,6 @@
+=== emb-bgem3 (bge-m3:latest) query='' chunk='' ===
+  再埋め込み 207秒
+  完了: out/embswap/raw/retrieval-emb-bgem3.json
+=== emb-gemma (embeddinggemma:300m) query='task: search result | query: ' chunk='title: none | text: ' ===
+  再埋め込み 164秒
+  完了: out/embswap/raw/retrieval-emb-gemma.json

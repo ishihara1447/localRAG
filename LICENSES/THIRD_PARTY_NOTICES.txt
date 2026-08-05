@@ -11,7 +11,8 @@ OTE-RAG 第三者コンポーネント ライセンス一覧
 | IBM Granite 4.1 8B (LLM, Windows v1.2.8以降の既定) | Apache License 2.0     | Apache-2.0_LICENSE.txt                   | https://ollama.com/library/granite4.1 |
 | Google Gemma 4 12B (LLM, Linux配布版の既定 / Windows v1.2.7以前) | Apache License 2.0 | Apache-2.0_LICENSE.txt          | https://ollama.com/library/gemma4 |
 | Tesseract OCR + jpn/eng traineddata       | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://github.com/tesseract-ocr/tesseract |
-| BAAI bge-m3 (Embedding, 既定)             | MIT                             | BGE-M3_LICENSE.txt                       | https://huggingface.co/BAAI/bge-m3 |
+| IBM granite-embedding-278m-multilingual (Embedding, Windows v1.2.9以降の既定) | Apache License 2.0 | Apache-2.0_LICENSE.txt | https://ollama.com/library/granite-embedding |
+| BAAI bge-m3 (Embedding, Linux配布版 / Windows v1.2.8以前) | MIT                | BGE-M3_LICENSE.txt                       | https://huggingface.co/BAAI/bge-m3 |
 | hotchpotch japanese-reranker-xsmall-v2 (Reranker, 既定) | MIT               | JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt  | https://huggingface.co/hotchpotch/japanese-reranker-xsmall-v2 |
 | └ cl-nagoya ruri-v3-pt-30m (上記の派生元)  | Apache License 2.0              | Apache-2.0_LICENSE.txt                   | https://huggingface.co/cl-nagoya/ruri-v3-pt-30m |
 | └ sbintuitions modernbert-ja-30m (同上)   | MIT                             | JAPANESE-RERANKER-XSMALL-V2_LICENSE.txt  | https://huggingface.co/sbintuitions/modernbert-ja-30m |
@@ -21,7 +22,9 @@ OTE-RAG 第三者コンポーネント ライセンス一覧
 ## 注意事項
 
 - 既定モデルは配布系統で異なる。
-  Windows v1.2.8 以降: Granite 4.1 8B (Apache-2.0) + bge-m3 (MIT)
+  Windows v1.2.9 以降: Granite 4.1 8B + granite-embedding-278m (ともに Apache-2.0)
+  ＝ **LLM・埋め込み・リランカーのすべてが非中国系**
+  Windows v1.2.8: Granite 4.1 8B (Apache-2.0) + bge-m3 (MIT・中国系)
   Linux 配布版 / Windows v1.2.7 以前: Gemma 4 12B (Apache-2.0) + bge-m3 (MIT)
   + japanese-reranker-xsmall-v2 (MIT) である。
 

@@ -17,7 +17,11 @@ LICENSES/ ディレクトリを参照すること。
 - Google Gemma 4 12B (LLM, Linux 配布版の既定 / Windows v1.2.7 以前)
                                             - Apache License 2.0
 - Tesseract OCR + 言語データ jpn/eng        - Apache License 2.0
-- BAAI bge-m3 (Embedding, 既定)             - MIT License
+- IBM granite-embedding-278m-multilingual (Embedding,
+  Windows native 配布版 v1.2.9 以降の既定)  - Apache License 2.0
+    ※ 非中国系化のため 2026-08-05 に BAAI bge-m3 から差し替えた。
+- BAAI bge-m3 (Embedding, Linux 配布版 / Windows v1.2.8 以前)
+                                            - MIT License
 - hotchpotch japanese-reranker-xsmall-v2 (Reranker, 既定)
                                             - MIT License
     派生元: cl-nagoya/ruri-v3-pt-30m (Apache License 2.0, 名古屋大学)

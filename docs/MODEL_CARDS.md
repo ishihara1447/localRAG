@@ -25,7 +25,29 @@
 | 採用根拠 | 中国系以外・RAG適性・日本語・商用可・16GB VRAMの要件をすべて満たす（`docs/MODEL_SELECTION_NON_CHINESE_2026-07-14.md`）。gemma4向け調整プロンプト＋topN=8の30問評価で**25/30・ハルシネーションゼロ（不明応答5/5）**。同条件でqwen3:8bは22/30・捏造4件であり、精度・安全性の両面で上回る |
 | 旧構成からの変更理由 | 旧LLM `qwen3:8b`（Alibaba＝中国系）から、非中国系・Apache-2.0のGoogle Gemma 4に切替。gemma4は「過剰拒否」と「出典捏造」が出やすかったため、既定システムプロンプトを言い換え許容・捏造禁止方向に調整（`server/models/systemSettings.js` saneDefaultSystemPrompt、2026-07-14） |
 
-## 2. Embedding: BGE-M3（`bge-m3:latest`）
+## 2. Embedding: Granite Embedding 278M Multilingual（`granite-embedding:278m`）
+
+**Windows native 配布版 v1.2.9 以降の既定。** Linux 配布版と Windows v1.2.8 以前は
+下記「2-2. 旧 Embedding: BGE-M3」を参照。
+
+| 項目 | 内容 |
+|---|---|
+| 用途 | 文書チャンク・質問文のベクトル化（LanceDBに格納、類似検索topN=8） |
+| 提供元 | **IBM**（米）、Ollama公式レジストリ配布（`registry.ollama.ai/library/granite-embedding:278m`） |
+| ライセンス | **Apache-2.0**（全文: `LICENSES/Apache-2.0_LICENSE.txt`） |
+| パラメータ数 | 277.45M |
+| 埋め込み次元 | **768** |
+| コンテキスト長 | **512**（🔴 bge-m3 の 8192 より大幅に短い。`EMBEDDING_MODEL_MAX_CHUNK_LENGTH=500` との余裕は小さい。防衛白書544ページの取り込みでは切り詰め警告ゼロだったが、チャンク長を伸ばす場合は要注意） |
+| 配布サイズ | 562MB（bge-m3 の 1,158MB から約半減） |
+| 接頭辞 | **不要**（モデルカードに指定なし。`EMBEDDING_*_PREFIX` は設定しない） |
+| 対応言語 | en, ar, cs, de, es, fr, it, **ja**, ko, nl, pt, zh |
+| 採用根拠 | 中国系モデルを使わないという要件（2026-08-05）。**同一条件の実測で対照を上回った**: 検索 `anchor_coverage@8` 0.7120 → **0.7284（+1.64pt、166問）**。生成は防衛白書30問で 28/30 → **27/30（−1問。落ちたのは「言い換え」設問1問で、白書外5/5は維持）**。応答速度は同等（中央値 4.9s → 5.0s）。証跡: `docs/EMBEDDING_SWAP_2026-08-05.md`、`out/embswap/` |
+| **重要な制約** | **埋め込みを変更した場合は全文書の再embedが必須**（1024次元 → 768次元で既存ベクトルと互換性なし） |
+
+> **この差し替えにより、LLM・埋め込み・リランカーのすべてが非中国系になった**
+> （granite4.1:8b＝IBM / granite-embedding＝IBM / japanese-reranker-xsmall-v2＝日本）。
+
+### 2-2. 旧 Embedding: BGE-M3（`bge-m3:latest`）— Linux 配布版 / Windows v1.2.8 以前
 
 | 項目 | 内容 |
 |---|---|

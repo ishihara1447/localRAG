@@ -76,7 +76,7 @@ $RerankerModelName = "hotchpotch/japanese-reranker-xsmall-v2"
 #   this (ollama pull granite4.1:8b). Embedding stays bge-m3.
 $BundleModels = @{
     "granite4.1:8b"   = "manifests\registry.ollama.ai\library\granite4.1\8b";
-    "bge-m3:latest"   = "manifests\registry.ollama.ai\library\bge-m3\latest";
+    "granite-embedding:278m" = "manifests\registry.ollama.ai\library\granite-embedding\278m";
 }
 
 function Assert-Path([string]$p, [string]$what) {
