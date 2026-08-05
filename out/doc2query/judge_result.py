@@ -15,8 +15,8 @@ import re
 from collections import defaultdict
 
 CTRL = "out/xjudge/judged-topk8-fix2.json"      # 対照（TOPK=8・現行）
-TEST = "out/doc2query/judged-d2q.json"          # 条件C（仮想質問あり・フィルタあり）
-GEN = "out/doc2query/gen-d2q.json"
+TEST = "out/doc2query/judged-d2q2.json"          # 条件C（仮想質問あり・フィルタあり）
+GEN = "out/doc2query/gen-d2q2.json"
 
 UNK = re.compile(r"見つかりません|見つかりませんでした|記載がありません|記載されていません"
                  r"|含まれていません|見当たりません|明示されていません|情報がない|ありません")
