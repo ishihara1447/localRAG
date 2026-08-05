@@ -22,6 +22,10 @@ services:
       - EMBEDDING_CHUNK_PREFIX=${EMB_CHUNK_PREFIX:-}
       # 文抽出クッションが残す文数（既定8）。A/B 検証用。
       - SENTENCE_CUSHION_TOPK=${CUSHION_TOPK:-8}
+      # 索引時の仮想質問（Doc2Query--）。評価専用。未設定なら無効。
+      - DOC2QUERY_FILE=${D2Q:-}
     volumes:
       - ./anythingllm-storage:/app/server/storage
       - ../anything-llm/server/utils/EmbeddingEngines/ollama/index.js:/app/server/utils/EmbeddingEngines/ollama/index.js:ro
+      - ../anything-llm/server/utils/vectorDbProviders/lance/index.js:/app/server/utils/vectorDbProviders/lance/index.js:ro
+      - ../out/doc2query:/d2q:ro
