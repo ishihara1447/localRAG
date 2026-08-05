@@ -326,12 +326,15 @@ def ask(client: httpx.Client, headers: dict, slug: str, question: str,
 # 内部監査(2026-07-16 RAG_EVAL_INTERNAL_AUDIT)指摘: 否定語を伴わない裸の「含まれて」
 # 「記載されて」は肯定文「〜が記載されています」にもマッチし、ハルシネーションを
 # 「不明応答=正解」と誤判定する。否定形を要求する形に修正。
-UNKNOWN_PATTERNS = re.compile(
-    r"不明|見つかり|ありません|no relevant|don't have|情報がない"
-    r"|含まれていない|含まれていません|含まれておりません"
-    r"|記載がない|記載されていない|記載されていません"
-    r"|わかりません|お答えできません|定めない|定めていない|定められていない|別に定める"
-)
+# 2026-08-05: 共通の is_unknown（欠陥2件の修正込み）＋本スクリプト固有の追加語。
+from _eval_common import is_unknown as _is_unknown_common  # noqa: E402
+
+_EXTRA_UNKNOWN = re.compile(
+    r"no relevant|don't have|定めない|定めていない|定められていない|別に定める")
+
+
+def _is_unknown(answer: str) -> bool:
+    return _is_unknown_common(answer) or bool(_EXTRA_UNKNOWN.search(answer or ""))
 
 
 def evaluate(client: httpx.Client, headers: dict, slug: str, cases: list[Case]) -> dict[str, tuple[int, int]]:
@@ -345,7 +348,7 @@ def evaluate(client: httpx.Client, headers: dict, slug: str, cases: list[Case]) 
         ok = True
         reason = []
         if c.expect_unknown:
-            if not UNKNOWN_PATTERNS.search(answer):
+            if not _is_unknown(answer):
                 ok = False
                 reason.append("不明応答が期待されたが具体的な回答を返した")
         else:

@@ -30,7 +30,7 @@ import os, re, sys, json, time, uuid, httpx
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # S02: 正規化は scripts/_eval_common.py に集約（挙動は従来と同一）
-from _eval_common import strip_think, squash_ws
+from _eval_common import strip_think, squash_ws, is_unknown
 
 BASE = os.environ.get("LOCALRAG_BASE_URL", "http://localhost:3001")
 SLUG = os.environ.get("HAKUSHO_SLUG", "hakusho-eval")
@@ -38,12 +38,7 @@ OUT = os.environ.get("AMB_OUT", "")
 TIMEOUT = 300.0
 
 # 不明応答検出（hakusho-eval.py と同一。失敗モード「拒否」の判定にも使う）
-UNKNOWN = re.compile(
-    r"不明|見つかり|ありません|情報がない"
-    r"|含まれていない|含まれていません|含まれておりません"
-    r"|記載がない|記載されていない|記載されていません"
-    r"|わかりません|お答えでき|存在しません"
-)
+# 2026-08-05: 棄権判定は _eval_common.is_unknown に一本化（欠陥2件の修正込み）。
 
 # (orig_id, cat, clear_q, ambiguous_q, ambiguity_type, spec)
 #   orig_id: hakusho-eval.py の CASES リスト内 1始まり番号
@@ -136,7 +131,7 @@ def grade(ans, spec):
 def failure_mode(ans, spec):
     """曖昧版が不正解だったときの失敗モード自動分類（レポートで目視確認前提の一次分類）。
     refusal=拒否(不明系応答) / partial=部分回答(kw specの一部のみ含有) / wrong=誤答"""
-    if UNKNOWN.search(ans):
+    if is_unknown(ans):
         return "refusal"
     if isinstance(spec, tuple):
         a = squash_ws(ans)

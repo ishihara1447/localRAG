@@ -37,19 +37,17 @@ run ごと・過去の手動テストの有無で変わる）。complex-eval / a
 import os, re, sys, json, time, uuid, httpx
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 # S02: 正規化は scripts/_eval_common.py に集約（挙動は従来と同一）
-from _eval_common import strip_think, squash_ws
+from _eval_common import strip_think, squash_ws, is_unknown
 BASE=os.environ.get("LOCALRAG_BASE_URL","http://localhost:3001")
 SLUG=os.environ.get("HAKUSHO_SLUG","hakusho-eval")
 OUT=os.environ.get("HAKUSHO_OUT","")
 TIMEOUT=300.0
 # 不明応答検出。否定語を伴わない裸の「含まれて」「記載されて」「該当する」は
 # 肯定文にもマッチしハルシネーションを見逃すため、否定形を要求する。
-UNKNOWN=re.compile(
-    r"不明|見つかり|ありません|情報がない"
-    r"|含まれていない|含まれていません|含まれておりません"
-    r"|記載がない|記載されていない|記載されていません"
-    r"|わかりません|お答えでき|存在しません"
-)
+# 2026-08-05: 棄権判定を _eval_common.is_unknown へ一本化した。
+# 裸の「見つかり」「お答えでき」が肯定形（見つかりました／お答えできます）にも
+# 一致し、ハルシネーションを棄権＝正解と数えていた欠陥を直したもの。
+# ここで再定義しないこと。
 # (cat, question, spec)  spec: str=regex / ("kw",[...])=全キーワード / None=不明期待
 CASES=[
  ("a","防衛省・自衛隊に統合作戦司令部が新設されたのはいつですか。", r"2025\s*年\s*3\s*月\s*24\s*日|令和7年3月24日"),
@@ -95,7 +93,7 @@ def ask(c,h,q,session):
     # 情報量ゼロであり、観測データとして意味があるのは text / pageNumber / score のため。
     return strip_think(d.get("textResponse","") or ""),(d.get("sources",[]) or [])
 def grade(ans,spec):
-    if spec is None: return bool(UNKNOWN.search(ans))
+    if spec is None: return is_unknown(ans)
     if isinstance(spec,tuple):
         # PDF由来の字間空白を吸収してからキーワード全含有を判定
         a=squash_ws(ans)

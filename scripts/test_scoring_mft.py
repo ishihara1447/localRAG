@@ -133,13 +133,19 @@ AM = _load_decls("_ambiguous_under_test", _p("ambiguous-eval.py"))
 SC = _load_decls("_scale_under_test", _p("scale-eval.py"))
 PR = _load_decls("_precision_under_test", _p("precision-eval.py"))
 
-# 「不明応答＝正解」を判定する正規表現。4本それぞれが自前に持っている（コピペ運用）。
-# 事故4 は「1本で直したのに他に取り残しがあった」形で再発したので **全本を等しく検査する**。
-UNKNOWN_RES = {
-    "hakusho-eval.py": HK.UNKNOWN,
-    "ambiguous-eval.py": AM.UNKNOWN,
-    "scale-eval.py": SC.UNKNOWN_PATTERNS,
-    "precision-eval.py": PR.UNKNOWN_PATTERNS,
+# 「不明応答＝正解」の判定。
+# 2026-08-05 に _eval_common.is_unknown へ一本化した（それ以前は4本がコピペで
+# 自前に持ち、「1本で直したのに他に取り残し」という事故4を起こしていた）。
+#
+# 一本化後も **全本を等しく検査する**。共通関数を呼んでいるつもりで
+# ローカル定義が残っていれば、ここで検出できるようにするため。
+# scale / precision は英語パターン等の固有語を足した薄いラッパを持つ。
+UNKNOWN_FNS = {
+    "_eval_common.py": EC.is_unknown,
+    "hakusho-eval.py": HK.is_unknown,
+    "ambiguous-eval.py": AM.is_unknown,
+    "scale-eval.py": SC._is_unknown,
+    "precision-eval.py": PR._is_unknown,
 }
 
 with open(FIXTURE, encoding="utf-8") as f:
@@ -338,11 +344,10 @@ _REFUSALS = [
      "負例: 肯定文を不明応答と判定してはならない（4スクリプト全数）")
 def c01_unknown_no_false_positive():
     bad = []
-    for name, rx in UNKNOWN_RES.items():
+    for name, fn in UNKNOWN_FNS.items():
         for s in _AFFIRMATIVE:
-            m = rx.search(s)
-            if m:
-                bad.append(f"{name}: <<{m.group(0)}>> が肯定文に一致 → {s}")
+            if fn(s):
+                bad.append(f"{name}: 肯定文を不明応答と判定 → {s}")
     assert not bad, "肯定文を不明応答と誤判定した（甘い方向の誤り）:\n  " + "\n  ".join(bad)
 
 
@@ -350,9 +355,9 @@ def c01_unknown_no_false_positive():
      "正例: 本物の不明応答は従来どおり検出される（4スクリプト全数）")
 def c02_unknown_true_positive():
     miss = []
-    for name, rx in UNKNOWN_RES.items():
+    for name, fn in UNKNOWN_FNS.items():
         for s in _REFUSALS:
-            if not rx.search(s):
+            if not fn(s):
                 miss.append(f"{name}: 検出できず → {s}")
     assert not miss, "本物の不明応答を取りこぼした:\n  " + "\n  ".join(miss)
 
@@ -366,46 +371,37 @@ def c03_grade_unknown_path():
 
 
 @mft("C", "事故4と同型（裸パターン）— 新規発見 2026-07-27",
-     "負例: 裸の `見つかり` が肯定文『見つかりました』に一致してはならない",
-     known_defect="4本すべてに `見つかり` が裸で残っている。"
-                  "`該当する規定が見つかりました。第3条です。` を不明応答と誤判定する。"
-                  "**甘い方向**の誤りで事故4と同じ病理。"
-                  "修正するなら `見つからな|見つかりませんでした|見つかっていな` の形。")
+     "負例: 裸の `見つかり` が肯定文『見つかりました』に一致してはならない")
+# 2026-08-05 修正済み: _eval_common.UNKNOWN を
+# `見つかりません|見つかりませんでした|見つからな` の形に変え、一本化した。
 def c04_bare_mitsukari():
     bad = []
-    for name, rx in UNKNOWN_RES.items():
+    for name, fn in UNKNOWN_FNS.items():
         for s in ["該当する規定が見つかりました。第3条です。",
                   "文書内に該当箇所が見つかりましたので引用します。"]:
-            m = rx.search(s)
-            if m:
-                bad.append(f"{name}: <<{m.group(0)}>> → {s}")
+            if fn(s):
+                bad.append(f"{name}: 肯定文を不明応答と判定 → {s}")
     assert not bad, "\n  " + "\n  ".join(bad)
 
 
 @mft("C", "事故4と同型（裸パターン）— 新規発見 2026-07-27",
-     "負例: 裸の `お答えでき` が『お答えできます』に一致してはならない",
-     known_defect="hakusho-eval / ambiguous-eval / precision-eval が `お答えでき` を"
-                  "裸で持つ（scale-eval のみ `お答えできません` と正しく書けている）。"
-                  "**甘い方向**の誤り。scale-eval の書き方に揃えれば直る。")
+     "負例: 裸の `お答えでき` が『お答えできます』に一致してはならない")
+# 2026-08-05 修正済み: `お答えできません|お答えできかねます|回答できません` に変更。
 def c05_bare_okotae():
     bad = []
-    for name, rx in UNKNOWN_RES.items():
+    for name, fn in UNKNOWN_FNS.items():
         s = "ご質問にはお答えできます。定年は60歳です。"
-        m = rx.search(s)
-        if m:
-            bad.append(f"{name}: <<{m.group(0)}>> → {s}")
+        if fn(s):
+            bad.append(f"{name}: 肯定文を不明応答と判定 → {s}")
     assert not bad, "\n  " + "\n  ".join(bad)
 
 
 @mft("C", "事故4の裏返し（厳しい方向の取りこぼし）— 新規発見 2026-07-27",
-     "正例: `存在しません` 型の拒否を全スクリプトが検出できること",
-     known_defect="scale-eval.py の UNKNOWN_PATTERNS だけ `存在しません` を持たない。"
-                  "**厳しい方向**（システムを実際より悪く見せる）なので緊急度は低いが、"
-                  "4本のコピペが同期していない証拠であり、"
-                  "本来は `_eval_common.py` に一本化すべき。")
+     "正例: `存在しません` 型の拒否を全スクリプトが検出できること")
+# 2026-08-05 修正済み: 一本化により全スクリプトが同じ判定を使うようになった。
 def c06_unknown_pattern_drift():
-    miss = [name for name, rx in UNKNOWN_RES.items()
-            if not rx.search("その情報は本文書に存在しません")]
+    miss = [name for name, fn in UNKNOWN_FNS.items()
+            if not fn("その情報は本文書に存在しません")]
     assert not miss, f"`存在しません` を検出できないスクリプト: {miss}"
 
 
