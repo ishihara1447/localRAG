@@ -27,7 +27,7 @@
   - URL: `http://localhost:3001`（`https`ではなく`http`）
   - 既定インストール先: `C:\LocalRAG`
   - 3サービス: `LocalRAG-Server` / `LocalRAG-Collector` / `LocalRAG-Ollama`
-  - AIモデル: 回答生成=**Gemma 4 12B**（Google, 日本語LLM）、文書検索=**bge-m3**（embedding）、再順位付け=**bge-reranker-v2-m3**（reranker）
+  - AIモデル: 回答生成=**Granite 4.1 8B**（Google, 日本語LLM）、文書検索=**granite-embedding 278M**（embedding）、再順位付け=**japanese-reranker-xsmall-v2**（reranker）
   - GPU要件: **NVIDIA GPU / VRAM 16GB以上（RTX 5070 Ti相当）**
   - 配布物: `OTE-RAG-Setup.exe` ＋ `OTE-RAG-win64-v1.2.0.zip` ＋ `.zip.sha256` の3ファイル
 
@@ -183,7 +183,7 @@
 - ポート 8888 / 11435 は内部用で変更不可（3001は変更可）
 
 **C. 安全のしくみ＝外部に出ない根拠（右・安心感を出す）**
-- AI処理（Gemma 4 12B / bge-m3 / bge-reranker-v2-m3）はすべて**PC内**（Ollamaは `127.0.0.1:11435` の内部通信のみ）
+- AI処理（Granite 4.1 8B / granite-embedding 278M / japanese-reranker-xsmall-v2）はすべて**PC内**（Ollamaは `127.0.0.1:11435` の内部通信のみ）
 - 外部AI（OpenAI/Anthropic/Gemini）は**API内部の許可リストで遮断**（設定でも有効化不可）
 - テレメトリ無効／Webページ取り込み機能は非同梱／Swagger無効／実行時のモデル外部取得なし（オフライン）
 - **LANを抜いても・Wi-Fiを切っても通常どおり動く**＝外部依存がないことを顧客自身が確認できる ← 目立たせる

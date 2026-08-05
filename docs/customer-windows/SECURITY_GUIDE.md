@@ -19,9 +19,9 @@ OTE-RAG は、お客様の文書・質問・回答・チャット履歴を
 
 ### 2-1. AI の処理がすべてパソコン内で完結する
 
-- 回答を生成する AI（LLM: Google `Gemma 4 12B`、日本語対応モデル）、
-  文書を検索用データに変換する AI（embedding: `bge-m3`）、
-  検索結果を関連度で並べ替える AI（reranker: `bge-reranker-v2-m3`）は、
+- 回答を生成する AI（LLM: IBM `Granite 4.1 8B`、日本語対応モデル）、
+  文書を検索用データに変換する AI（embedding: `granite-embedding 278M`）、
+  検索結果を関連度で並べ替える AI（reranker: `japanese-reranker-xsmall-v2`）は、
   いずれも**配布パッケージに同梱**され、このパソコンのディスク
   （`C:\ProgramData\LocalRAG\models` および インストール先の
   `app\server\storage\models`）から読み込まれます。
@@ -54,8 +54,11 @@ OpenAI・Anthropic・Google Gemini などの外部 AI サービスへの接続�
 
 OTE-RAG はネットワークがなくても動作するため、
 **LAN ケーブルを抜く／Wi-Fi を切った状態でも、文書のアップロードと
-質問応答が通常どおり動作すること**をお客様自身で確認できます。
-外部サービスに依存していれば、この状態では動作しません。
+質問応答が動作する設計**です。外部サービスに依存していれば、この状態では動作しません。
+
+> ⚠️ **ただし、完全にネットワークを遮断した状態での通し動作は、開発元では未検証です。**
+> 設計上は外部へ取りに行きませんが、実測での確認は行っていません。
+> お客様の環境で確認される場合は、上記の手順でお試しください。
 
 ## 3. データの保存場所（すべてこのパソコン内）
 
@@ -91,6 +94,6 @@ OTE-RAG はネットワークがなくても動作するため、
 ## 5. ライセンス
 
 同梱している OSS（AnythingLLM、Ollama、WinSW、Node.js）および
-AI モデル（Gemma 4 12B、bge-m3、bge-reranker-v2-m3）のライセンス・
+AI モデル（Granite 4.1 8B、granite-embedding 278M、japanese-reranker-xsmall-v2）のライセンス・
 著作権表示は、インストール先の `LICENSES\` フォルダと `NOTICE`
 ファイルに同梱しています。これらの表示を削除しないでください。

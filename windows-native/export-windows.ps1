@@ -242,7 +242,13 @@ if (Test-Path (Join-Path $repoRoot "NOTICE")) {
 # Windows native package ships the Windows-native customer docs
 # (docs\customer is the Docker-distribution manual and does not apply here).
 if (Test-Path (Join-Path $repoRoot "docs\customer-windows")) {
-    robocopy (Join-Path $repoRoot "docs\customer-windows") (Join-Path $Pkg "docs") /E /NFL /NDL /NJH /NJS | Out-Null
+    # 🔴 顧客に配ってよいものだけを入れる。
+    #   CODEX_ONEPAGER_BRIEF.md は Codex への作図指示書＝開発者向け。
+    #   onepagers\*.svg は v1.1.0 / Qwen3-8B 時代の作図で、モデル名も VRAM 要件も
+    #   現行と食い違う（2026-08-05 のレビューで検出）。作り直すまで同梱しない。
+    #   v1.2.8 でも「開発者向け README が顧客に届く」同型の指摘を受けている。
+    robocopy (Join-Path $repoRoot "docs\customer-windows") (Join-Path $Pkg "docs") /E /NFL /NDL /NJH /NJS `
+        /XF CODEX_ONEPAGER_BRIEF.md /XD onepagers | Out-Null
 } else {
     throw "ERROR: docs\customer-windows not found. Sync customer docs into the build tree before exporting."
 }
