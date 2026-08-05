@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/ishihara1447/projects/fukugyo/repos/localRAG/out/doc2query/filter_questions.py", line 128, in <module>
+    main()
+  File "/home/ishihara1447/projects/fukugyo/repos/localRAG/out/doc2query/filter_questions.py", line 68, in main
+    vc = glob.glob("runtime/anythingllm-storage/vector-cache/*.json")[0]
+IndexError: list index out of range

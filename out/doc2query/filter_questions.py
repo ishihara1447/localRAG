@@ -66,22 +66,57 @@ def main():
     # 照合キー（本文の正規化）を vector-cache から引く
     import glob
     vc = glob.glob("runtime/anythingllm-storage/vector-cache/*.json")[0]
-    keymap = {}
+    # 🔴 ID では対応づけない。再 embed するとチャンクの ID は振り直されるため、
+    #    questions.jsonl に記録した旧 ID とは一致しない（2026-08-06 に実測して判明。
+    #    ID 空間の不一致は本作業で2度目）。
+    #    questions.jsonl は load_chunks() と同じ順序で書かれており、
+    #    vector-cache も同じ文書・同じ分割なので**順序で対応づける**。
+    keys = []
     for batch in json.load(open(vc, encoding="utf-8")):
         for it in batch:
-            keymap[it["id"]] = _nz(it["metadata"].get("text") or "")
-    for r in rows:
-        r["key"] = keymap.get(r["id"], "")
+            t = _nz(it["metadata"].get("text") or "")
+            if len(_nz(it["metadata"].get("text") or "")) >= 1:
+                keys.append(t)
+    # load_chunks() は 50字未満のチャンクを捨てているので、同じ条件で揃える
+    keys = [k for k in keys if len(k) >= 50 // 2]   # 正規化後なので緩めに
+    if len(keys) != len(rows):
+        print(f"  警告: チャンク数が不一致（cache {len(keys)} / questions {len(rows)}）",
+              flush=True)
+    for i, r in enumerate(rows):
+        r["key"] = keys[i] if i < len(keys) else ""
+    # 再開: 既に出力済みの key を読み飛ばす（中断しても最初からやり直さない）
+    import os
+    done = set()
+    if os.path.exists(dst):
+        for line in open(dst, encoding="utf-8"):
+            if line.strip():
+                try:
+                    done.add(json.loads(line)["key"])
+                except Exception:
+                    pass
+    if done:
+        print(f"  再開: 処理済み {len(done)} チャンクを読み飛ばす", flush=True)
+
+    # 検索は互いに独立なので並列化する。**手法は変えず実行時間だけ縮める。**
+    # 逐次だと検索1回2.5秒 × 約5,000回 ≒ 3.5時間かかる（実測）。
+    from concurrent.futures import ThreadPoolExecutor
+    WORKERS = 8
+
     total = kept = 0
     t0 = time.time()
-    with open(dst, "w", encoding="utf-8") as f:
+    with open(dst, "a", encoding="utf-8") as f:
         for i, r in enumerate(rows, 1):
+            if r["key"] and r["key"] in done:
+                continue
             keep = []
-            for q in r["questions"]:
-                total += 1
-                if r["key"] in search(key, q):
-                    keep.append(q)
-                    kept += 1
+            if r["questions"]:
+                with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+                    hits = list(ex.map(lambda q: (q, search(key, q)), r["questions"]))
+                for q, res in hits:
+                    total += 1
+                    if r["key"] in res:
+                        keep.append(q)
+                        kept += 1
             # 索引側（lance/index.js の loadDoc2Query）は本文キーで引くので、
             # ここで最終形式（key + questions）にして出す。工程を分けると
             # 取り違えのもとになるため1本にまとめる。
