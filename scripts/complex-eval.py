@@ -523,6 +523,52 @@ def _blocked_by_prefix(text_before_match: str, terms) -> bool:
     return any(nt and left.endswith(nt) for nt in (normalize(t) for t in terms))
 
 
+# --------------------------------------------------------------------------
+# [X] 判定の誤検出ガード（2026-08-05 追加）
+# --------------------------------------------------------------------------
+#
+# なぜ要るか: 166問での実測で、[X] が発火した11件のうち**10件が誤検出**だった
+# （誤検出率91%）。真の捏造は1件のみ。この状態では捏造の有無を測れず、
+# 「文脈を増やす施策が精度を上げたのか忠実性を売り払ったのか」を判別できない。
+# 実際 2026-08-05 に、捏造が1→3件に増える変更を「増加なし」と誤報告している。
+#
+# 誤検出の型は4つあった:
+#   ① 否定語尾を見ない  「変更されていません」を「変更」と判定（Q077/Q083/Q090）
+#   ② 文をまたぐ        `.{0,30}` が `。` を越えて別の文の語を拾う（Q19）
+#   ③ 比較対象またぎ    `機能別[^。]{0,8}7つ` が「機能別で4つ、地域別で7つ」に一致（Q088）
+#   ④ 文脈語の取り違え  「沖縄分を合わせて」を「沖縄分が大きい」と判定（Q091）
+#
+# ここでは①②を機械的に潰す。③④は型が個別なので fixture 側で対処する
+# （164個すべてを直すのではなく、実測で誤検出が出た2個だけ）。
+#
+# 🔴 真の捏造を消さないことが最優先。Q158/Q139/Q17 が残ることを
+#    test_scoring_mft.py で検証している。
+
+# 一致箇所の直後に来たら「捏造ではない」と判断する否定語尾。
+# 「〜ません」「〜ない」等。肯定文にも現れる語幹（変更/達成/増加）は、
+# これが後続するかどうかでしか肯定否定を判別できない。
+_X_NEGATION = re.compile(r"(ません|ませんでした|ない(?![ぁ-ん])|なかった|ず(?:に|、|。)|できかね)")
+
+# 一致直後の何字までを見るか。日本語の述語は概ねこの範囲に収まる。
+_X_NEG_WINDOW = 30
+
+
+def _x_false_positive(text: str, match: "re.Match") -> bool:
+    """[X] の一致が誤検出なら True。
+
+    G1: 一致直後に否定語尾がある（「変更されていません」等）
+    G2: 一致が文境界（。）をまたいでいる（別の文の語を拾っている）
+    """
+    # G2: またいだ文をつないで拾っている一致は信用しない
+    if "。" in match.group(0):
+        return True
+    # G1: 直後の窓に否定語尾があれば、その主張は否定されている
+    tail = text[match.end(): match.end() + _X_NEG_WINDOW]
+    if _X_NEGATION.search(tail):
+        return True
+    return False
+
+
 def judge_element(answer: str, el: dict) -> dict:
     """1要素のYES/NO判定。[N]/[E] は alias 一致、[X] は禁止正規表現。
 
@@ -563,8 +609,11 @@ def judge_element(answer: str, el: dict) -> dict:
         for s in (answer, normalize(answer)):
             # 排他語が無いときの初回一致は `rx.search(s)` と同一（従来経路と同じ結果）。
             for mt in rx.finditer(s):
-                if not _blocked_by_prefix(s[:mt.start()], excl):
-                    return {"verdict": True, "evidence": mt.group(0)}
+                if _blocked_by_prefix(s[:mt.start()], excl):
+                    continue
+                if _x_false_positive(s, mt):
+                    continue
+                return {"verdict": True, "evidence": mt.group(0)}
         return {"verdict": False, "evidence": None}
     return {"verdict": None, "evidence": None}
 
@@ -572,6 +621,60 @@ def judge_element(answer: str, el: dict) -> dict:
 def _p_reference(el: dict) -> str:
     """[P] 要素の Instance-Specific Rubric に使う原典抜粋。"""
     return el.get("judge_reference") or (el.get("match") or {}).get("value") or ""
+
+
+def _x_reference(case: dict) -> str:
+    """[X] の judge に渡す原典抜粋。fixture の gold_quotes を使う。
+
+    [X] 要素自身は judge_reference を持たないため（164個中0個）、
+    設問の gold_quotes で代用する。これが無いと judge は照合先を持たず、
+    原典どおりに書いた回答を捏造と誤判定する（実測: Q092 は文書をほぼ逐語で
+    引用しているのに3回とも捏造判定された）。
+    """
+    if not case:
+        return ""
+    qs = case.get("gold_quotes") or []
+    out = []
+    for q in qs:
+        t = q if isinstance(q, str) else (q.get("quote") or q.get("text") or "")
+        if t:
+            out.append(t.strip())
+    return "\n".join(out[:6])
+
+
+def _judge_x_confirm(jc, args, g: dict, el: dict, det: dict, case: dict) -> dict:
+    """決定的判定が [X] を発火させたとき、LLM に真偽を確かめる。
+
+    決定的判定は「禁止された主張が書かれている」と言うが、その9割は
+    誤検出だった。ここでは **発火を覆せるかどうか** だけを見る。
+    覆せなければ発火のまま（＝捏造）とする。
+
+    3回判定して多数決。割れた場合は verdict=None（人手確認）にする。
+    **自動で「捏造なし」と決めてしまわない**のが要点。
+    """
+    # 🔴 gold_quotes を原典として渡す案は**撤回した**（2026-08-05、実測）。
+    # 「文書に無いことを答えた」型の捏造（Q158）で、原典に近い数値が
+    # 抜粋に含まれていたため judge が正当と判断し、**3回とも見逃した**。
+    # 誤検出の救済（8/10）は変わらず、真の捏造の検出だけ壊れた。
+    # 「文書に無いこと」を検出する判定に文書の抜粋を渡してはならない。
+    ref = _p_reference(el)
+    votes = []
+    for i in range(3):
+        r = judge_element_llm(
+            jc, args.judge_model, g["question"], g["answer"],
+            el["claim"], ref, url=args.judge_url,
+            partial_is_hit=args.partial_is_hit,
+            seed=args.judge_seed + i,          # seed を変えて揺れを見る
+            prompt_version=args.judge_prompt)
+        votes.append(r.get("verdict"))
+    yes = sum(1 for v in votes if v is True)
+    no = sum(1 for v in votes if v is False)
+    if yes >= 2:
+        return {**det, "verdict": True, "x_confirm": "llm_yes", "x_votes": votes}
+    if no >= 2:
+        return {**det, "verdict": False, "x_confirm": "llm_no", "x_votes": votes}
+    # 割れた or 判定不能。自動では決めない
+    return {**det, "verdict": None, "x_confirm": "split", "x_votes": votes}
 
 
 def phase_judge(args) -> dict:
@@ -599,6 +702,18 @@ def phase_judge(args) -> dict:
             els = []
             for el in case["elements"]:
                 v = judge_element(g["answer"], el)
+                # [X] の二次判定（2026-08-05 追加）
+                # 決定的判定は誤検出が91%あった（166問で11件発火、真の捏造は1件）。
+                # 誤検出の型は「AよりもBが大きい」を「Bが大きい」と読む等、
+                # **比較の向きや文脈の理解を要する**ものが主で、正規表現では
+                # 原理的に判別できない（PREREG_X_JUDGE_2026-08-05.md §9-2）。
+                #
+                # そこで決定的判定は**一次フィルタ**として使い、
+                # **発火した件だけ** LLM に真偽を確かめさせる。
+                # 発火は166問中11件なので判定コストは小さい。
+                # 揺れ対策として3回判定し多数決を採る。割れたら None（人手確認へ）。
+                if el["type"] == "X" and v.get("verdict") is True and jc is not None:
+                    v = _judge_x_confirm(jc, args, g, el, v, case)
                 if el["type"] == "P" and jc is not None:
                     v = judge_element_llm(jc, args.judge_model, g["question"], g["answer"],
                                           el["claim"], _p_reference(el), url=args.judge_url,
