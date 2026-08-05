@@ -46,10 +46,10 @@ print(f'  再embed {time.time()-t0:.0f}秒')
 PY
 
 # 注入が本当に効いたかをログで確認する（効いていなければ測定は無意味）
-if ! docker logs anythingllm 2>&1 | grep -q '\[Doc2Query\] loaded'; then
+if ! docker logs anythingllm 2>&1 | grep -q 'Doc2Query. loaded'; then
   echo "エラー: 注入が読み込まれていない（[Doc2Query] loaded が出ていない）" >&2; exit 1
 fi
-docker logs anythingllm 2>&1 | grep '\[Doc2Query\]' | tail -1
+docker logs anythingllm 2>&1 | grep 'Doc2Query' | tail -1
 if docker logs anythingllm 2>&1 | tail -80 | grep -q 'Using cached data'; then
   echo "エラー: 前条件のベクトルが再利用された。測定は無効" >&2; exit 1
 fi
