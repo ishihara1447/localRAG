@@ -1,0 +1,25 @@
+# 埋め込みモデル差し替え評価（2026-08-05）用オーバーレイ。
+#
+# 使い方:
+#   EMB_MODEL=granite-embedding:278m EMB_QUERY_PREFIX= EMB_CHUNK_PREFIX= \
+#     docker compose -f docker-compose.yml -f docker-compose.embedding-eval.yml up -d anythingllm
+#
+# なぜオーバーレイが要るか:
+#   1. 稼働イメージは 1.0.7 だが、出荷 Windows 版は LANCE_HYBRID_RERANK の実装を
+#      持つ（1.0.7 は持たない）。評価は出荷構成に近い 1.1.0 で行う。
+#   2. 接頭辞対応（2026-08-05 に fork へ追加）はどのイメージにも入っていないため、
+#      該当ファイルだけを bind mount で差し込む。イメージ再ビルド 10分超を避ける。
+#      差し込むのは埋め込みエンジン1ファイルのみで、他の挙動は変えない。
+#   3. 埋め込みモデルは起動時に決まるので、条件ごとにコンテナを作り直す。
+#
+# 🔴 評価専用。配布物には使わない。
+services:
+  anythingllm:
+    image: localrag-anythingllm:1.1.0
+    environment:
+      - EMBEDDING_MODEL_PREF=${EMB_MODEL:?EMB_MODEL を指定してください}
+      - EMBEDDING_QUERY_PREFIX=${EMB_QUERY_PREFIX:-}
+      - EMBEDDING_CHUNK_PREFIX=${EMB_CHUNK_PREFIX:-}
+    volumes:
+      - ./anythingllm-storage:/app/server/storage
+      - ../anything-llm/server/utils/EmbeddingEngines/ollama/index.js:/app/server/utils/EmbeddingEngines/ollama/index.js:ro
