@@ -322,6 +322,71 @@ robocopy (Join-Path $PkgRoot "models") "$DataRoot\models" /E /R:2 /W:5 /NFL /NDL
 if ($LASTEXITCODE -ge 8) { Fail "モデルファイルのコピーに失敗しました(robocopy models)。" }
 $global:LASTEXITCODE = 0
 
+# ---------------------------------------------------------------------
+# 旧バージョンのモデルを片付ける
+#
+# モデルは /E（追加のみ）でコピーしており、削除する処理がどこにも無かった。
+# そのため差し替えた旧モデルが残り続ける。実測(2026-08-06)では
+# 必要 約6GB に対して 14GB を占有し、8GB が死蔵していた。
+# 数回のアップグレードで C: が枯渇し、次の導入が空き容量不足で止まる。
+#
+# 方針: **過去に本製品が同梱していたモデルの manifest だけ**を対象にする。
+# 顧客が自分で入れたモデルには触れない（消してしまうと再取得できないため)。
+# manifest を消したうえで、どの manifest からも参照されなくなった blob を消す。
+# ---------------------------------------------------------------------
+$modelsRoot = Join-Path $DataRoot "models"
+$libDir = Join-Path $modelsRoot "manifests\registry.ollama.ai\library"
+$pkgLibDir = Join-Path $PkgRoot "models\manifests\registry.ollama.ai\library"
+# 本製品がこれまで同梱してきたモデル名。**増やすことはあっても減らさないこと。**
+# ここに無い名前は顧客が自分で入れたものとみなして残す。
+$everBundled = @("qwen3", "gemma4", "bge-m3", "mxbai-embed-large",
+                 "granite4.1", "granite-embedding", "llm-jp-3")
+if ((Test-Path $libDir) -and (Test-Path $pkgLibDir)) {
+    $shipped = @(Get-ChildItem -Path $pkgLibDir -Directory -ErrorAction SilentlyContinue |
+                 ForEach-Object { $_.Name })
+    $stale = @(Get-ChildItem -Path $libDir -Directory -ErrorAction SilentlyContinue |
+               Where-Object { $shipped -notcontains $_.Name -and $everBundled -contains $_.Name })
+    foreach ($m in $stale) {
+        Info "[install] 旧バージョンのモデル $($m.Name) を削除します..."
+        Remove-Item -Recurse -Force $m.FullName -ErrorAction SilentlyContinue
+    }
+    $kept = @(Get-ChildItem -Path $libDir -Directory -ErrorAction SilentlyContinue |
+              Where-Object { $shipped -notcontains $_.Name })
+    foreach ($m in $kept) {
+        Write-Host "  残置: $($m.Name)（本製品の同梱モデルではないため触れません）"
+    }
+
+    # 残った manifest が参照している blob を集め、それ以外を消す。
+    # manifest は JSON で、config.digest と layers[].digest を持つ。
+    $referenced = New-Object System.Collections.Generic.HashSet[string]
+    foreach ($f in (Get-ChildItem -Path (Join-Path $modelsRoot "manifests") -Recurse -File -ErrorAction SilentlyContinue)) {
+        try {
+            $j = Get-Content $f.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($j.config.digest) { [void]$referenced.Add(($j.config.digest -replace ":", "-")) }
+            foreach ($l in $j.layers) { if ($l.digest) { [void]$referenced.Add(($l.digest -replace ":", "-")) } }
+        } catch {
+            # 読めない manifest があるときは、参照が拾えず blob を消しすぎる恐れがある。
+            # 安全側に倒して掃除そのものを中止する。
+            Write-Host "  WARN: $($f.Name) を読めませんでした。安全のためモデルの整理を中止します。"
+            $referenced = $null
+            break
+        }
+    }
+    if ($referenced -ne $null -and $referenced.Count -gt 0) {
+        $blobDir = Join-Path $modelsRoot "blobs"
+        $freed = 0; $removed = 0
+        foreach ($b in (Get-ChildItem -Path $blobDir -File -ErrorAction SilentlyContinue)) {
+            if (-not $referenced.Contains($b.Name)) {
+                $freed += $b.Length; $removed++
+                Remove-Item -Force $b.FullName -ErrorAction SilentlyContinue
+            }
+        }
+        if ($removed -gt 0) {
+            Info ("[install] 参照されなくなったモデルデータ {0} 個 ({1:N1} GB) を削除しました。" -f $removed, ($freed / 1GB))
+        }
+    }
+}
+
 # Runtime data dirs
 $storageDir = Join-Path $InstallRoot "app\server\storage"
 New-Item -ItemType Directory -Path $storageDir -Force | Out-Null
