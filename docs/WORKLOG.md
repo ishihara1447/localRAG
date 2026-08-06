@@ -40,6 +40,42 @@ EOF
 
 <!-- 新しい記録はこの行のすぐ下に入る -->
 
+## 2026-08-06 11:47 — v1.2.10 をビルド・分割・結合検証まで完了（未公開）
+
+`main` @ `bf92a70`
+
+欠陥2件の修正を入れた v1.2.10 をビルドした。**まだ公開していない。**
+
+## ビルドまでに詰まった点（次回のため記録）
+
+`export-windows.ps1` の必須引数と前提が揃っておらず、4回失敗してから通った。
+
+| 失敗 | 原因 | 対処 |
+|---|---|---|
+| 1 | 必須引数6つ（SourceDir/NodeDir/OllamaDir/WinSWExe/ModelsDir/RerankerModelDir）未指定 | 全指定 |
+| 2 | `-RerankerModelDir` が1階層浅い | `build-deps\reranker\japanese-reranker-xsmall-v2` |
+| 3 | `-OutputDir` 既定が相対 `.\dist`、cmd の cwd が `C:\Windows` | 絶対パス指定 |
+| 4 | `docs\customer-windows` がビルド木に無い | リポジトリから同期 |
+
+**ビルド元 `C:\LocalRAG\src` はリポジトリとは別コピーで、git 管理外。**
+修正はリポジトリ側だけでなくビルド元にも反映する必要がある（今回 collector の修正を手で複写した）。
+`windows-native/*.ps1` と `config/` も同様にビルド木へ同期した。
+
+## 検証済み（v1.2.10）
+
+- 修正3件が配布物に入っていること: zip 内エントリまで確認
+  （`app/collector/storage/tmp/.placeholder` が zip に存在）
+- `install.ps1` の構文: PowerShell パーサで検証 OK
+- 分割 5パート → 結合（顧客経路 `Join-OTE-RAG.cmd`）: ハッシュ一致
+- zip サイズ 7,860,869,520 バイト
+- `.env` 生成の単体試験: 修正前 20/31 件 → 修正後 31/31 件（失われた設定 0）
+
+## 未実施
+
+- 実機インストール（ユーザー操作待ち。UAC のため Claude 側から実行できない）
+- インストール後の `.env` 31件の実地確認、collector 安定稼働、RAG 応答と出典
+- GitHub Release 公開、v1.2.8/v1.2.9 の取り下げ
+
 ## 2026-08-06 11:14 — v1.2.9 のインストール検証で致命的欠陥2件を発見・修正
 
 `main` @ `58a4ec9` / 未コミットの変更あり
