@@ -222,24 +222,6 @@ if ($drive -ne $sysDrive) {
     if ($sysFreeGB -lt 12) { Fail "システムドライブ $sysDrive の空き容量が不足しています。モデルと作業ファイル用に 12GB 以上の空き容量が必要です。" }
 }
 
-# Ports (server / collector / dedicated ollama)
-foreach ($port in @($ServerPort, 8888, 11435)) {
-    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($conn) {
-        $owner = "unknown"
-        try { $owner = (Get-Process -Id $conn[0].OwningProcess -ErrorAction SilentlyContinue).ProcessName } catch {}
-        if ($owner -eq "wslrelay") {
-            Fail "ポート $port が WSL2 の転送サービス(wslrelay.exe)に使われています。WSL 側のサービスを止める(例: 'wsl --shutdown')か、-ServerPort で別のポートを指定してください。"
-        }
-        if ($port -eq $ServerPort) {
-            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。そのプログラムを止めるか、-ServerPort で別のポートを指定してください。"
-        } else {
-            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。このポートは製品内部で固定されており変更できません(8888=文書取り込み, 11435=モデル実行)。そのプログラムを停止してから再実行してください。"
-        }
-    }
-}
-Info "  Ports $ServerPort/8888/11435: free"
-
 # Existing installation
 if (Test-Path (Join-Path $InstallRoot "app")) {
     if (-not $Force) {
@@ -261,6 +243,45 @@ $existingSvc = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
 if ($existingSvc -and -not $Force) {
     Fail "OTE-RAG のサービスが既に登録されています。先にアンインストールを実行してください。"
 }
+
+# 🔴 -Force で上書きするとき、自分のサービスが動いたままだと下のポート確認に
+# 自分自身が引っかかって必ず停止していた（案内どおり別ポートを指定すると、
+# 同じマシンに二重のインストールができてしまう）。またコピー前にサービスを
+# 止めないと、実行中の ollama.exe / node.exe がファイルを掴んだままになり
+# robocopy が延々と再試行する。先に止める。
+if ($existingSvc -and $Force) {
+    Info "[install] -Force: 既存のサービスを停止します..."
+    foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) {
+        $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if ($s -and $s.Status -ne "Stopped") {
+            try { Stop-Service -Name $svc -Force -ErrorAction Stop } catch {
+                Fail "サービス $svc を停止できませんでした($($_.Exception.Message))。手動で停止してから再実行してください。"
+            }
+        }
+    }
+    Stop-LocalRagProcesses
+    # 停止直後はポートの解放が間に合わないことがあるので、少し待つ。
+    Start-Sleep -Seconds 3
+}
+
+
+# Ports (server / collector / dedicated ollama)
+foreach ($port in @($ServerPort, 8888, 11435)) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($conn) {
+        $owner = "unknown"
+        try { $owner = (Get-Process -Id $conn[0].OwningProcess -ErrorAction SilentlyContinue).ProcessName } catch {}
+        if ($owner -eq "wslrelay") {
+            Fail "ポート $port が WSL2 の転送サービス(wslrelay.exe)に使われています。WSL 側のサービスを止める(例: 'wsl --shutdown')か、-ServerPort で別のポートを指定してください。"
+        }
+        if ($port -eq $ServerPort) {
+            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。そのプログラムを止めるか、-ServerPort で別のポートを指定してください。"
+        } else {
+            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。このポートは製品内部で固定されており変更できません(8888=文書取り込み, 11435=モデル実行)。そのプログラムを停止してから再実行してください。"
+        }
+    }
+}
+Info "  Ports $ServerPort/8888/11435: free"
 
 # =====================================================================
 # Checksum verification

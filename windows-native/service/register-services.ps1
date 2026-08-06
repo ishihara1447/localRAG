@@ -77,7 +77,40 @@ foreach ($svc in $Services) {
 
     $existing = Get-Service -Name $svc -ErrorAction SilentlyContinue
     if ($existing) {
-        Write-Host "SKIP install: service $svc already exists (state: $($existing.Status))."
+        # 🔴 「既にあるから登録しない」で済ませてはいけない。SCM に登録されている
+        # 実行ファイルのパスが別フォルダーの旧インストールを指したままだと、
+        # この後の start は**旧バイナリを起動する**。ping は 3001 で応答を返すので
+        # インストールは「成功」と表示され、顧客は更新したつもりで旧版を使い続ける。
+        # 新しい配布物のサービス定義（依存関係や環境変数の追加）も反映されない。
+        # 登録先が今回の InstallRoot と違えば、登録し直す。
+        $registeredPath = $null
+        try {
+            $registeredPath = (Get-CimInstance -ClassName Win32_Service -Filter "Name='$svc'" -ErrorAction Stop).PathName
+        } catch {}
+        $expected = $exe
+        $pointsElsewhere = $registeredPath -and
+            ($registeredPath -replace '"', '').Trim().ToLower().StartsWith($expected.ToLower()) -eq $false
+        if ($pointsElsewhere) {
+            Write-Host "サービス $svc は別の場所($registeredPath)に登録されています。登録し直します。"
+            try { Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue } catch {}
+            & sc.exe delete $svc | Out-Null
+            $deadline = (Get-Date).AddSeconds(30)
+            while ((Get-Service -Name $svc -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $deadline)) {
+                Start-Sleep -Milliseconds 500
+            }
+            if (Get-Service -Name $svc -ErrorAction SilentlyContinue) {
+                Write-Host "ERROR: $svc の削除が完了しません。PC を再起動してから再実行してください。"
+                exit 1
+            }
+            Write-Host "Installing service: $svc"
+            & $exe install
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "ERROR: failed to install $svc (exit $LASTEXITCODE)."
+                exit 1
+            }
+        } else {
+            Write-Host "SKIP install: service $svc already exists (state: $($existing.Status))."
+        }
     } else {
         Write-Host "Installing service: $svc"
         & $exe install
