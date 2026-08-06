@@ -40,6 +40,55 @@ EOF
 
 <!-- 新しい記録はこの行のすぐ下に入る -->
 
+## 2026-08-06 12:46 — 4件目の欠陥: 独自設定が .env 書き戻しで消え、2回目の起動から無効化される
+
+`main` @ `4083709`
+
+v1.2.11 のインストール検証で、**修正1・2が効いたことを確認した**が、同時に4件目の欠陥が判明した。
+
+## 確認できたこと（修正1・2は有効）
+
+インストール後の `.env.production` は **31/31 件**で完全。
+`EMBEDDING_MODEL_PREF='granite-embedding:278m'` と `OLLAMA_MODEL_PREF='granite4.1:8b'` が入っている。
+v1.2.9 では両方とも欠落していた。collector も安定稼働（クラッシュループなし）。
+
+## 4件目: 製品が読むのは .env で、その .env が書き戻しで削られる
+
+`server/index.js`:
+```js
+process.env.NODE_ENV === "development"
+  ? require("dotenv").config({ path: `.env.${process.env.NODE_ENV}` })
+  : require("dotenv").config();   // 本番はこちら = .env
+```
+
+**`.env.production` は読まれない。** 読まれるのは `.env`。
+その `.env` を `dumpENV()` が起動時に書き戻すが、`protectedKeys` は許可リストで、
+そこに無いキーは捨てられる。winsw のサービス定義にも `NODE_ENV` しか無く補われない。
+
+実測: インストール直後の `.env` は **17件**（テンプレートは31件）。消えていた16件:
+COLLECTOR_HOTDIR_PATH, COLLECTOR_SERVICE_NAME, HF_HUB_OFFLINE, LANCE_HYBRID_RERANK,
+LANCE_HYBRID_SEARCH, LANCE_SENTENCE_CUSHION, LLM_SERVICE_NAME, LOCAL_SERVICE_CONTROL,
+NODE_ENV, OLLAMA_DISABLE_THINKING, QUERY_REFORMULATION, RERANKER_ALLOW_REMOTE,
+RERANKER_MODEL_PREF, RERANKER_QUANTIZED, WORKSPACE_DEFAULT_TOP_N, WORKSPACE_DELETION_PROTECTION
+
+**初回起動では効くが、2回目の起動から精度施策が全部消える。エラーは出ない。**
+
+## 対処
+
+- `updateENV.js` の `protectedKeys` に独自31キーを追加（fork 側 e999609）
+- `export-windows.ps1` に**ビルド時の突き合わせ検査**を追加。テンプレートのキーが
+  `updateENV.js` に無ければビルドを止める。今後キーを足しても出荷前に検出できる
+- 検証: 未保護キー 0件。存在しないキーは検出できることも確認
+
+## 未実施
+
+実機での実証（安全機構によりインストール済み製品の書き換えが止められたため）。
+次の出荷物のインストール時に確認する。出荷物で検証する方が筋が通る。
+
+## 備考
+
+v1.2.12 はビルド済みだがこの修正を含まないため破棄する。
+
 ## 2026-08-06 12:17 — v1.2.11 を用意（ロールバックのデータ消失欠陥も修正）
 
 `main` @ `6a0190e`
