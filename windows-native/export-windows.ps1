@@ -149,6 +149,10 @@ Remove-Item -Recurse -Force (Join-Path $Pkg "app\server\storage") -ErrorAction S
 Remove-Item -Recurse -Force (Join-Path $Pkg "app\collector\hotdir") -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path (Join-Path $Pkg "app\collector\hotdir") -Force | Out-Null
 Set-Content -Path (Join-Path $Pkg "app\collector\hotdir\__HOTDIR__.md") -Value "Files dropped here are processed by the collector."
+# 空ディレクトリは zip に残らない。中身のあるファイルを置いて確実に配布物へ含める。
+# これが欠けると collector が起動時に落ち続ける(v1.2.9 で発生)。
+New-Item -ItemType Directory -Path (Join-Path $Pkg "app\collector\storage\tmp") -Force | Out-Null
+Set-Content -Path (Join-Path $Pkg "app\collector\storage\tmp\.placeholder") -Value ""
 $global:LASTEXITCODE = 0
 
 # --- 2. runtime (node + ollama) ---

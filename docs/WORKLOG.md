@@ -40,6 +40,56 @@ EOF
 
 <!-- 新しい記録はこの行のすぐ下に入る -->
 
+## 2026-08-06 11:14 — v1.2.9 のインストール検証で致命的欠陥2件を発見・修正
+
+`main` @ `58a4ec9` / 未コミットの変更あり
+
+実機インストール検証（C:\LocalRAGProd、ポート3005）で、**公開中の v1.2.9 は RAG が全く動かない**ことが判明した。
+
+## 欠陥1: .env の設定 31件中 11件が無言で無効化される（致命的）
+
+`install.ps1` の `Render-Template` が `Get-Content -Raw` を**エンコーディング無指定**で使っていた。
+Windows PowerShell 5.1 は BOM 無し UTF-8 をシステム ANSI コードページ（日本語環境では CP932）として読む。
+テンプレートの日本語コメント行末の「。」= `E3 80 82` の `82` が CP932 の先頭バイトと解釈され、
+**直後の LF を巻き込んで消す**。結果、次行の設定がコメントの一部になり無効化される。
+
+失われていた設定（実測。修正前20件 / 修正後31件で再現確認済み）:
+OLLAMA_MODEL_PREF, EMBEDDING_MODEL_PREF, LANCE_HYBRID_RERANK, LANCE_SENTENCE_CUSHION,
+RERANKER_QUANTIZED, RERANKER_MODEL_PREF, OLLAMA_DISABLE_THINKING, QUERY_REFORMULATION,
+HF_HUB_OFFLINE, TARGET_OCR_LANG, LOCAL_SERVICE_CONTROL
+
+症状は `No embedding model was set.` で埋め込みが0秒で失敗し、検索も回答も成立しない。
+**これまでの精度改善（文抽出クッション、ハイブリッド再順位付け等）は出荷物では一切効いていなかった。**
+
+対処:
+- `Get-Content $templatePath -Raw -Encoding UTF8` に変更
+- 生成後にテンプレートのキー集合と生成物のキー集合を突き合わせ、**1件でも欠けたらインストールを中止**する検証を追加（この種の欠落は無言で進むため）
+
+## 欠陥2: collector が起動時にクラッシュループ
+
+配布物に `app\collector\storage\` が含まれておらず（zip が空ディレクトリを保持しない）、
+`collector/utils/files/index.js` の `if (err) resolve();` に **return が無い**ため
+`files` が undefined のまま反復に進み `TypeError: files is not iterable` で即死。
+WinSW が10秒ごとに再起動する無限ループになる。**顧客の手元では復旧できない。**
+
+対処:
+- `return resolve();` に修正（2箇所）。`!fs.existsSync` の分岐も同様に修正
+- `storage/tmp` を起動時に自動生成
+- `export-windows.ps1` で `storage/tmp/.placeholder` を同梱
+
+## 検証で確認できたこと
+
+- 5分割の結合（顧客経路 `Join-OTE-RAG.cmd`）: ハッシュ一致
+- 旧版 v1.2.5 の自動アンインストール: 正常。データは `uninstalled-20260806-093727` へ退避
+- モデル取り込み 14GB: granite4.1:8b + granite-embedding:278m
+- API 応答: `{"online":true}`
+
+## 併せて見つけた製品欠陥（未修正）
+
+`install.ps1:132` のロールバックが `Remove-Item -Recurse -Force $InstallRoot` を実行する。
+コメントには "created by this run" とあるが**このrunが作ったか確認していない**。
+顧客が既存の非空フォルダをインストール先に選び失敗すると、**そのフォルダごと消える**。
+
 ## 2026-08-06 06:20 — 精度向上を打ち切り — 現行 0.646 を確定値として記録
 
 `main` @ `22a4096` / 未コミットの変更あり

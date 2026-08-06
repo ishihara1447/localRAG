@@ -297,12 +297,36 @@ New-Item -ItemType Directory -Path (Join-Path $InstallRoot "app\collector\hotdir
 # =====================================================================
 Info "[install] Generating .env files..."
 function Render-Template([string]$templatePath, [string]$outPath) {
-    $content = Get-Content $templatePath -Raw
+    # 🔴 Read as UTF-8 explicitly. Get-Content without -Encoding uses the system
+    # ANSI codepage on Windows PowerShell 5.1 (CP932 on Japanese Windows). The
+    # templates are BOM-less UTF-8 with Japanese comments, and a comment ending
+    # in "。" (E3 80 82) makes the decoder treat 82 as a CP932 lead byte, which
+    # swallows the following LF. The next line then becomes part of the comment
+    # and the setting is silently disabled. v1.2.9 shipped with 11 of 31 settings
+    # lost this way -- including EMBEDDING_MODEL_PREF, so RAG could not work at
+    # all. Never drop this -Encoding.
+    $content = Get-Content $templatePath -Raw -Encoding UTF8
     $content = $content -replace "\{\{INSTALL_ROOT\}\}", $InstallRoot
     $content = $content -replace "\{\{SERVER_PORT\}\}", "$ServerPort"
     # UTF-8 without BOM: keeps non-ASCII / Japanese InstallRoot paths intact and
     # avoids a BOM that Node/dotenv can mis-parse.
     [System.IO.File]::WriteAllText($outPath, $content, (New-Object System.Text.UTF8Encoding($false)))
+
+    # Encoding bugs here are silent: the product installs, starts, and only fails
+    # once the customer asks a question. Compare the keys we meant to write with
+    # the keys that actually survived, and stop the install on any loss.
+    $want = @(); foreach ($l in ([IO.File]::ReadAllLines($templatePath, [Text.Encoding]::UTF8))) {
+        if ($l -match '^([A-Z_][A-Z0-9_]*)=') { $want += $Matches[1] }
+    }
+    $got = @(); foreach ($l in ([IO.File]::ReadAllLines($outPath, [Text.Encoding]::UTF8))) {
+        if ($l -match '^([A-Z_][A-Z0-9_]*)=') { $got += $Matches[1] }
+    }
+    $lost = $want | Where-Object { $got -notcontains $_ }
+    if ($lost) {
+        Fail ("$(Split-Path -Leaf $outPath) の生成で設定 $($lost.Count) 件が失われました: " +
+              ($lost -join ", ") + " — テンプレートの読み込み時に文字化けが起きています。" +
+              "インストールを中止しました(この状態では検索・回答が動作しません)。")
+    }
 }
 Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env")
 Render-Template (Join-Path $PkgRoot "config\server.env.template") (Join-Path $InstallRoot "app\server\.env.production")
