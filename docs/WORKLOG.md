@@ -40,6 +40,60 @@ EOF
 
 <!-- 新しい記録はこの行のすぐ下に入る -->
 
+## 2026-08-06 20:20 — フロントエンドのビルドを復活させ、UI の日本語化漏れを解消
+
+`main` @ `19aff16`
+
+v1.2.15 のインストール待ちの間に、UI 側の積み残しを解消した。
+
+## 🔴 フロントエンドを一度もビルドできない状態だった
+
+`frontend/index.html` がファイルとして存在せず、git 追跡もされていなかった。
+vite の既定エントリが無いため `yarn build` が通らない。
+**UI 側の修正（データコネクタのタイル除去、日本語化漏れ）が全部これで止まっていた。**
+
+配布済みビルド成果物 `server/public/_index.html` から復元し、ビルド出力の
+script/stylesheet タグをソース用のエントリ（`/src/main.jsx`）に戻した。
+
+検証: 実際にビルドして exit 0（17.61秒）。`dist/index.html` と `dist/index.js` が
+生成され、開発用の絶対URL `localhost:3001` の焼き込みは0件。
+`lang="ja"` と `<title>OTE-RAG</title>` が既存の配布物と一致。
+
+🔴 ビルド手順の注意: `npx` は PATH に無い。同梱 Node を使うこと。
+```
+set PATH=C:\LocalRAG\build-deps\node-v22.20.0-win-x64;%PATH%
+node node_modules\vite\bin\vite.js build
+node scripts\postbuild.js       ← index.html を _index.html に改名する。必須
+```
+
+## UI の日本語化漏れ
+
+`ja/common.js` は 1181/1181 キー完備だが、`t()` を通っていないハードコードの
+英語が残っていた。**顧客が最初に触る画面**が該当する。
+
+| 修正前 | 修正後 |
+|---|---|
+| `Add to queue` | 取り込みに追加 |
+| `Queued` | 取り込み待ち |
+| `This may take a while for large documents` | 大きな文書では時間がかかります |
+| `Your vectors and document text are stored privately...` | 文書の内容と検索用データは、このパソコンの中だけに保存されます。外部には送信されません。 |
+| `Your document text is embedded privately on the server running Ollama.` | 文書の内容は、このパソコン内で動く Ollama だけで処理されます。外部には送信されません。 |
+
+**「何も外に出ない」と説明するプライバシー画面がまるごと英語だった。**
+
+あわせて既定言語を `ja` に。従来は `fallbackLng: "en"` のみで `lng` 指定が無く、
+ブラウザのロケールが ja でない端末では**英語UIで起動**していた
+（`<html lang="ja">` は LanguageDetector が navigator を先に見るため効かない）。
+
+検証: ビルド出力に日本語が含まれることを確認（取り込みに追加 1件、
+外部には送信されません 3件、ほか）。開発用URLの焼き込み0件。
+`server/public` へ反映済み（既存は `public-backup-200746` に退避）。
+
+## 版数
+
+v1.2.15 は未インストールのまま破棄し、この UI 修正を含めて **v1.2.16** をビルドする。
+同じ手間で、より多くの改善が入るため。
+
 ## 2026-08-06 19:22 — CORS 全オリジン反射（最重大）ほか6件を修正
 
 `main` @ `c4cec8d`
