@@ -105,6 +105,9 @@ $storagePreserved = $false
 # 具体的に案内して中止できるようにする(自動アンインストール成功と誤認して再インストールへ進むと、
 # install.ps1 の preflight が app 残存で失敗し堂々巡りになるのを防ぐ)。
 $storageLocked = $false
+# app を削除せず残した場合は成功として終わってはいけない（呼び出し側が
+# 再インストールへ進むと preflight で必ず失敗し、堂々巡りになる）。
+$script:appKept = $false
 $storage = Join-Path $InstallRoot "app\server\storage"
 if (-not $RemoveData -and (Test-Path $storage)) {
     try {
@@ -164,8 +167,17 @@ Get-ChildItem -Path $InstallRoot -Force |
     # keep-data モードで storage を退避できなかった場合、顧客文書を含む app フォルダは
     # 削除しない(サイレントな文書消失を防ぐ)。ユーザーには手動削除を案内する。
     if ((-not $RemoveData) -and (-not $storagePreserved) -and ($_.Name -eq "app")) {
-        Write-Host "文書保護のため $entryPath は削除せず残しました。ロックを解除してから手動で削除してください。"
-        return
+        # 🔴 storage が「そもそも無い」場合まで app を残してはいけない。
+        # 守るべき文書が無いのに app が残り、次のインストールが
+        # 「app が既に存在します」で失敗し、アンインストール→失敗の
+        # 堂々巡りになる（そこから抜ける手段が手動削除しかない）。
+        if (-not (Test-Path $storage)) {
+            Write-Host "退避対象の文書データが無いため $entryPath を削除します。"
+        } else {
+            Write-Host "文書保護のため $entryPath は削除せず残しました。ロックを解除してから手動で削除してください。"
+            $script:appKept = $true
+            return
+        }
     }
     try { Remove-Item -Recurse -Force $entryPath -ErrorAction Stop } catch {
         Write-Host "WARN: could not remove $entryPath ($($_.Exception.Message)). It may be in use; a reboot may be required."
@@ -193,10 +205,25 @@ if ($RemoveData) {
 }
 
 Write-Host ""
+if ($script:appKept -and -not $storageLocked) {
+    Write-Host "アンインストールは完了しましたが、文書データを保護するため $InstallRoot\app を残しました。手動で削除してから、もう一度インストールしてください。"
+    exit 3
+}
 if ($storageLocked) {
     # 文書がロックされていて app を消せなかった。呼び出し側が区別できるよう専用コードで終了する。
     Write-Host "アンインストールは完了しましたが、文書ファイルがロックされていたため $InstallRoot\app を削除できませんでした。ロックしているアプリ(エクスプローラ/ウイルス対策等)を閉じてから、もう一度お試しください。"
     exit 3
+}
+# 🔴 判定は終了直前に取り直す。上の $residual は 30 秒待機の直後に採取した
+# 古いスナップショットで、その後のストレージ移動（GB単位で数分かかりうる）の間に
+# SCM がハンドルを解放していることが多い。古い値のまま exit 4 を返すと、
+# 再起動の必要が無いのにアップグレードを止めてしまう。
+if ($servicesPendingDelete) {
+    $stillThere = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
+    if (-not $stillThere) {
+        Write-Host "サービスの削除は完了しました。"
+        $servicesPendingDelete = $false
+    }
 }
 if ($servicesPendingDelete) {
     # 削除保留のまま再インストールへ進ませない。呼び出し側が案内できるよう専用コードで返す。

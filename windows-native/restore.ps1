@@ -33,6 +33,7 @@ foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) 
 
 # 🔴 /MIR は上書きではなく同期なので、復元前の状態は戻せない。先に退避する。
 $storageNow = Join-Path $InstallRoot "app\server\storage"
+$safety = "(退避なし)"
 if (Test-Path $storageNow) {
     $safety = Join-Path $DataRoot "before-restore-$(Get-Date -Format yyyyMMdd-HHmmss)"
     Write-Host "Saving the current storage to $safety before overwriting..."

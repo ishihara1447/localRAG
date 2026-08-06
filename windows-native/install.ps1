@@ -38,8 +38,28 @@ $script:preExisting = $false
 # the final failure message so they know the data was preserved, not lost.
 $script:storageRescuePath = $null
 
+# -Force で既存サービスを停止したかどうか。preflight の途中で失敗したときに
+# 止めっぱなしにせず、動いていた製品を元に戻すために使う。
+$script:stoppedExistingServices = $false
+
+function Restore-StoppedServices {
+    if (-not $script:stoppedExistingServices) { return }
+    Write-Host "[recover] 停止した既存サービスを再開します..."
+    foreach ($svc in @("LocalRAG-Ollama", "LocalRAG-Collector", "LocalRAG-Server")) {
+        $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if ($s -and $s.Status -ne "Running") {
+            try { Start-Service -Name $svc -ErrorAction Stop } catch {
+                Write-Host "  WARN: $svc を再開できませんでした($($_.Exception.Message))。"
+            }
+        }
+    }
+}
+
 function Fail([string]$msg) {
     if ($script:rollbackActive) { throw $msg }
+    # 🔴 ここで単に終了すると、-Force で止めた既存サービスが停止したまま残り、
+    # 顧客の製品が動かなくなる（画面には何も出ない）。止めたなら戻す。
+    Restore-StoppedServices
     Write-Host "ERROR: $msg"; exit 1
 }
 function Info([string]$msg) { Write-Host $msg }
@@ -250,6 +270,11 @@ if ($existingSvc -and -not $Force) {
 # 止めないと、実行中の ollama.exe / node.exe がファイルを掴んだままになり
 # robocopy が延々と再試行する。先に止める。
 if ($existingSvc -and $Force) {
+    # 🔴 別フォルダーへ -Force で入れる場合、$InstallRoot\app が無いので preExisting は
+    # 偽のままだが、サービス名は共通なので**元のインストールのサービスを触ることになる**。
+    # ロールバックがサービスを消してよいのは「この操作で登録した」ときだけなので、
+    # ここでも preExisting を立てて保護する。
+    $script:preExisting = $true
     Info "[install] -Force: 既存のサービスを停止します..."
     foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) {
         $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
@@ -260,6 +285,7 @@ if ($existingSvc -and $Force) {
         }
     }
     Stop-LocalRagProcesses
+    $script:stoppedExistingServices = $true
     # 停止直後はポートの解放が間に合わないことがあるので、少し待つ。
     Start-Sleep -Seconds 3
 }
@@ -368,16 +394,31 @@ $pkgLibDir = Join-Path $PkgRoot "models\manifests\registry.ollama.ai\library"
 $everBundled = @("qwen3", "gemma4", "bge-m3", "mxbai-embed-large",
                  "granite4.1", "granite-embedding", "llm-jp-3")
 if ((Test-Path $libDir) -and (Test-Path $pkgLibDir)) {
+    # 🔴 manifest は「モデル名\タグ」のファイル単位。ディレクトリ名(モデル名)だけで
+    # 比べると、同じ名前でタグだけ変えた場合(granite4.1:8b → granite4.1:3b など)に
+    # 旧タグが stale と判定されず、その blob も「参照あり」として残ってしまう。
+    # 名前とタグの組で比べる。
     $shipped = @(Get-ChildItem -Path $pkgLibDir -Directory -ErrorAction SilentlyContinue |
-                 ForEach-Object { $_.Name })
+                 ForEach-Object { $n = $_.Name; Get-ChildItem -Path $_.FullName -File -ErrorAction SilentlyContinue |
+                 ForEach-Object { "$n\$($_.Name)" } })
     $stale = @(Get-ChildItem -Path $libDir -Directory -ErrorAction SilentlyContinue |
-               Where-Object { $shipped -notcontains $_.Name -and $everBundled -contains $_.Name })
+               Where-Object { $everBundled -contains $_.Name } |
+               ForEach-Object { $n = $_.Name; Get-ChildItem -Path $_.FullName -File -ErrorAction SilentlyContinue |
+               Where-Object { $shipped -notcontains "$n\$($_.Name)" } })
     foreach ($m in $stale) {
-        Info "[install] 旧バージョンのモデル $($m.Name) を削除します..."
-        Remove-Item -Recurse -Force $m.FullName -ErrorAction SilentlyContinue
+        Info "[install] 旧バージョンのモデル $($m.Directory.Name):$($m.Name) を削除します..."
+        Remove-Item -Force $m.FullName -ErrorAction SilentlyContinue
     }
+    # タグが1つも残らなかったモデル名のフォルダーを片付ける。
+    foreach ($d in (Get-ChildItem -Path $libDir -Directory -ErrorAction SilentlyContinue)) {
+        if (-not (Get-ChildItem -Path $d.FullName -File -Recurse -ErrorAction SilentlyContinue)) {
+            Remove-Item -Recurse -Force $d.FullName -ErrorAction SilentlyContinue
+        }
+    }
+    $shippedNames = @(Get-ChildItem -Path $pkgLibDir -Directory -ErrorAction SilentlyContinue |
+                      ForEach-Object { $_.Name })
     $kept = @(Get-ChildItem -Path $libDir -Directory -ErrorAction SilentlyContinue |
-              Where-Object { $shipped -notcontains $_.Name })
+              Where-Object { $shippedNames -notcontains $_.Name })
     foreach ($m in $kept) {
         Write-Host "  残置: $($m.Name)（本製品の同梱モデルではないため触れません）"
     }
@@ -421,21 +462,71 @@ New-Item -ItemType Directory -Path (Join-Path $InstallRoot "app\collector\hotdir
 # アップグレードで直前のアンインストールが退避した文書データを引き継ぐ。
 # これが無いと、更新のたびにワークスペース・取り込み済み文書・ベクトル・チャット履歴が
 # すべて空になる(退避先に残ってはいるが、戻す手段が無かった)。
-# 引き継ぐのは storage が空のときだけ。既存データがあれば触らない。
+#
+# 🔴 「storage が空か」で判定してはいけない。この時点で app は既にコピー済みで、
+#    配布物の storage には**製品同梱のリランカーと OCR 言語データ**が入っているため
+#    常に非空になる。実データ(文書・ベクトル・DB)の有無で判定する。
+# 🔴 目印は判定・実行が終わってから消す。先に消すと、引き継げなかったときに
+#    やり直せない。
+# 配布物が同梱している埋め込みモデル名。引き継ぎ可否の判定に使う。
+$BundledEmbeddingModel = ""
+$tmplPath = Join-Path $PkgRoot "config\server.env.template"
+if (Test-Path $tmplPath) {
+    foreach ($l in ([IO.File]::ReadAllLines($tmplPath, [Text.Encoding]::UTF8))) {
+        if ($l -match '^EMBEDDING_MODEL_PREF=(.+)$') { $BundledEmbeddingModel = $Matches[1].Trim(); break }
+    }
+}
+
 $pendingMarker = Join-Path $DataRoot "pending-restore.txt"
 if (Test-Path $pendingMarker) {
-    $pendingPath = (Get-Content $pendingMarker -Raw -Encoding UTF8).Trim()
-    Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
-    $storageEmpty = -not (Get-ChildItem -Path $storageDir -Force -ErrorAction SilentlyContinue)
-    if ($pendingPath -and (Test-Path $pendingPath) -and $storageEmpty) {
+    $pendingPath = ""
+    try { $pendingPath = (Get-Content $pendingMarker -Raw -Encoding UTF8).Trim() } catch {}
+    # 実データの置き場。ここに何かあれば「既存データあり」とみなして触らない。
+    $dataMarkers = @("documents", "lancedb", "anythingllm.db", "vector-cache")
+    $hasData = $false
+    foreach ($m in $dataMarkers) {
+        $mp = Join-Path $storageDir $m
+        if ((Test-Path $mp) -and (Get-ChildItem -Path $mp -Force -ErrorAction SilentlyContinue)) { $hasData = $true; break }
+        if ((Test-Path $mp) -and (Get-Item $mp -ErrorAction SilentlyContinue).PSIsContainer -eq $false) { $hasData = $true; break }
+    }
+
+    if (-not $pendingPath -or -not (Test-Path $pendingPath)) {
+        Write-Host "[warn] 引き継ぎ元($pendingPath)が見つかりませんでした。文書データは引き継がれていません。"
+        Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
+    } elseif ($hasData) {
+        Write-Host "[warn] 既に文書データがあるため引き継ぎません。前バージョンのデータは $pendingPath に残しています。"
+        Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
+    } else {
+        # 🔴 引き継ぐ前に embedding モデルの一致を確認する。ベクトルはモデルごとに
+        #    次元も意味も異なるため、違うモデルのベクトルを引き継ぐと検索が壊れる
+        #    (エラーは出ず、精度だけが落ちる)。一致しなければ文書だけ引き継ぎ、
+        #    ベクトルは捨てて入れ直してもらう。
+        $prevEmbed = ""
+        $prevLock = Join-Path (Split-Path -Parent $pendingPath) "versions.lock"
+        if (Test-Path $prevLock) {
+            $line = Get-Content $prevLock -ErrorAction SilentlyContinue | Where-Object { $_ -match "^models=" } | Select-Object -First 1
+            if ($line) { $prevEmbed = $line }
+        }
+        $embedChanged = $prevEmbed -and ($prevEmbed -notmatch [regex]::Escape($BundledEmbeddingModel))
+
         Info "[install] 直前のバージョンの文書データを引き継ぎます..."
-        robocopy $pendingPath $storageDir /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+        # 🔴 /XD models: 引き継ぎ元の storage\models には**旧版の**同梱リランカーと
+        #    OCR 言語データが入っている。上書きすると新版のモデルが旧版に巻き戻り、
+        #    リランカーは無言でフォールバックするため精度だけが落ちる。
+        $exclude = @("/XD", (Join-Path $pendingPath "models"))
+        if ($embedChanged) {
+            Write-Host "  [!] 埋め込みモデルが変わっています。検索用のベクトルは引き継がず、文書だけ引き継ぎます。"
+            Write-Host "      インストール後、ワークスペースで文書を入れ直してください(再作成が必要です)。"
+            $exclude += @("/XD", (Join-Path $pendingPath "lancedb"), (Join-Path $pendingPath "vector-cache"))
+        }
+        robocopy $pendingPath $storageDir /E /R:2 /W:5 @exclude /NFL /NDL /NJH /NJS | Out-Null
         if ($LASTEXITCODE -ge 8) {
             $global:LASTEXITCODE = 0
             Write-Host "  WARN: 文書データを引き継げませんでした。データは $pendingPath に残っています。"
-            Write-Host "        インストール後に restore.ps1 か手動コピーで戻してください。"
+            Write-Host "        目印を残すので、インストールをやり直すと再度引き継ぎを試みます。"
         } else {
             $global:LASTEXITCODE = 0
+            Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
             Info "  引き継ぎました($pendingPath)。元データは削除せず残してあります。"
         }
     }
