@@ -226,7 +226,11 @@ foreach ($port in @($ServerPort, 8888, 11435)) {
         if ($owner -eq "wslrelay") {
             Fail "ポート $port が WSL2 の転送サービス(wslrelay.exe)に使われています。WSL 側のサービスを止める(例: 'wsl --shutdown')か、-ServerPort で別のポートを指定してください。"
         }
-        Fail "ポート $port は既に別のプログラム('$owner')が使用中です。そのプログラムを止めるか、-ServerPort で別のポートを指定してください。"
+        if ($port -eq $ServerPort) {
+            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。そのプログラムを止めるか、-ServerPort で別のポートを指定してください。"
+        } else {
+            Fail "ポート $port は既に別のプログラム('$owner')が使用中です。このポートは製品内部で固定されており変更できません(8888=文書取り込み, 11435=モデル実行)。そのプログラムを停止してから再実行してください。"
+        }
     }
 }
 Info "  Ports $ServerPort/8888/11435: free"
@@ -270,6 +274,7 @@ if (-not $SkipChecksum) {
         if ($actual -ne $expected) { Write-Host "  MISMATCH: $rel"; $bad++ }
         $count++
     }
+    if ($count -eq 0) { Fail "checksums\package.sha256 から1件も読み取れませんでした。配布パッケージが壊れているか、生成側の不具合です(この状態では整合性を確認できません)。" }
     if ($bad -gt 0) { Fail "$bad 個のファイルが整合性チェックに失敗しました。配布パッケージが破損しています。ダウンロード/コピーし直してください。" }
     Info "  $count files verified."
 }
@@ -290,22 +295,22 @@ try {
 # =====================================================================
 Info "[install] Copying application files to $InstallRoot ..."
 foreach ($d in @("app", "runtime", "winsw")) {
-    robocopy (Join-Path $PkgRoot $d) (Join-Path $InstallRoot $d) /E /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $PkgRoot $d) (Join-Path $InstallRoot $d) /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
     if ($LASTEXITCODE -ge 8) { Fail "ファイルのコピーに失敗しました($d, robocopy 終了コード $LASTEXITCODE)。" }
 }
 Copy-Item (Join-Path $PkgRoot "rag-e2e-test.ps1") $InstallRoot -Force
 if (Test-Path (Join-Path $PkgRoot "fixtures")) {
-    robocopy (Join-Path $PkgRoot "fixtures") (Join-Path $InstallRoot "fixtures") /E /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $PkgRoot "fixtures") (Join-Path $InstallRoot "fixtures") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 }
 foreach ($f in @("uninstall.ps1", "Uninstall-OTE-RAG.cmd", "start.ps1", "stop.ps1", "backup.ps1", "restore.ps1")) {
     Copy-Item (Join-Path $PkgRoot $f) $InstallRoot -Force
 }
 if (Test-Path (Join-Path $PkgRoot "LICENSES")) {
-    robocopy (Join-Path $PkgRoot "LICENSES") (Join-Path $InstallRoot "LICENSES") /E /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $PkgRoot "LICENSES") (Join-Path $InstallRoot "LICENSES") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 }
 if (Test-Path (Join-Path $PkgRoot "NOTICE")) { Copy-Item (Join-Path $PkgRoot "NOTICE") $InstallRoot -Force }
 if (Test-Path (Join-Path $PkgRoot "docs")) {
-    robocopy (Join-Path $PkgRoot "docs") (Join-Path $InstallRoot "docs") /E /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $PkgRoot "docs") (Join-Path $InstallRoot "docs") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 }
 if (Test-Path (Join-Path $PkgRoot "versions.lock")) { Copy-Item (Join-Path $PkgRoot "versions.lock") $InstallRoot -Force }
 $global:LASTEXITCODE = 0
@@ -313,13 +318,37 @@ $global:LASTEXITCODE = 0
 Info "[install] Copying models to $DataRoot\models ..."
 New-Item -ItemType Directory -Path "$DataRoot\models" -Force | Out-Null
 New-Item -ItemType Directory -Path "$DataRoot\logs" -Force | Out-Null
-robocopy (Join-Path $PkgRoot "models") "$DataRoot\models" /E /NFL /NDL /NJH /NJS | Out-Null
+robocopy (Join-Path $PkgRoot "models") "$DataRoot\models" /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) { Fail "モデルファイルのコピーに失敗しました(robocopy models)。" }
 $global:LASTEXITCODE = 0
 
 # Runtime data dirs
-New-Item -ItemType Directory -Path (Join-Path $InstallRoot "app\server\storage") -Force | Out-Null
+$storageDir = Join-Path $InstallRoot "app\server\storage"
+New-Item -ItemType Directory -Path $storageDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $InstallRoot "app\collector\hotdir") -Force | Out-Null
+
+# アップグレードで直前のアンインストールが退避した文書データを引き継ぐ。
+# これが無いと、更新のたびにワークスペース・取り込み済み文書・ベクトル・チャット履歴が
+# すべて空になる(退避先に残ってはいるが、戻す手段が無かった)。
+# 引き継ぐのは storage が空のときだけ。既存データがあれば触らない。
+$pendingMarker = Join-Path $DataRoot "pending-restore.txt"
+if (Test-Path $pendingMarker) {
+    $pendingPath = (Get-Content $pendingMarker -Raw -Encoding UTF8).Trim()
+    Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
+    $storageEmpty = -not (Get-ChildItem -Path $storageDir -Force -ErrorAction SilentlyContinue)
+    if ($pendingPath -and (Test-Path $pendingPath) -and $storageEmpty) {
+        Info "[install] 直前のバージョンの文書データを引き継ぎます..."
+        robocopy $pendingPath $storageDir /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+        if ($LASTEXITCODE -ge 8) {
+            $global:LASTEXITCODE = 0
+            Write-Host "  WARN: 文書データを引き継げませんでした。データは $pendingPath に残っています。"
+            Write-Host "        インストール後に restore.ps1 か手動コピーで戻してください。"
+        } else {
+            $global:LASTEXITCODE = 0
+            Info "  引き継ぎました($pendingPath)。元データは削除せず残してあります。"
+        }
+    }
+}
 
 # =====================================================================
 # Generate .env files from templates

@@ -18,6 +18,12 @@
   <env name="OLLAMA_HOST" value="127.0.0.1:11435" />
   <env name="OLLAMA_MODELS" value="C:\ProgramData\LocalRAG\models" />
   <env name="OLLAMA_KEEP_ALIVE" value="24h" />
+  <!-- 完全オフライン: 既定の Ollama は ollama.com へ約4時間おきに
+       model-recommendations / api/tags を取りに行く(実測: 2026-07-24〜08-06 の
+       全スケジュール行が consecutive_failures=0 = 送信成功)。顧客の監視ネットワークでは
+       この外向き通信だけで導入が止まる。クラウド機能ごと無効化する。 -->
+  <env name="OLLAMA_NO_CLOUD" value="1" />
+  <env name="OLLAMA_REMOTES" value="" />
   <!-- 単一ユーザーのデスクトップ製品なので並列1。4にするとKVキャッシュを4倍確保し、
        実行時VRAMが数倍に膨らんでGPUに載らずCPUへ転落する(gemma4:12bで2026-07-14検証)。
        VRAM 8GB 機では granite4.1:8b でも余裕が無いため、ここは1から上げないこと。 -->

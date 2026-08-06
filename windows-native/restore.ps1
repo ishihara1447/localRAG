@@ -13,6 +13,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $InstallRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$DataRoot = "C:\ProgramData\LocalRAG"
 if (-not (Test-Path $BackupZip)) { Write-Host "ERROR: backup zip not found: $BackupZip"; exit 1 }
 if (-not (Test-Path (Join-Path $InstallRoot "app\server"))) { Write-Host "ERROR: app\server not found. Is this the install root?"; exit 1 }
 
@@ -30,10 +31,44 @@ foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) 
     if ($s -and $s.Status -eq "Running") { Stop-Service -Name $svc -Force }
 }
 
+# 🔴 /MIR は上書きではなく同期なので、復元前の状態は戻せない。先に退避する。
+$storageNow = Join-Path $InstallRoot "app\server\storage"
+if (Test-Path $storageNow) {
+    $safety = Join-Path $DataRoot "before-restore-$(Get-Date -Format yyyyMMdd-HHmmss)"
+    Write-Host "Saving the current storage to $safety before overwriting..."
+    New-Item -ItemType Directory -Path $safety -Force | Out-Null
+    robocopy $storageNow (Join-Path $safety "storage") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        $global:LASTEXITCODE = 0
+        Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
+        Write-Host "ERROR: 復元前の退避に失敗しました。現在のデータを壊さないため中止します。"
+        exit 1
+    }
+    $global:LASTEXITCODE = 0
+}
+
 Write-Host "Restoring storage and hotdir..."
-robocopy (Join-Path $staging "storage") (Join-Path $InstallRoot "app\server\storage") /MIR /NFL /NDL /NJH /NJS | Out-Null
+# 🔴 storage\models には**製品同梱**のリランカーと OCR 言語データが入っている
+# (export-windows.ps1 が storage\models 配下に置く)。/MIR でそのまま同期すると、
+# 古いバックアップに無いこれらが削除される。リランカーは読み込みに失敗しても
+# 例外を投げず黙って元の検索順へ落ちるため、**エラーが出ないまま精度だけ落ちる**。
+# OCR 言語データが消えるとスキャンPDFの取り込みが失敗する。models は同期対象から外す。
+robocopy (Join-Path $staging "storage") $storageNow /MIR /XD models /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+if ($LASTEXITCODE -ge 8) {
+    $global:LASTEXITCODE = 0
+    Write-Host "ERROR: storage の復元に失敗しました(コピーできないファイルがあります)。"
+    Write-Host "       復元前の状態は $safety に退避してあります。"
+    exit 1
+}
+$global:LASTEXITCODE = 0
+# バックアップ側に models があれば、削除ではなく追加のみで戻す(顧客が入れた物を拾う)。
+if (Test-Path (Join-Path $staging "storage\models")) {
+    robocopy (Join-Path $staging "storage\models") (Join-Path $storageNow "models") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+    $global:LASTEXITCODE = 0
+}
 if (Test-Path (Join-Path $staging "hotdir")) {
-    robocopy (Join-Path $staging "hotdir") (Join-Path $InstallRoot "app\collector\hotdir") /MIR /NFL /NDL /NJH /NJS | Out-Null
+    robocopy (Join-Path $staging "hotdir") (Join-Path $InstallRoot "app\collector\hotdir") /MIR /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+    $global:LASTEXITCODE = 0
 }
 if ($RestoreEnv) {
     if (Test-Path (Join-Path $staging "server.env")) { Copy-Item (Join-Path $staging "server.env") (Join-Path $InstallRoot "app\server\.env") -Force }

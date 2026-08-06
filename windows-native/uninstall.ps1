@@ -98,6 +98,11 @@ if (-not $RemoveData -and (Test-Path $storage)) {
         New-Item -ItemType Directory -Path $keep -Force -ErrorAction Stop | Out-Null
         Move-Item $storage (Join-Path $keep "storage") -ErrorAction Stop
         $storagePreserved = $true
+        # アップグレード(アンインストール→インストール)のとき、install.ps1 がこの目印を
+        # 見て文書データを引き継ぐ。これが無いと**更新のたびにコーパスが空になり**、
+        # 顧客は全文書を入れ直すことになる(復元手段は用意されていなかった)。
+        Set-Content -Path (Join-Path $DataRoot "pending-restore.txt") `
+                    -Value (Join-Path $keep "storage") -Encoding UTF8
     } catch {
         $storageLocked = $true
         Write-Host "WARN: 文書データ($storage)を退避できませんでした($($_.Exception.Message))。ロックしているアプリ(エクスプローラ/ウイルス対策等)がある可能性があります。文書を保護するため、この後 $InstallRoot\app は削除せずに残します。"
@@ -129,7 +134,17 @@ Write-Host "Removing $InstallRoot ..."
 # itself while running. We delete every other entry now; the leftover
 # uninstall.ps1 (and the empty InstallRoot folder) must be removed manually,
 # as noted in the final message below.
-Get-ChildItem -Path $InstallRoot -Force | Where-Object { $_.FullName -ne $SelfPath } | ForEach-Object {
+# 🔴 InstallRoot 配下を列挙して消してはならない。顧客が製品専用でないフォルダー
+# (例: D:\業務データ)をインストール先に選んでいた場合、そこにある顧客のファイルを
+# 巻き添えで消してしまう。ごみ箱も経由しない。本インストーラーが作る項目だけを消す。
+# install.ps1 の Invoke-Rollback と同じ一覧。**増減したら両方直すこと。**
+$ownedItems = @("app", "runtime", "winsw", "docs", "fixtures", "LICENSES",
+                "LocalRAG.html", "LocalRAG.ico", "NOTICE", "versions.lock",
+                "Uninstall-OTE-RAG.cmd", "backup.ps1", "restore.ps1",
+                "start.ps1", "stop.ps1", "rag-e2e-test.ps1")
+Get-ChildItem -Path $InstallRoot -Force |
+    Where-Object { $_.FullName -ne $SelfPath -and $ownedItems -contains $_.Name } |
+    ForEach-Object {
     $entryPath = $_.FullName
     # keep-data モードで storage を退避できなかった場合、顧客文書を含む app フォルダは
     # 削除しない(サイレントな文書消失を防ぐ)。ユーザーには手動削除を案内する。
@@ -144,9 +159,19 @@ Get-ChildItem -Path $InstallRoot -Force | Where-Object { $_.FullName -ne $SelfPa
 
 # 6. Data root
 if ($RemoveData) {
-    Write-Host "Removing $DataRoot (models, logs, backups)..."
-    try { Remove-Item -Recurse -Force $DataRoot -ErrorAction Stop } catch {
-        Write-Host "WARN: could not fully remove $DataRoot ($($_.Exception.Message)). It may be in use; a reboot may be required."
+    # 🔴 backups\ は残す。顧客は「消す前にバックアップを取る」運用で、既定の保存先が
+    # ここ(backup.ps1 の既定出力先)。完全削除の確認文にも backups は出てこないため、
+    # 一緒に消すと「告げられていない物が消える」ことになる。
+    Write-Host "Removing $DataRoot (models, logs, preserved storage) - backups は残します..."
+    Get-ChildItem -Path $DataRoot -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne "backups" } | ForEach-Object {
+        try { Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop } catch {
+            Write-Host "WARN: could not remove $($_.FullName) ($($_.Exception.Message)). It may be in use; a reboot may be required."
+        }
+    }
+    $backupDir = Join-Path $DataRoot "backups"
+    if (Test-Path $backupDir) {
+        Write-Host "Kept: $backupDir (バックアップは削除していません。不要なら手動で削除してください)"
     }
 } else {
     Write-Host "Kept: $DataRoot (models/logs/backups and preserved storage)."

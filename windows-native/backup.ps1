@@ -38,14 +38,31 @@ try {
     Write-Host "Creating $zip ..."
     $staging = Join-Path $env:TEMP "localrag-backup-$stamp"
     New-Item -ItemType Directory -Path $staging -Force | Out-Null
-    robocopy $storage (Join-Path $staging "storage") /E /NFL /NDL /NJH /NJS | Out-Null
-    robocopy (Join-Path $InstallRoot "app\collector\hotdir") (Join-Path $staging "hotdir") /E /NFL /NDL /NJH /NJS | Out-Null
+    # 🔴 robocopy の終了コードは必ず見ること。8 以上は「一部をコピーできなかった」で、
+    # 見逃すと**欠けたバックアップを「成功」と表示**してしまう。顧客はそれを完全な
+    # バックアップだと信じ、後日 restore.ps1 の /MIR で現行データを欠けた内容に
+    # 置き換える。取りこぼした文書は現行側からも消え、二度と戻らない。
+    robocopy $storage (Join-Path $staging "storage") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        $global:LASTEXITCODE = 0
+        Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
+        Write-Host "ERROR: 文書データをコピーできませんでした(ウイルス対策ソフトや別プログラムが"
+        Write-Host "       ファイルを掴んでいる可能性があります)。**バックアップは作成していません。**"
+        Write-Host "       サービスを停止してから、もう一度実行してください。"
+        exit 1
+    }
+    $global:LASTEXITCODE = 0
+    robocopy (Join-Path $InstallRoot "app\collector\hotdir") (Join-Path $staging "hotdir") /E /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        Write-Host "WARN: hotdir をコピーできませんでした(取り込み待ちの一時ファイルのため、続行します)。"
+    }
     Copy-Item (Join-Path $InstallRoot "app\server\.env") (Join-Path $staging "server.env") -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $InstallRoot "app\collector\.env") (Join-Path $staging "collector.env") -ErrorAction SilentlyContinue
     $global:LASTEXITCODE = 0
     Compress-Archive -Path "$staging\*" -DestinationPath $zip -CompressionLevel Optimal
     Remove-Item -Recurse -Force $staging
-    Write-Host "Backup complete: $zip"
+    $zipSize = [math]::Round((Get-Item $zip).Length / 1MB, 1)
+    Write-Host "Backup complete: $zip ($zipSize MB)"
 }
 finally {
     if ($wasRunning.Count -gt 0) {
