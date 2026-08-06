@@ -23,7 +23,11 @@
        全スケジュール行が consecutive_failures=0 = 送信成功)。顧客の監視ネットワークでは
        この外向き通信だけで導入が止まる。クラウド機能ごと無効化する。 -->
   <env name="OLLAMA_NO_CLOUD" value="1" />
-  <env name="OLLAMA_REMOTES" value="" />
+  <!-- 既定の冗長度だと埋め込み1チャンクあたり約550B のログが出る。
+       1,756チャンクの文書を90本ほど取り込むと8世代すべてが入れ替わり、
+       「大量に入れたが何件か失敗した」という報告を受けた時点で
+       失敗時のログが残っていない。運用に必要な情報だけ残す。 -->
+  <env name="OLLAMA_DEBUG" value="0" />
   <!-- 単一ユーザーのデスクトップ製品なので並列1。4にするとKVキャッシュを4倍確保し、
        実行時VRAMが数倍に膨らんでGPUに載らずCPUへ転落する(gemma4:12bで2026-07-14検証)。
        VRAM 8GB 機では granite4.1:8b でも余裕が無いため、ここは1から上げないこと。 -->
@@ -32,7 +36,7 @@
   <logpath>C:\ProgramData\LocalRAG\logs</logpath>
   <log mode="roll-by-size">
     <sizeThreshold>10240</sizeThreshold>
-    <keepFiles>8</keepFiles>
+    <keepFiles>16</keepFiles>
   </log>
 
   <startmode>Automatic</startmode>

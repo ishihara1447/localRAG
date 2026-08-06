@@ -59,7 +59,16 @@ try {
     Copy-Item (Join-Path $InstallRoot "app\server\.env") (Join-Path $staging "server.env") -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $InstallRoot "app\collector\.env") (Join-Path $staging "collector.env") -ErrorAction SilentlyContinue
     $global:LASTEXITCODE = 0
-    Compress-Archive -Path "$staging\*" -DestinationPath $zip -CompressionLevel Optimal
+    # 🔴 Compress-Archive は PowerShell 5.1 では 2GB を超えるアーカイブで失敗する。
+    # 実測で 545ページPDF 1本あたり storage 約50MB。数百文書で 2GB を超える。
+    # Windows 標準の tar.exe は zip も作れて上限が無い。
+    if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+        & tar.exe -a -c -f $zip -C $staging .
+        if ($LASTEXITCODE -ne 0) { $global:LASTEXITCODE = 0; throw "バックアップの圧縮に失敗しました。" }
+        $global:LASTEXITCODE = 0
+    } else {
+        Compress-Archive -Path "$staging\*" -DestinationPath $zip -CompressionLevel Optimal
+    }
     Remove-Item -Recurse -Force $staging
     $zipSize = [math]::Round((Get-Item $zip).Length / 1MB, 1)
     Write-Host "Backup complete: $zip ($zipSize MB)"

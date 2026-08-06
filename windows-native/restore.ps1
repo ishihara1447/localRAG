@@ -18,7 +18,15 @@ if (-not (Test-Path $BackupZip)) { Write-Host "ERROR: backup zip not found: $Bac
 if (-not (Test-Path (Join-Path $InstallRoot "app\server"))) { Write-Host "ERROR: app\server not found. Is this the install root?"; exit 1 }
 
 $staging = Join-Path $env:TEMP "localrag-restore-$(Get-Date -Format yyyyMMdd-HHmmss)"
-Expand-Archive -Path $BackupZip -DestinationPath $staging
+# tar.exe は zip も展開できる。Expand-Archive は 2GB 超で失敗するため使わない。
+if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+    New-Item -ItemType Directory -Path $staging -Force | Out-Null
+    & tar.exe -xf $BackupZip -C $staging
+    if ($LASTEXITCODE -ne 0) { $global:LASTEXITCODE = 0; Write-Host "ERROR: バックアップを展開できませんでした。"; exit 1 }
+    $global:LASTEXITCODE = 0
+} else {
+    Expand-Archive -Path $BackupZip -DestinationPath $staging
+}
 if (-not (Test-Path (Join-Path $staging "storage"))) {
     Remove-Item -Recurse -Force $staging
     Write-Host "ERROR: the zip does not look like a LocalRAG backup (no storage\ inside)."
@@ -29,6 +37,26 @@ Write-Host "Stopping services..."
 foreach ($svc in @("LocalRAG-Server", "LocalRAG-Collector", "LocalRAG-Ollama")) {
     $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
     if ($s -and $s.Status -eq "Running") { Stop-Service -Name $svc -Force }
+}
+
+# 🔴 ここから先で中断してもサービスを止めたままにしない。
+# データは守られても製品が起動しなくなり、顧客からは
+# 「復元に失敗したうえ OTE-RAG が動かなくなった」と見える。
+function Start-AllServices {
+    Write-Host "Starting services..."
+    foreach ($svc in @("LocalRAG-Ollama", "LocalRAG-Collector", "LocalRAG-Server")) {
+        $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if ($s -and $s.Status -ne "Running") {
+            try { Start-Service -Name $svc -ErrorAction Stop } catch {
+                Write-Host "  WARN: $svc を再開できませんでした($($_.Exception.Message))。"
+            }
+        }
+    }
+}
+function Abort([string]$msg) {
+    Write-Host "ERROR: $msg"
+    Start-AllServices
+    exit 1
 }
 
 # 🔴 /MIR は上書きではなく同期なので、復元前の状態は戻せない。先に退避する。
@@ -42,8 +70,7 @@ if (Test-Path $storageNow) {
     if ($LASTEXITCODE -ge 8) {
         $global:LASTEXITCODE = 0
         Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
-        Write-Host "ERROR: 復元前の退避に失敗しました。現在のデータを壊さないため中止します。"
-        exit 1
+        Abort "復元前の退避に失敗しました。現在のデータを壊さないため中止します。"
     }
     $global:LASTEXITCODE = 0
 }
@@ -57,9 +84,8 @@ Write-Host "Restoring storage and hotdir..."
 robocopy (Join-Path $staging "storage") $storageNow /MIR /XD models /R:2 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) {
     $global:LASTEXITCODE = 0
-    Write-Host "ERROR: storage の復元に失敗しました(コピーできないファイルがあります)。"
     Write-Host "       復元前の状態は $safety に退避してあります。"
-    exit 1
+    Abort "storage の復元に失敗しました(コピーできないファイルがあります)。"
 }
 $global:LASTEXITCODE = 0
 # バックアップ側に models があれば、削除ではなく追加のみで戻す(顧客が入れた物を拾う)。

@@ -1,7 +1,7 @@
 # OTE-RAG トラブルシューティング（Windows 版）
 
-- 対象バージョン: v1.2.0
-- 更新日: 2026-07-17
+- 対象バージョン: v1.2.15
+- 更新日: 2026-08-06
 
 困ったときは、まずこのページの該当する症状を探してください。
 コマンドを実行する箇所では、特に断りがない限り
@@ -41,7 +41,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 現時点の `OTE-RAG-Setup.exe` はコード署名証明書を未取得のため、
 Windows SmartScreen が「不明な発行元」と警告する場合があります。
 提供元と受け取った 3 ファイル（`OTE-RAG-Setup.exe` /
-`OTE-RAG-win64-v1.2.0.zip` / `.zip.sha256`）の組み合わせを IT 担当者が
+`OTE-RAG-win64-v1.2.15.zip` / `.zip.sha256`）の組み合わせを IT 担当者が
 確認したうえで、「詳細情報」→「実行」を選んでください。
 
 ### インストーラが長時間何も表示しない
