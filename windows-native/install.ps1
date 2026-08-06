@@ -73,7 +73,12 @@ function Invoke-Rollback {
     Write-Host "[rollback] インストールに失敗したため、この操作で作成したファイルとサービスを片付けています..."
 
     # 1. Remove the three services if this run reached the registration step.
-    if ($script:servicesTouched) {
+    # 🔴 -Force で既存インストールを上書きしていた場合($preExisting)は、ここで
+    # サービスを消してはならない。サービス名は共通なので、消すと**元から動いていた
+    # インストールのサービスまで消える**。ステップ4はファイル削除を回避しているのに
+    # ここだけ回避しておらず、その状態で「環境を元に戻しました」と表示していた。
+    # 実際には動いていた製品が起動不能になる。
+    if ($script:servicesTouched -and -not $script:preExisting) {
         $unregister = Join-Path $InstallRoot "winsw\unregister-services.ps1"
         if (Test-Path $unregister) {
             try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $unregister } catch {}
@@ -588,7 +593,16 @@ catch {
     # Any failure in the installation body: undo this run's artifacts so the
     # customer can simply run the installer again from a clean state.
     Invoke-Rollback
-    Write-Host "ERROR: インストールに失敗しました($($_.Exception.Message))。環境を元に戻しました。もう一度インストールを実行できます。"
+    # 🔴 「元に戻した」と言えるのは、この操作で作った物だけを消した場合に限る。
+    # -Force で既存インストールを上書きしていた場合、ファイルは既に上書き済みで
+    # 復元していない。事実と違うことを伝えると、顧客は動くはずだと思って放置してしまう。
+    if ($script:preExisting) {
+        Write-Host "ERROR: インストールに失敗しました($($_.Exception.Message))。"
+        Write-Host "       既存のインストールを上書きする途中で失敗したため、**元の状態には戻っていません**。"
+        Write-Host "       $InstallRoot をアンインストールしてから、インストールをやり直してください。"
+    } else {
+        Write-Host "ERROR: インストールに失敗しました($($_.Exception.Message))。環境を元に戻しました。もう一度インストールを実行できます。"
+    }
     if ($script:storageRescuePath) {
         Write-Host "お客様の文書データは $script:storageRescuePath\storage に保管しました(消えていません)。"
     }

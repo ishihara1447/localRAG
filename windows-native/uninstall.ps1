@@ -70,9 +70,24 @@ foreach ($svc in $Services) {
         Start-Sleep -Milliseconds 500
     }
 }
+# 🔴 サービスが「削除保留」で残ると、この後の再インストールが必ず失敗する
+# （install.ps1 の preflight が「先にアンインストールしてください」で止まる）。
+# いまアンインストールしたばかりなのに、である。従来は WARN を出すだけで
+# 終了コード 0 を返していたため、Setup.exe は成功と見なして再インストールへ進み、
+# 顧客は同じ所で失敗し続けるループに入っていた。
+# 発火条件は日常的で、services.msc やタスクマネージャでこのサービスを開いていると
+# SCM がハンドルを掴んだまま削除保留にする。
+# 専用の終了コード 4 を返し、呼び出し側が「再起動が必要」と案内できるようにする。
 $residual = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
+$servicesPendingDelete = $false
 if ($residual) {
-    Write-Host "WARN: services still present after 30s: $($residual.Name -join ', '). A reboot may be required to finish removal."
+    $servicesPendingDelete = $true
+    Write-Host ""
+    Write-Host "[!] サービス $($residual.Name -join ', ') が削除待ちのまま残っています。"
+    Write-Host "    Windows がサービスの削除を完了できていません。"
+    Write-Host "    サービス画面(services.msc)やタスクマネージャを開いている場合は閉じてください。"
+    Write-Host "    **PC を再起動すると削除が完了します。** 再起動後にインストールをやり直してください。"
+    Write-Host ""
 }
 
 # The steps below are wrapped in individual try/catch so that one locked file
@@ -182,5 +197,10 @@ if ($storageLocked) {
     # 文書がロックされていて app を消せなかった。呼び出し側が区別できるよう専用コードで終了する。
     Write-Host "アンインストールは完了しましたが、文書ファイルがロックされていたため $InstallRoot\app を削除できませんでした。ロックしているアプリ(エクスプローラ/ウイルス対策等)を閉じてから、もう一度お試しください。"
     exit 3
+}
+if ($servicesPendingDelete) {
+    # 削除保留のまま再インストールへ進ませない。呼び出し側が案内できるよう専用コードで返す。
+    Write-Host "アンインストールは完了しましたが、サービスの削除が Windows 側で保留されています。PC を再起動してからインストールをやり直してください。"
+    exit 4
 }
 Write-Host "Uninstall complete. You can delete the remaining uninstall.ps1 manually."
