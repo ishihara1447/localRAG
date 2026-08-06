@@ -129,7 +129,24 @@ function Invoke-Rollback {
                 }
             } catch {}
         }
-        Remove-Item -Recurse -Force $InstallRoot -ErrorAction SilentlyContinue
+        # 🔴 Only delete InstallRoot when this run created it. If the customer
+        # chose a folder that already existed (e.g. a documents folder), it may
+        # hold files that are not ours, and the storage rescue above does not
+        # cover them. Deleting it would destroy their data. In that case remove
+        # only the items we wrote and leave everything else alone.
+        if ($script:createdInstallRoot) {
+            Remove-Item -Recurse -Force $InstallRoot -ErrorAction SilentlyContinue
+        } else {
+            # 実際に導入先へ作られる項目に合わせること。増減したらここも直す。
+            foreach ($item in @("app", "runtime", "winsw", "docs", "fixtures", "LICENSES",
+                                "LocalRAG.html", "LocalRAG.ico", "NOTICE", "versions.lock",
+                                "Uninstall-OTE-RAG.cmd", "backup.ps1", "restore.ps1",
+                                "start.ps1", "stop.ps1", "uninstall.ps1",
+                                "rag-e2e-test.ps1")) {
+                Remove-Item -Recurse -Force (Join-Path $InstallRoot $item) -ErrorAction SilentlyContinue
+            }
+            Write-Host "[rollback] $InstallRoot は既存のフォルダーだったため、本インストーラーが作成した項目のみ削除しました。"
+        }
     }
 }
 
@@ -222,6 +239,14 @@ if (Test-Path (Join-Path $InstallRoot "app")) {
     # -Force over an existing install: if this run fails, Invoke-Rollback must
     # not delete/relocate the existing installation we are overwriting.
     $script:preExisting = $true
+} elseif (Test-Path $InstallRoot) {
+    # An existing folder that is not one of our installations. We install into it
+    # rather than refuse, but the customer should know their files are now mixed
+    # in with the product (and that uninstall works on our own items only).
+    if (Get-ChildItem -Path $InstallRoot -Force -ErrorAction SilentlyContinue) {
+        Write-Host "[warn] $InstallRoot は既にファイルがあるフォルダーです。この中へインストールします。"
+        Write-Host "       製品専用の空フォルダー(既定: C:\LocalRAG)を指定することを推奨します。"
+    }
 }
 $existingSvc = Get-Service -Name "LocalRAG-*" -ErrorAction SilentlyContinue
 if ($existingSvc -and -not $Force) {
@@ -253,6 +278,10 @@ if (-not $SkipChecksum) {
 # Installation body (transactional: any failure below triggers Invoke-Rollback)
 # From here on we start creating artifacts, so arm rollback and wrap the rest.
 # =====================================================================
+# Whether InstallRoot itself is ours to delete on rollback. If the customer
+# pointed the installer at a folder that already had other files in it, deleting
+# the folder would destroy their data -- see Invoke-Rollback step 4.
+$script:createdInstallRoot = -not (Test-Path $InstallRoot)
 $script:rollbackActive = $true
 try {
 
