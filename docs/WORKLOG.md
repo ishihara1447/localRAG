@@ -40,6 +40,43 @@ EOF
 
 <!-- 新しい記録はこの行のすぐ下に入る -->
 
+## 2026-08-06 13:16 — v1.2.13 をビルド・分割・結合検証まで完了（未公開・インストール検証待ち）
+
+`main` @ `a57b552` / 未コミットの変更あり
+
+14件の修正を入れた **v1.2.13** をビルドした。**まだ公開していない。**
+
+## 検証済み
+
+| 検証 | 結果 |
+|---|---|
+| **新設したビルド時検査が動作** | `env keys: 32 checked against updateENV.js protectedKeys` |
+| 修正14件が配布物に入っているか | 全て確認（製品コード2件・配布スクリプト8パターン・サービスXML1件） |
+| 分割5パート → 結合（顧客経路） | ハッシュ一致 |
+| zip サイズ | 7,860,876,180 バイト |
+
+配布物での確認内容:
+- `winsw/LocalRAG-Ollama.xml` に `OLLAMA_NO_CLOUD`
+- `config/server.env.template` と `app/server/utils/AiProviders/modelMap/index.js` に `OTE_OFFLINE`
+- `lance/index.js` にリランクのフォールバック
+- `OCRLoader/index.js` に正しい真偽判定
+- `install.ps1`/`uninstall.ps1`/`backup.ps1`/`restore.ps1` に `ownedItems`・`pending-restore`・
+  `backups は残します`・`XD models`・`R:2 /W:5`（12箇所）ほか
+
+## 未実施
+
+実機インストール（ユーザー操作待ち。UAC のため Claude 側から実行できない）。
+インストール後に確認すること:
+- `.env` が31件保たれるか（v1.2.11 では17件に削られた）
+- Ollama が ollama.com へ出ないか（v1.2.11 では出ていた）
+- サーバーが GitHub へ出ないか（v1.2.11 では出ていた）
+- **文書データが引き継がれるか**（v1.2.11 のインストールでは実際に消えた）
+
+## 未処置17件を文書化
+
+`docs/DEFERRED_DEFECTS_2026-08-06.md` に整理した。次サイクルで着手する。
+併せて「調査して問題なしと確認できたもの」も記録し、再調査を避ける。
+
 ## 2026-08-06 13:00 — 調査で31件の欠陥が判明、14件を修正（オフライン破りを含む）
 
 `main` @ `8e062c7`

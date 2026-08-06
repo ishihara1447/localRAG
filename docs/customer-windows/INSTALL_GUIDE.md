@@ -1,6 +1,6 @@
 # OTE-RAG インストールガイド（Windows 版）
 
-- 対象バージョン: v1.2.12
+- 対象バージョン: v1.2.13
 - 更新日: 2026-07-17
 
 このガイドは、OTE-RAG（所内文書を検索して回答する AI システム）を
@@ -15,8 +15,8 @@ Windows パソコン 1 台にインストールする手順を説明します。
 
 ```text
 OTE-RAG-Setup.exe
-OTE-RAG-win64-v1.2.12.zip
-OTE-RAG-win64-v1.2.12.zip.sha256
+OTE-RAG-win64-v1.2.13.zip
+OTE-RAG-win64-v1.2.13.zip.sha256
 ```
 
 1. `OTE-RAG-Setup.exe` をダブルクリックします。
@@ -42,7 +42,7 @@ Setup.exe は、外側 zip の SHA-256 検証、展開、アプリケーショ�
 | 項目 | 条件 |
 |---|---|
 | OS | Windows 11（Windows 10 21H2 以降でも動作します） |
-| GPU | NVIDIA 製 GPU、ビデオメモリ（VRAM）**8GB 以上**（16GB 推奨）。NVIDIA ドライバ導入済みであること。**8GB での動作は未検証です**（v1.2.12 時点） |
+| GPU | NVIDIA 製 GPU、ビデオメモリ（VRAM）**8GB 以上**（16GB 推奨）。NVIDIA ドライバ導入済みであること。**8GB での動作は未検証です**（v1.2.13 時点） |
 | CPU | **AVX2 対応**（2013年以降の Intel Core i / 2015年以降の AMD なら通常対応）。非対応の場合、エラーにならず精度や速度が落ちる可能性があります（未検証） |
 | ディスク空き容量 | 20GB 以上（インストール先ドライブ） |
 | 権限 | Windows の管理者権限（インストール時のみ必要） |
@@ -61,11 +61,11 @@ Setup.exe は、外側 zip の SHA-256 検証、展開、アプリケーショ�
 
 ## 2. 配布パッケージの内容
 
-手動手順で使う配布物は `OTE-RAG-win64-v1.2.12.zip` です
+手動手順で使う配布物は `OTE-RAG-win64-v1.2.13.zip` です
 （モデルを含むため数 GB あります）。展開すると以下の構成になります。
 
 ```
-OTE-RAG-win64-v1.2.12\
+OTE-RAG-win64-v1.2.13\
   install.ps1                インストール用スクリプト
   uninstall.ps1              アンインストール用
   start.ps1 / stop.ps1       手動での起動・停止
@@ -108,7 +108,7 @@ PowerShell（スタートメニューで「PowerShell」と検索して起動。
 
 ```powershell
 cd C:\Users\<ユーザー名>\Downloads
-tar.exe -xf .\OTE-RAG-win64-v1.2.12.zip
+tar.exe -xf .\OTE-RAG-win64-v1.2.13.zip
 ```
 
 ファイル数が多いため、展開には数分〜十数分かかることがあります。
@@ -133,7 +133,7 @@ tar.exe -xf .\OTE-RAG-win64-v1.2.12.zip
 実行します（2 行とも、そのままコピーして貼り付けできます）。
 
 ```powershell
-cd C:\Users\<ユーザー名>\Downloads\OTE-RAG-win64-v1.2.12
+cd C:\Users\<ユーザー名>\Downloads\OTE-RAG-win64-v1.2.13
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
