@@ -103,6 +103,23 @@ if ($devApiHit) {
     Write-Host "       Offending file(s): $($devApiHit.FullName -join ', ')"
     exit 1
 }
+# server.env.template のキーが updateENV.js の protectedKeys に載っていないと、
+# AnythingLLM が起動時に .env を書き戻すときそのキーを捨てる。本番は .env を読むため、
+# **2回目の起動から設定が無言で効かなくなる**(v1.2.11 まで実際にそうなっていた)。
+# 出荷前にここで突き合わせる。
+$tmplKeys = @()
+foreach ($l in ([IO.File]::ReadAllLines((Join-Path $PSScriptRoot "config\server.env.template"), [Text.Encoding]::UTF8))) {
+    if ($l -match '^([A-Z_][A-Z0-9_]*)=') { $tmplKeys += $Matches[1] }
+}
+$updEnv = [IO.File]::ReadAllText((Join-Path $SourceDir "server\utils\helpers\updateENV.js"), [Text.Encoding]::UTF8)
+$unprotected = $tmplKeys | Where-Object { $updEnv -notmatch ('"' + [regex]::Escape($_) + '"') }
+if ($unprotected) {
+    Write-Host "ERROR: 次の設定キーが updateENV.js に見当たりません: $($unprotected -join ', ')"
+    Write-Host "       protectedKeys に無いキーは .env の書き戻しで消え、再起動後に設定が効かなくなります。"
+    exit 1
+}
+Write-Host "  env keys: $($tmplKeys.Count) checked against updateENV.js protectedKeys"
+
 Assert-Path (Join-Path $NodeDir "node.exe") "node.exe in NodeDir"
 Assert-Path (Join-Path $OllamaDir "ollama.exe") "ollama.exe in OllamaDir"
 Assert-Path (Join-Path $OllamaDir "lib\ollama\llama-server.exe") "llama-server.exe in OllamaDir (extract the full Ollama Windows zip, not only ollama.exe)"
